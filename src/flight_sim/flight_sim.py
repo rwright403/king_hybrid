@@ -5,7 +5,8 @@ RUNNING SIM BY DEFINING FLIGHT OBJECT
 PLOTTING AT THE END
 """
 
-#TODO: ADD import src.constants
+from src import constants
+import numpy as np
 
 from rocketpy import (
     Environment,
@@ -19,10 +20,10 @@ from rocketpy import (
 )
 
 #1) def environment
-env = Environment(latitude=47.989083, longitude=-81.853361, elevation=370.3) #LAUNCH PAD DATA FOR LAUNCH CANADA
+env = Environment(latitude=constants.latitude, longitude=constants.latitude, elevation=constants.elevation) 
 
 env.set_date(
-    (2023, 10, 14, 00)
+    (constants.year, constants.month, constants.date, constants.hour)
 )  # Hour given in UTC time #Arbitrary Date
 
 env.set_atmospheric_model(type="Forecast", file="GFS") #THIS USES GFS ATMOSPHERIC MODEL, OTHER MODELS EXIST CAN BE LOOKED AT LATER
@@ -31,11 +32,11 @@ env.set_atmospheric_model(type="Forecast", file="GFS") #THIS USES GFS ATMOSPHERI
 #2) Define ENGINE! START W TANK THEN CC
 
 # Define the fluids
-oxidizer_liq = Fluid(name="N2O_l", density=1220)
-oxidizer_gas = Fluid(name="N2O_g", density=1.9277)
+oxidizer_liq = Fluid(name="N2O_l", density=constants.rho_ox_liq)
+oxidizer_gas = Fluid(name="N2O_g", density=constants.rho_ox_gas)
 
 # Define tank geometry
-tank_shape = CylindricalTank(115 / 2000, 0.705)
+tank_shape = CylindricalTank(constants.r_tank, constants.height_tank, spherical_caps=False)
 
 # Define tank
 oxidizer_tank = MassFlowRateBasedTank(
@@ -60,20 +61,20 @@ example_hybrid = HybridMotor(
     nozzle_radius=63.36 / 2000,
     grain_number=4,
     grain_separation=0,
-    grain_outer_radius=0.0575,
-    grain_initial_inner_radius=0.025,
-    grain_initial_height=0.1375,
-    grain_density=900,
-    grains_center_of_mass_position=0.384,
+    grain_outer_radius=0.0723554901/2, #TODO: MAKE THIS A CONSTANT
+    grain_initial_inner_radius=np.sqrt(constants.A_port_i/np.pi),
+    grain_initial_height=constants.L,
+    grain_density=constants.rho_fuel,
+    grains_center_of_mass_position=constants.L/2,
     center_of_dry_mass_position=0.284,
     nozzle_position=0,
-    burn_time=5.2,
-    throat_radius=26 / 2000,
+    burn_time=7,
+    throat_radius=np.sqrt(constants.A_throat/np.pi),
 )
 
 #ADD THE OX TANK TO THE CC
 example_hybrid.add_tank(
-  tank = oxidizer_tank, position = 1.0115
+  tank = oxidizer_tank, position = 1.50115
 )
 
 #NOW WE HAVE OUR HYBRID, CAN SEE RESULTS W example_hybrid.all_info()
@@ -94,8 +95,8 @@ See results.
 """
 #CREATE ROCKET
 XENIA2 = Rocket(
-    radius=127 / 2000,
-    mass=14.426,
+    radius=constants.rocket_fuselage_rad,
+    mass=constants.rocket_dry_mass,
     inertia=(6.321, 6.321, 0.034),
     power_off_drag=r'./src/flight_sim/sample_drag.csv',
     power_on_drag=r'./src/flight_sim/sample_drag.csv',
@@ -103,11 +104,13 @@ XENIA2 = Rocket(
     coordinate_system_orientation="tail_to_nose",
 )
 
-#NEED TO ADD THE HYBRID TO THE SHITASS XENIA 2 ROCKET
+
+#NEED TO ADD THE HYBRID TO THE  XENIA 2 ROCKET
 XENIA2.add_motor(example_hybrid, position=-1.255)
 
-#can add rail guides to the rocket to get a better idea of off the rail velocity and stability!!!
 """
+#can add rail guides to the rocket to get a better idea of off the rail velocity and stability!!!
+
 rail_buttons = calisto.set_rail_buttons(
     upper_button_position=0.0818,
     lower_button_position=-0.6182,
@@ -117,7 +120,7 @@ rail_buttons = calisto.set_rail_buttons(
 
 #CAN ADD AERO SURFACES TO ROCKET
 nose_cone = XENIA2.add_nose(
-    length=0.55829, kind="von karman", position=1.278
+    length=0.55829, kind="von karman", position=1.578
 )
 
 fin_set = XENIA2.add_trapezoidal_fins(
@@ -125,7 +128,7 @@ fin_set = XENIA2.add_trapezoidal_fins(
     root_chord=0.120,
     tip_chord=0.060,
     span=0.110,
-    position=-1.04956,
+    position=-1.504956,
     cant_angle=0.5,
     airfoil=(r'./src/flight_sim/NACA0012-radians.csv',"radians"),
 )
@@ -134,6 +137,7 @@ tail = XENIA2.add_tail(
     top_radius=0.0635, bottom_radius=0.0435, length=0.060, position=-1.194656
 )
 
+"""
 #CAN ADD PARACHUTES!!!!!
 main = XENIA2.add_parachute(
     name="main",
@@ -152,14 +156,14 @@ drogue = XENIA2.add_parachute(
     lag=1.5,
     noise=(0, 8.3, 0.5),
 )
+"""
 
 ####SUGGESTED TO PLOT STATIC MARGIN TO SEE STABILITY. SIM WILL FAIL IF OVERSTABLE OR NEGATIVE
 XENIA2.plots.static_margin()
 
-
 ####LASTLY TO RUN SIM WE NEED TO CREATE A FLIGHT OBJECT
 test_flight = Flight(
-    rocket=XENIA2, environment=env, rail_length=5.2, inclination=85, heading=0
+    rocket=XENIA2, environment=env, rail_length=constants.launch_rail_length, inclination=constants.inclination, heading=constants.heading
     )
 
 test_flight.all_info() #BIG DATA
