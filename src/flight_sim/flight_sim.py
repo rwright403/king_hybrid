@@ -26,7 +26,7 @@ env.set_date(
     (constants.year, constants.month, constants.date, constants.hour)
 )  # Hour given in UTC time #Arbitrary Date
 
-env.set_atmospheric_model(type="Forecast", file="GFS") #THIS USES GFS ATMOSPHERIC MODEL, OTHER MODELS EXIST CAN BE LOOKED AT LATER
+env.set_atmospheric_model(type="standard_atmosphere", file="GFS") #THIS USES GFS ATMOSPHERIC MODEL, OTHER MODELS EXIST CAN BE LOOKED AT LATER
 #env.info() #PRINTS ENVIRONMENT DATA
 
 #2) Define ENGINE! START W TANK THEN CC
@@ -106,7 +106,7 @@ XENIA2 = Rocket(
 
 
 #NEED TO ADD THE HYBRID TO THE  XENIA 2 ROCKET
-XENIA2.add_motor(example_hybrid, position=-1.255)
+XENIA2.add_motor(example_hybrid, position=0)
 
 """
 #can add rail guides to the rocket to get a better idea of off the rail velocity and stability!!!
@@ -120,11 +120,11 @@ rail_buttons = calisto.set_rail_buttons(
 
 #CAN ADD AERO SURFACES TO ROCKET
 nose_cone = XENIA2.add_nose(
-    length=0.55829, kind="von karman", position=1.578
+    length=0.55829, kind="von karman", position=3
 )
 
 fin_set = XENIA2.add_trapezoidal_fins(
-    n=4,
+    n=3,
     root_chord=0.120,
     tip_chord=0.060,
     span=0.110,
@@ -134,7 +134,7 @@ fin_set = XENIA2.add_trapezoidal_fins(
 )
 
 tail = XENIA2.add_tail(
-    top_radius=0.0635, bottom_radius=0.0435, length=0.060, position=-1.194656
+    top_radius=0.0635, bottom_radius=0.0435, length=0.060, position=0
 )
 
 """

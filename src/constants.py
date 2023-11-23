@@ -43,7 +43,7 @@ A_exit = 0.004229867915 #m^2
 
 r_tank = intometer(5.5/2) #m --> for trajectory sim
 height_tank = intometer(40) #m --> for trajectory sim
-V_tank = 0.0108091023 #np.pi*h_tank*(r_tank)**2 #m^3
+V_tank = 0.00937 #m^3
 
 P_tank = 5000000 #Pa
 fill_level = 0.6
@@ -53,10 +53,9 @@ P_atm = 101325 #Pa
 timestep = 0.05 #s
 all_error = 0.01 
 
-
 ###ROCKET DATA --> MVH-1
-rocket_fuselage_rad = 4.5/2
-rocket_dry_mass = 40 #kg
+rocket_fuselage_rad = intometer(5.5/2) #m --> for trajectory sim
+rocket_dry_mass = 30 #kg
 
 nosecone_shape = 'Power Series'
 nosecone_length = 0.47 #m
