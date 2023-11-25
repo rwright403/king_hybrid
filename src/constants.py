@@ -59,3 +59,7 @@ rocket_dry_mass = 30 #kg
 
 nosecone_shape = 'Power Series'
 nosecone_length = 0.47 #m
+
+###FILEPATHS FOR VALIDATION
+model_file_path = r'src\thrust.csv'
+data_file_path = r'src\bens_validation_data\UofT_Deliverance_II\UofT_Deliverance_II_Thrust.csv'

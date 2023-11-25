@@ -32,7 +32,6 @@ while r1ox.t < 7:
     thrust_arr.append(r1cc.instThrust)
 
 ###WRITE CSV FOR FLIGHT SIM
-"""
 m_dot_combined_arr = list(zip(time_arr,m_dot_arr))
 thrust_combined_arr = list(zip(time_arr, thrust_arr))
 
@@ -43,10 +42,10 @@ with open(r'./src/m_dot_ox.csv' , 'w', newline='') as file:
 with open(r'./src/thrust.csv' , 'w', newline='') as file:
     writer = csv.writer(file)
     writer.writerows(thrust_combined_arr)
-"""
 
-###PLOTS
+
 """
+###PLOTS
 plt.subplot(1,2,1)
 plt.plot(time_arr,m_dot_arr)
 plt.xlabel('Time (s)')
