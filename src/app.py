@@ -11,7 +11,7 @@ def run():
         print("3 --> Sensitivity Analysis")
         print("4 --> Model Validation")
 
-        user_input = input("Enter number to select analysis:")
+        user_input = input("Enter number to select analysis: ")
 
     if user_input =='1':
         print("Running Thrust Curve from inputs in constants.py")
@@ -23,7 +23,7 @@ def run():
         from src.flight_sim import flight_sim
 
     if user_input =='3':
-        exit()
+        from src.sensitivity_analysis import sensitivity_analysis
 
     if user_input =='4':
         from src.thrust_curve import thrust_curve

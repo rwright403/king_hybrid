@@ -63,3 +63,24 @@ nosecone_length = 0.47 #m
 ###FILEPATHS FOR VALIDATION
 model_file_path = r'src\thrust.csv'
 data_file_path = r'src\bens_validation_data\UofT_Deliverance_II\UofT_Deliverance_II_Thrust.csv'
+
+###SENSITIVITY ANALYSIS INFORMATION!!!!
+"""
+Variables to analyize:
+fill_level
+C_inj
+V_tank
+P_tank
+m_fuel_i
+a
+L
+A_port_i
+A_throat
+A_exit
+P_cc
+"""
+
+test_var = "a"
+min_bound = 0.1
+max_bound = 0.2
+num_iterations=5

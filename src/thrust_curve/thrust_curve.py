@@ -11,7 +11,6 @@ import csv
 time_arr = []
 m_dot_arr = []
 thrust_arr = []
-timestep = 0.05
 P_cc = constants.P_atm
 
 r1ox = OxTank(constants.oxName, constants.timestep, constants.fill_level, constants.C_inj,
