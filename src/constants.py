@@ -1,9 +1,11 @@
+#remember to save after updating
+
 import numpy as np
 
 def intometer(x):
     return x*0.0254
 
-#LAUNCH PAD DATA FOR LAUNCH CANADA
+###LAUNCH PAD DATA FOR LAUNCH CANADA
 latitude=47.989083
 longitude=-81.853361
 elevation=370.3
@@ -47,11 +49,13 @@ V_tank = 0.00937 #m^3
 
 P_tank = 5000000 #Pa
 fill_level = 0.6
-C_inj = 0.0000083
-
+C_inj = 0.00001
 P_atm = 101325 #Pa
+
+### Sim Variables
 timestep = 0.05 #s
 all_error = 0.01 
+sim_time = 10 #s (time engine will be simulated over)
 
 ###ROCKET DATA --> MVH-1
 rocket_fuselage_rad = intometer(5.5/2) #m --> for trajectory sim
@@ -77,10 +81,9 @@ L
 A_port_i
 A_throat
 A_exit
-P_cc
 """
 
-test_var = "a"
-min_bound = 0.1
-max_bound = 0.2
+test_var = "C_inj"
+min_bound = 0.000005
+max_bound = 0.00003
 num_iterations=5
