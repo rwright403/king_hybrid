@@ -8,7 +8,6 @@ from rocketcea.cea_obj_w_units import CEA_Obj
 from rocketcea.cea_obj import add_new_fuel
 
 
-
 class cc():
     def __init__(self, oxidizer_name, fuel_name, fuel_properties, m_fuel_i, rho_fuel, a, n, L,A_port_i, P_atm, A_throat, A_exit, timestep):
        
@@ -37,8 +36,9 @@ class cc():
         self.timestep = timestep
 
         
-        #intial values
+        #intial values (treat as private members)
         self.P_cc = P_atm
+        self.v_exit = 0
         ### UNUSED #self.A_port_f = 0.00411180831 #m^3
         self.r_dot_t = 0.1 
 
@@ -96,11 +96,11 @@ class cc():
 
                        
         #solve exit velocity
-        v_exit = np.sqrt( ((2*self.y)/(self.y-1)) *self.R*T_cc* (1-(P_exit/self.P_cc)**((self.y-1)/self.y) ) )
+        self.v_exit = np.sqrt( ((2*self.y)/(self.y-1)) *self.R*T_cc* (1-(P_exit/self.P_cc)**((self.y-1)/self.y) ) )
         #print(v_exit)
 
         #solve exit thrust
-        self.instThrust = ((m_dot_fuel+m_dot_ox)*v_exit) #+ self.A_exit*(70000-101325)   #TODO: COMBINE W FLIGHT SIM MODEL
+        self.instThrust = ((m_dot_fuel+m_dot_ox)*self.v_exit)# -self.A_exit*(constants.P_atm)) #+ self.A_exit*(70000-101325)   #TODO: COMBINE W FLIGHT SIM MODEL
 
         #print("ISP: ", self.instThrust/(self.m_dot_cc_t*9.81))
 
@@ -108,7 +108,7 @@ class cc():
         #print("cstar: ", cstar)
 
         #recalculate P_cc
-        self.P_cc = (self.m_dot_cc_t*cstar)/(2*self.A_throat) #this doesnt maek sense?
+        self.P_cc = (self.m_dot_cc_t*cstar)/(2*self.A_throat) 
         #print("Pcc: ", self.P_cc, " m_dot_cc ", self.m_dot_cc_t, " cstar: ", cstar)
 
         #recalculate new fuel grain size
@@ -123,3 +123,31 @@ class cc():
         self.OF = m_dot_ox/m_dot_fuel
 
         #print("Pcc: ", self.P_cc, " A_port_t: ", self.A_port_t, " m_dot_fuel: ", m_dot_fuel)
+        #TODO: ADD VECTOR OF STUFF TO RETURN THAT ARENT INITIAL VALUES!!!
+
+
+
+
+"""
+%                                             &@&.                       
+%                                          @@      /@                    
+%                               %@@@@@@,  @&    @%   %(                  
+%                           (@%         @@@        @                     
+%              ,&@@@@@@@@@@@.         @@&         @#                     
+%          *@@@@@@&      @/         @@,       ,&,  /@@@.                 
+%         @@@@@%        @    &@@@@@@.                 @@%                
+%        #@@@@@        @..@*    @@                     @@                
+%        *@@@@@        @,    (@/                      &@,                
+%         @@@@@@          @@.         *@@@@@,        #@#                 
+%          @@@@@@    (@#           #@@      @       @@.                  
+%            @@@@@@  .&@@@@@@    @@ @      @/     /@&                    
+%             #@@@@@@.    #@   &@  @      @     @@/  #@,                 
+%               .@@@@@@@. @@  @@@  @    @.   @@%     @@@%                
+%               @  @@@@@@@@@ % @  ,   @%@@@*         #@@@                
+%             /#      %@@@@@@@@@.                    @@@@/                       
+%            /%           @@@@@@@@@@@@,           (@@@@@@                
+%             @          *@.  *@@@@@@@@@@@@@@@@@@@@@@@@@                 
+%            @/      .@@            ,&@@@@@@@@@@@@@@@                    
+%           @    @@,                                                     
+%          @@%                               
+HAWK EM MAGPI!!!!"""
