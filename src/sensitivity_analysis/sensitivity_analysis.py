@@ -101,7 +101,6 @@ def produce_graphs(big_data,i_arr):
             
 
         j += 1
-    plt.show()
 
 
 def update_i(i):
@@ -179,3 +178,37 @@ if constants.test_var=="A_exit":
         big_data.append( sensitivityAnalysis(constants.fill_level,constants.C_inj,constants.V_tank,constants.P_tank,constants.m_fuel_i,constants.a,constants.n,constants.L,constants.A_port_i, constants.A_throat, i) )
         i = update_i(i)
     produce_graphs(big_data,i_arr)
+
+
+#TODO: PROBABLY NICE TO PRINT OUT CONSTANTS
+    
+print("\nSensitivity Analysis Summary:\n")
+print(f"test_var = \"{constants.test_var}\"")
+print(f"min_bound = {constants.min_bound}")
+print(f"max_bound = {constants.max_bound}")
+print(f"num_iterations = {constants.num_iterations}\n")
+print(f"ENGINE DATA\n")
+print(f"oxName = '{constants.oxName}'")
+print(f"rho_ox_liq = {constants.rho_ox_liq}")
+print(f"rho_ox_gas = {constants.rho_ox_gas}")
+print(f"fuelName = '{constants.fuelName}'")
+print(f"rho_fuel = {constants.rho_fuel}")
+print(f"m_fuel_i = {constants.m_fuel_i}")
+print(f"a = {constants.a}")
+print(f"n = {constants.n}")
+print(f"L = {constants.L}")
+print(f"A_port_i = {constants.A_port_i}")
+print(f"A_throat = {constants.A_throat}")
+print(f"A_exit = {constants.A_exit}")
+print(f"r_tank = {constants.r_tank}")
+print(f"height_tank = {constants.height_tank}")
+print(f"V_tank = {constants.V_tank}")
+print(f"P_tank = {constants.P_tank}")
+print(f"fill_level = {constants.fill_level}")
+print(f"C_inj = {constants.C_inj}")
+print(f"P_atm = {constants.P_atm}")
+print(f"timestep = {constants.timestep}")
+print(f"sim_time = {constants.sim_time}")
+#i love good code :)
+
+plt.show()

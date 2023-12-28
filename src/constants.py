@@ -1,5 +1,3 @@
-#remember to save after updating
-
 import numpy as np
 
 def intometer(x):
@@ -27,7 +25,7 @@ rho_ox_gas = 1.9277 #kg/m^3
 fuelName = 'paraffin'
 rho_fuel = 900 # kg/m^3
 
-# RocketCEA doesnt have paraffin built in: create it below
+# RocketCEA doesnt have paraffin built in: CREATE IT BELOW
 #C32H66 from RPA Paraffin Wax Composition
 CEA_fuel_str = f"""
 fuel paraffin  C 32   H 66    wt%=100.00
@@ -64,11 +62,19 @@ rocket_dry_mass = 30 #kg
 nosecone_shape = 'Power Series'
 nosecone_length = 0.47 #m
 
-###FILEPATHS FOR VALIDATION
-model_file_path = r'src\thrust.csv'
-data_file_path = r'src\bens_validation_data\UofT_Deliverance_II\UofT_Deliverance_II_Thrust.csv'
+###PRODUCE THRUST CURVE GRAPH
+thrust_curve_graphs = True
 
-###SENSITIVITY ANALYSIS INFORMATION!!!!
+###FILEPATHS FOR VALIDATION
+model_thrust_file_path = r'./src/thrust.csv'
+model_p_cc_file_path = r'./src/p_cc.csv'
+model_p_tank_file_path = r'./src/p_tank.csv'
+
+exp_thrust_file_path = r'./src/bens_validation_data/UofT_Deliverance_II/UofT_Deliverance_II_Thrust.csv'
+exp_p_cc_file_path = r'./src/bens_validation_data/UofT_Deliverance_II/UofT_Deliverance_II_CC_Pressure.csv'
+exp_p_tank_file_path = r'./src/bens_validation_data/UofT_Deliverance_II/UofT_Deliverance_II_Tank_Pressure.csv'
+
+###SENSITIVITY ANALYSIS INFORMATION!!!! (only works for engine rn)
 """
 Variables to analyize:
 fill_level
@@ -83,7 +89,9 @@ A_throat
 A_exit
 """
 
-test_var = "C_inj"
-min_bound = 0.000005
-max_bound = 0.00003
+test_var = "L"
+min_bound = 0.2
+max_bound = 0.4
 num_iterations=5
+
+#TODO: ADD n!!!!
