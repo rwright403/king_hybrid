@@ -5,8 +5,8 @@ import csv
 from src import constants
 
 def read_csv(file_path):   
-    np.x = []
-    np.y = []
+    x = []
+    y = []
     with open(file_path, 'r') as file:
         csv_reader = csv.reader(file)
         for row in csv_reader:
@@ -15,31 +15,47 @@ def read_csv(file_path):
                 continue
 
             try:
-                np.x.append(float(row[0]))
-                np.y.append(float(row[1]))
+                x.append(float(row[0]))
+                y.append(float(row[1]))
             except ValueError:
                 continue
 
-    return np.x, np.y
+    return np.array(x), np.array(y)
 
-###ADD FILEPATH HERE!!!!!
-model_file_path = constants.model_file_path
-data_file_path = constants.data_file_path
+###READ FROM FILES!!!!
+model_time_thrust, model_thrust = read_csv(constants.model_thrust_file_path)
+model_time_p_cc, model_p_cc = read_csv(constants.model_p_cc_file_path)
+model_time_p_tank, model_p_tank = read_csv(constants.model_p_tank_file_path)
 
-xm, ym = read_csv(model_file_path)
-xd, yd = read_csv(data_file_path)
-
-plt.plot(xd, yd, label='data')
-plt.plot(xm, ym, label='model output')
-
+exp_time_thrust, exp_thrust = read_csv(constants.exp_thrust_file_path)
+exp_time_p_cc, exp_p_cc = read_csv(constants.exp_p_cc_file_path)
+exp_time_p_tank, exp_p_tank = read_csv(constants.exp_p_tank_file_path)
 
 
+###PLOT!!!
+plt.subplot(1,3,1)
+plt.plot(exp_time_thrust, exp_thrust,label='data') 
+plt.plot(model_time_thrust, model_thrust, label='model output')
 plt.xlabel('Time (s)')
 plt.ylabel('Thrust (N)')
 plt.title('Thrust Curve Validation')
+plt.grid(True)
 
-for index, fruit in enumerate(yd):
-    print(fruit)
+plt.subplot(1,3,2)
+plt.plot(exp_time_p_cc, exp_p_cc, label='data')
+plt.plot(model_time_p_cc, model_p_cc, label='model output')
+plt.xlabel('Time (s)')
+plt.ylabel('Chamber Pressure (Pa)')
+plt.title('Chamber Pressure Validation')
+plt.grid(True)
+
+plt.subplot(1,3,3)
+plt.plot(exp_time_p_tank, exp_p_tank, label='data')
+plt.plot(model_time_p_tank, model_p_tank, label='model output')
+plt.xlabel('Time (s)')
+plt.ylabel('Tank Pressure (Pa)')
+plt.title('Tank Pressure Validation')
+plt.grid(True)
 
 plt.legend()
 plt.show()

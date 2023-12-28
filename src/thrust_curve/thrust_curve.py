@@ -7,11 +7,19 @@ import matplotlib.pyplot as plt
 import numpy as np
 import csv
 
+def to_csv(x_arr, y_arr, filename):
+    combined_arr = list(zip(x_arr,y_arr))
+    with open(r'./src/' + f'{filename}' + '.csv' , 'w', newline='') as file:
+        #print(file)
+        writer = csv.writer(file)
+        writer.writerows(combined_arr)
+
 #INPUT VARIABLES
 time_arr = []
 m_dot_arr = []
 thrust_arr = []
-pcc_arr = []
+p_cc_arr = []
+p_tank_arr = []
 P_cc = constants.P_atm
 
 r1ox = OxTank(constants.oxName, constants.timestep, constants.fill_level, constants.C_inj,
@@ -24,50 +32,47 @@ r1cc = cc(constants.oxName, constants.fuelName, constants.CEA_fuel_str, constant
 
 ###ENTER THRUST CURVE
 while r1ox.t < constants.sim_time:
-    r1ox.inst(P_cc)
+    r1ox.inst(r1cc.P_cc)
     r1cc.inst(r1ox.m_dot_ox, P_cc)
 
     time_arr.append(r1ox.t)
     m_dot_arr.append(r1ox.m_dot_ox)
     thrust_arr.append(r1cc.instThrust)
-    pcc_arr.append(r1cc.P_cc)
+    p_cc_arr.append(r1cc.P_cc)
+    p_tank_arr.append(r1ox.P_tank)
 
 
-###WRITE CSV FOR FLIGHT SIM
-m_dot_combined_arr = list(zip(time_arr,m_dot_arr))
-thrust_combined_arr = list(zip(time_arr, thrust_arr))
+###WRITE CSV FOR FLIGHT SIM AND VALIDATION
+to_csv(time_arr,m_dot_arr, "m_dot_ox")
+to_csv(time_arr,thrust_arr, "thrust")
+to_csv(time_arr,p_cc_arr, "p_cc")
+to_csv(time_arr,p_tank_arr, "p_tank")
 
-with open(r'./src/m_dot_ox.csv' , 'w', newline='') as file:
-    writer = csv.writer(file)
-    writer.writerows(m_dot_combined_arr)
-
-with open(r'./src/thrust.csv' , 'w', newline='') as file:
-    writer = csv.writer(file)
-    writer.writerows(thrust_combined_arr)
 
 
 ###PLOTS
-plt.subplot(1,3,1)
-plt.plot(time_arr,m_dot_arr)
-plt.xlabel('Time (s)')
-plt.ylabel('m_dot_ox (kg/s)')
-plt.title('Mass Flow Rate Over Time')
-plt.grid(True)
+if constants.thrust_curve_graphs == True:
+    plt.subplot(1,3,1)
+    plt.plot(time_arr,m_dot_arr)
+    plt.xlabel('Time (s)')
+    plt.ylabel('m_dot_ox (kg/s)')
+    plt.title('Mass Flow Rate Over Time')
+    plt.grid(True)
 
-plt.subplot(1,3,2)
-plt.plot(time_arr,pcc_arr)
-plt.xlabel('Time (s)')
-plt.ylabel('Chamber Pressure (Pa)')
-plt.title('Chamber Pressure Over Time')
-plt.grid(True)
+    plt.subplot(1,3,2)
+    plt.plot(time_arr,p_cc_arr)
+    plt.xlabel('Time (s)')
+    plt.ylabel('Chamber Pressure (Pa)')
+    plt.title('Chamber Pressure Over Time')
+    plt.grid(True)
 
-plt.subplot(1,3,3)
-plt.plot(time_arr,thrust_arr)
-plt.xlabel('Time (s)')
-plt.ylabel('Thrust (N)')
-plt.title('Thrust Curve')
-plt.grid(True)
+    plt.subplot(1,3,3)
+    plt.plot(time_arr,thrust_arr)
+    plt.xlabel('Time (s)')
+    plt.ylabel('Thrust (N)')
+    plt.title('Thrust Curve')
+    plt.grid(True)
 
 
-plt.show()
+    plt.show()
 
