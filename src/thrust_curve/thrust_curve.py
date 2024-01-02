@@ -31,9 +31,10 @@ r1cc = cc(constants.oxName, constants.fuelName, constants.CEA_fuel_str, constant
           constants.P_atm, constants.A_throat, constants.A_exit, constants.timestep,)
 
 ###ENTER THRUST CURVE
+r1ox.inst(P_cc)
 while r1ox.t < constants.sim_time:
+    r1cc.inst(r1ox.m_dot_ox, r1cc.P_cc)
     r1ox.inst(r1cc.P_cc)
-    r1cc.inst(r1ox.m_dot_ox, P_cc)
 
     time_arr.append(r1ox.t)
     m_dot_arr.append(r1ox.m_dot_ox)
