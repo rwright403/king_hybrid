@@ -167,6 +167,7 @@ class OxTank():
             h_exit = h_liq
 
         else:
+            #print("VAPOR PHASE")
             #solve variables
             self.rho_tank = self.m_ox/self.V_tank
             self.u_tank = self.U_tank/self.m_ox
@@ -186,9 +187,9 @@ class OxTank():
 
 
         #injector model
-        self.m_dot_ox = self.C_inj*np.sqrt(2*self.rho_exit*(self.P_tank -self.P_cc)) #this uses a incompressible fluid assumption #TODO: add feed pressure
-        #TODO: BELOW IS A PLACEHOLDER: INTEGRATE WITH THRUST CURVE
-        #self.P_cc = self.P_cc*0.9 #Pa
+        self.m_dot_ox = self.C_inj * np.sqrt( 2 * self.rho_exit * (self.P_tank - self.P_cc) ) #this uses a incompressible fluid assumption #TODO: add feed
+        #print(self.P_tank-self.P_cc) 
+        #print("mdotox:", self.m_dot_ox)
 
         #Ben does this to eliminate numerical instability
         if self.t == self.timestep:
@@ -200,3 +201,5 @@ class OxTank():
         self.m_ox = self.m_ox - self.m_dot_ox*self.timestep
         self.m_dot_ox_prev = self.m_dot_ox
         self.U_tank = self.U_tank -self.m_dot_ox*h_exit*self.timestep
+
+        #print(self.m_dot_ox," ",self.m_ox," ",self.t)
