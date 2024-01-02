@@ -32,32 +32,35 @@ fuel paraffin  C 32   H 66    wt%=100.00
 h,KJ/Kgmol=-1860600     t(k)=298.15   rho,kg/m3={rho_fuel}
 """
 
-m_fuel_i = 0.8142857143 #kg
+m_fuel_i = 1.5 #kg
 a = 0.155/1000 #m/s
-n = 0.5 
-L = 0.285 #m
-A_port_i = 0.0009372051412 #m^2
+n = 0.5
+L = 0.3852333 #m
+A_port_i = 0.0038319753 #m^2
  
-A_throat = 0.0003433998524 #m^2
-A_exit = 0.004229867915 #m^2
+A_throat = 0.0010653525 #m^2
+A_exit = 0.0054347544 #m^2
 
-r_tank = intometer(5.5/2) #m --> for trajectory sim
-height_tank = intometer(40) #m --> for trajectory sim
-V_tank = 0.00937 #m^3
 
-P_tank = 5000000 #Pa
-fill_level = 0.6
-C_inj = 0.00001
+V_tank = 0.012 #m^3
+
+
+P_tank = 4.171e+6 #Pa
+fill_level = 0.545169883
+C_inj = 2.680760281e-5
 P_atm = 101325 #Pa
 
 ### Sim Variables
 timestep = 0.05 #s
 all_error = 0.01 
-sim_time = 10 #s (time engine will be simulated over)
+sim_time = 20 #s (time engine will be simulated over)
 
 ###ROCKET DATA --> MVH-1
 rocket_fuselage_rad = intometer(5.5/2) #m --> for trajectory sim
 rocket_dry_mass = 30 #kg
+
+r_tank = intometer(5.5/2) #m --> for trajectory sim
+height_tank = intometer(40) #m --> for trajectory sim
 
 nosecone_shape = 'Power Series'
 nosecone_length = 0.47 #m
@@ -83,15 +86,14 @@ V_tank
 P_tank
 m_fuel_i
 a
+n
 L
 A_port_i
 A_throat
 A_exit
 """
 
-test_var = "L"
-min_bound = 0.2
-max_bound = 0.4
+test_var = "C_inj"
+min_bound = 1e-5
+max_bound = 5e-5
 num_iterations=5
-
-#TODO: ADD n!!!!
