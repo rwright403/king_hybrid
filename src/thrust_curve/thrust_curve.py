@@ -42,6 +42,11 @@ while r1ox.t < constants.sim_time:
     p_cc_arr.append(r1cc.P_cc)
     p_tank_arr.append(r1ox.P_tank)
 
+    #print(r1ox.P_tank, r1cc.P_cc,r1ox.P_tank- r1cc.P_cc,  )
+
+
+    #print(r1ox.t, r1cc.v_exit,r1cc.m_dot_cc_t,r1cc.R)
+
 
 ###WRITE CSV FOR FLIGHT SIM AND VALIDATION
 to_csv(time_arr,m_dot_arr, "m_dot_ox")
