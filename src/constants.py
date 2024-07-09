@@ -28,9 +28,11 @@ rho_fuel = 900 # kg/m^3
 # RocketCEA doesnt have paraffin built in: CREATE IT BELOW
 #C32H66 from RPA Paraffin Wax Composition
 CEA_fuel_str = f"""
-fuel paraffin  C 32   H 66    wt%=100.00
-h,KJ/Kgmol=-1860600     t(k)=298.15   rho,kg/m3={rho_fuel}
+fuel paraffin  C 20   H 52    wt%=100.00
+h,KJ/Kgmol=-529200.0    t(k)=298.15   rho,kg/m3={rho_fuel}
 """
+
+#previously using C 32 H 66, h,KJ/Kgmol=-1860600     t(k)=298.15   rho,kg/m3={rho_fuel}
 
 m_fuel_i = 1.5 #kg
 a = 0.155/1000 #m/s
@@ -45,15 +47,16 @@ A_exit = 0.0054347544 #m^2
 V_tank = 0.012 #m^3
 
 
-P_tank = 4.171e+6 #Pa
+P_tank = 3920207.656 #Pa
 fill_level = 0.545169883
-C_inj = 2.680760281e-5
+C_inj = 0.0000294229787 #0.00003994986663 #0.0000294229787
+
 P_atm = 101325 #Pa
 
 ### Sim Variables
-timestep = 0.05 #s
+timestep = 0.01 #s
 all_error = 0.01 
-sim_time = 20 #s (time engine will be simulated over)
+sim_time = 11 #s (time engine will be simulated over)
 
 ###ROCKET DATA --> MVH-1
 rocket_fuselage_rad = intometer(5.5/2) #m --> for trajectory sim
@@ -73,9 +76,15 @@ model_thrust_file_path = r'./src/thrust.csv'
 model_p_cc_file_path = r'./src/p_cc.csv'
 model_p_tank_file_path = r'./src/p_tank.csv'
 
+###Deliverance II
 exp_thrust_file_path = r'./src/bens_validation_data/UofT_Deliverance_II/UofT_Deliverance_II_Thrust.csv'
 exp_p_cc_file_path = r'./src/bens_validation_data/UofT_Deliverance_II/UofT_Deliverance_II_CC_Pressure.csv'
 exp_p_tank_file_path = r'./src/bens_validation_data/UofT_Deliverance_II/UofT_Deliverance_II_Tank_Pressure.csv'
+
+###Boundless
+#exp_thrust_file_path = r'./src/bens_validation_data/UofW_Boundless/UofW_Boundless_Thrust.csv'
+#exp_p_cc_file_path = r'./src/bens_validation_data/UofW_Boundless/UofW_Boundless_CC_Pressure.csv'
+#exp_p_tank_file_path = r'./src/bens_validation_data/UofW_Boundless/UofW_Boundless_Tank_Pressure.csv'
 
 ###SENSITIVITY ANALYSIS INFORMATION!!!! (only works for engine rn)
 """
