@@ -112,6 +112,9 @@ class OxTank():
         self.P_cc = P_cc
         self.all_error = all_error
 
+
+
+
         #setup 
         self.t = 0
         self.m_dot_ox_prev = self.m_dot_ox
@@ -187,8 +190,9 @@ class OxTank():
 
 
         #injector model
-        self.m_dot_ox = self.C_inj * np.sqrt( 2 * self.rho_exit * (self.P_tank - self.P_cc) ) #this uses a incompressible fluid assumption #TODO: add feed
-        #print(self.P_tank-self.P_cc) 
+        self.m_dot_ox = self.C_inj * np.sqrt( 2 * self.rho_exit * (self.P_tank - self.P_cc)  ) #this uses a incompressible fluid assumption 
+        #TODO: add feed system term ^
+        #print(self.P_tank, self.P_cc,self.P_tank-self.P_cc, "   --->    ", self.m_dot_ox) 
         #print("mdotox:", self.m_dot_ox)
 
         #Ben does this to eliminate numerical instability
