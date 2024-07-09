@@ -13,6 +13,6 @@ CR = 0.01
 
 while CR < 4:
     M_cc = C.get_Chamber_MachNumber(P_cc,6,CR) #TODO: ADD CR TO CONSTANTS!!!!
-    print(CR, M_cc)
+    #print(CR, M_cc)
     CR+=0.1
     

@@ -55,7 +55,7 @@ class cc():
         self.radius = np.sqrt(A_port_i/np.pi)
 
         #setup
-        self.m_dot_fuel = 0#self.L*self.rho_fuel*self.r_dot_t*(2*np.sqrt(self.A_port_t*np.pi))
+        self.m_dot_fuel = 0 #self.L*self.rho_fuel*self.r_dot_t*(2*np.sqrt(self.A_port_t*np.pi))
 
 
 
@@ -73,7 +73,6 @@ class cc():
                 G_ox_t = (m_dot_ox + self.m_dot_cc_t )/(2*self.A_port_t)
             else:
                 G_ox_t = m_dot_ox/self.A_port_t
-            i+=1
 
             #print("Gox: ", G_ox_t,  " m_dot_ox: ", m_dot_ox, "self.m_dot_cc_t", self.m_dot_cc_t, " self.A_port_t: ", self.A_port_t)
 
@@ -83,64 +82,42 @@ class cc():
             if(self.m_fuel_t<=0):
                 self.m_dot_fuel = 0
                 self.OF = 0
+            else:
+                self.OF = m_dot_ox/self.m_dot_fuel
 
             self.m_dot_cc_t  = m_dot_ox + self.m_dot_fuel
 
-            i += 1
-
-        
+            i+=1
 
         #solve flame temperature
-        T_cc = self.C.get_Tcomb(self.P_cc,(self.OF))
-        #print("flame temp k: ", T_cc, self.instThrust)
+        T_cc = self.C.get_Tcomb(self.P_cc,self.OF) #K
+        #print(self.C.get_Tcomb(self.P_cc,self.OF) ,self.C.get_Tcomb(2*self.P_cc,self.OF) )
 
         #solve fluid properties
         fluid_prop = self.C.get_Chamber_MolWt_gamma(self.P_cc, self.OF, self.expratio)
-        self.R = 8314/fluid_prop[0] #problem, this is likely dropping once either P_cc falls or OF falls!!!!!
-        self.y = fluid_prop[1]
+        self.R = 8314/fluid_prop[0] # J/(kg K)
+        self.y = fluid_prop[1] #(-)
 
-        #print(self.m_fuel_t, self.OF)
+        #steady flow continuity equation
+        self.P_cc = (self.m_dot_cc_t * np.sqrt( self.R*T_cc ) ) / ( self.A_throat * np.sqrt( self.y * (2 / (self.y+1))**( (self.y+1)/(self.y-1) ) ) )
 
-        #Solve Exit pressure
-        exit_mach = self.C.get_MachNumber(self.P_cc, self.OF, self.expratio,1,0)
-        #print(exit_mach, self.P_cc)
-
+        #Solve exit pressure -> assuming equilibrium flow
+        exit_mach = self.C.get_MachNumber(self.P_cc, self.OF, self.expratio,0,1)
+                     
+        #solve exit pressure - isentropic flow relation
         P_exit = self.P_cc*(1+((self.y-1)/2)*exit_mach**2)**(self.y/(1-self.y))
         
-        M_cc = self.C.get_Chamber_MachNumber(self.P_cc,self.OF,3) #TODO: ADD CR TO CONSTANTS!!!!
-        T_0 = T_cc*(1+(self.y-1)/2*M_cc**2)
-
-        #if we recalculate chamber pressure with cstar we get a more accurate chamber pressure.
-        P_0= self.m_dot_cc_t/(self.A_throat*np.sqrt(self.y/(self.R*T_0))*(2/(self.y+1))**((self.y+1)/2*(self.y-1)))
-        self.P_cc = P_0*(1+(self.y-1)/2*M_cc**2)**((-self.y)/(self.y-1))
-
-        #cstar = self.C.get_Cstar(self.P_cc, self.OF)
-        #self.P_cc=(self.m_dot_cc_t*cstar)/(self.A_throat)
-                       
         #solve exit velocity
-        self.v_exit = np.sqrt( ((2*self.y)/(self.y-1)) *self.R*T_cc* (1-(P_exit/self.P_cc)**((self.y-1)/self.y) ) )
-        #print(self.v_exit," ",self.y," ",self.R," ",T_cc," ",P_exit," ",self.P_cc)
+        self.v_exit = np.sqrt( ((2*self.y)/(self.y-1)) * self.R*T_cc* ( 1 - (P_exit/self.P_cc)**((self.y-1)/self.y) ) )
+        #test = np.sqrt( ((2*self.y)/(self.y-1)) *self.R*T_cc* (1-(P_exit/self.P_cc)**((self.y-1)/self.y)) )
+        #print(self.v_exit,self.v_exit/np.sqrt(self.y*self.R*T_cc))
 
-        #solve exit thrust 
-        self.instThrust = (self.m_dot_cc_t*self.v_exit) +self.A_exit*(P_exit - self.P_atm)
-        #print(self.v_exit,self.m_dot_cc_t, )
-        #print("ISP: ", self.instThrust/(self.m_dot_cc_t*9.81))
-        #print( self.m_dot_cc_t,self.v_exit,self.A_exit,P_exit,self.P_atm)
+        self.instThrust = (self.m_dot_cc_t*self.v_exit) + self.A_exit*(P_exit - self.P_atm)
+        #print((self.m_dot_cc_t*self.v_exit) , self.A_exit*(P_exit - self.P_atm))
 
-        if np.isnan(self.instThrust):
-            self.instThrust = 0
+        #if np.isnan(self.instThrust):
+        #    self.instThrust = 0
 
-        if self.instThrust == 0:
-            self.instThrust = 0
-
-        #if we recalculate chamber pressure with cstar we get a more accurate chamber pressure and a less accurate thrust
-        cstar = self.C.get_Cstar(self.P_cc, self.OF)
-        self.P_cc=(self.m_dot_cc_t*cstar)/(self.A_throat)
-
-        #print("cstar: ", cstar, "P_cc: ", self.P_cc)
-
-
-        print(P_0, self.P_cc, self.m_fuel_t)
     
             
         #recalculate new fuel grain size
@@ -148,11 +125,11 @@ class cc():
 
         self.radius = self.radius + self.r_dot_t * self.timestep
 
-        self.A_port_t = np.pi *(self.radius**2)
+        self.A_port_t = np.pi*self.radius**2
 
 
         #recalculate O/F ratio
-        self.OF = m_dot_ox/self.m_dot_fuel
+        #self.OF = m_dot_ox/self.m_dot_fuel
 
 
 
