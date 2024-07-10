@@ -34,22 +34,22 @@ h,KJ/Kgmol=-529200.0    t(k)=298.15   rho,kg/m3={rho_fuel}
 
 #previously using C 32 H 66, h,KJ/Kgmol=-1860600     t(k)=298.15   rho,kg/m3={rho_fuel}
 
-m_fuel_i = 1.5 #kg
+m_fuel_i = 5.44311 #kg
 a = 0.155/1000 #m/s
 n = 0.5
-L = 0.3852333 #m
-A_port_i = 0.0038319753 #m^2
+L = 0.41130982 #m
+A_port_i = 0.001302041 #m^2
  
-A_throat = 0.0010653525 #m^2
-A_exit = 0.0054347544 #m^2
+A_throat = 0.001302041 #m^2
+A_exit = 0.0061470149 #m^2
 
 
-V_tank = 0.012 #m^3
+V_tank = 0.024956005 #m^3
 
 
-P_tank = 3920207.656 #Pa
-fill_level = 0.545169883
-C_inj = 0.0000294229787 #0.00003994986663 #0.0000294229787
+P_tank = 4933902 #4.206e6 #Pa
+fill_level = 0.8#0.53562755175
+C_inj = 2.626771572e-5 #0.00002364094414 
 
 P_atm = 101325 #Pa
 
@@ -76,15 +76,20 @@ model_thrust_file_path = r'./src/thrust.csv'
 model_p_cc_file_path = r'./src/p_cc.csv'
 model_p_tank_file_path = r'./src/p_tank.csv'
 
+###Phoenix 1a
+#exp_thrust_file_path = r'./src/bens_validation_data/Phoenix_1a/Phoenix_1a_Thrust.csv'
+#exp_p_cc_file_path = r'./src/bens_validation_data/Phoenix_1a/Phoenix_1a_CC_Pressure.csv'
+#exp_p_tank_file_path = r'./src/bens_validation_data/Phoenix_1a/Phoenix_1a_Tank_Pressure.csv'
+
 ###Deliverance II
-exp_thrust_file_path = r'./src/bens_validation_data/UofT_Deliverance_II/UofT_Deliverance_II_Thrust.csv'
-exp_p_cc_file_path = r'./src/bens_validation_data/UofT_Deliverance_II/UofT_Deliverance_II_CC_Pressure.csv'
-exp_p_tank_file_path = r'./src/bens_validation_data/UofT_Deliverance_II/UofT_Deliverance_II_Tank_Pressure.csv'
+#exp_thrust_file_path = r'./src/bens_validation_data/UofT_Deliverance_II/UofT_Deliverance_II_Thrust.csv'
+#exp_p_cc_file_path = r'./src/bens_validation_data/UofT_Deliverance_II/UofT_Deliverance_II_CC_Pressure.csv'
+#exp_p_tank_file_path = r'./src/bens_validation_data/UofT_Deliverance_II/UofT_Deliverance_II_Tank_Pressure.csv'
 
 ###Boundless
-#exp_thrust_file_path = r'./src/bens_validation_data/UofW_Boundless/UofW_Boundless_Thrust.csv'
-#exp_p_cc_file_path = r'./src/bens_validation_data/UofW_Boundless/UofW_Boundless_CC_Pressure.csv'
-#exp_p_tank_file_path = r'./src/bens_validation_data/UofW_Boundless/UofW_Boundless_Tank_Pressure.csv'
+exp_thrust_file_path = r'./src/bens_validation_data/UofW_Boundless/UofW_Boundless_Thrust.csv'
+exp_p_cc_file_path = r'./src/bens_validation_data/UofW_Boundless/UofW_Boundless_CC_Pressure.csv'
+exp_p_tank_file_path = r'./src/bens_validation_data/UofW_Boundless/UofW_Boundless_Tank_Pressure.csv'
 
 ###SENSITIVITY ANALYSIS INFORMATION!!!! (only works for engine rn)
 """

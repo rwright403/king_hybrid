@@ -41,7 +41,6 @@ class cc():
         self.P_cc = P_atm
         self.P_atm = P_atm
         self.v_exit = 0
-        ### UNUSED #self.A_port_f = 0.00411180831 #m^3
         self.r_dot_t = 0.1 
 
 
@@ -62,7 +61,7 @@ class cc():
 
         
 
-    def inst(self, m_dot_ox, COMBUSTION_PRESSURE):
+    def inst(self, m_dot_ox):
 
 
         #print( "ox m dot: ", m_dot_ox, " cc mass flow rate: ", self.m_dot_cc_t, " port area: ", self.A_port_t )
@@ -78,7 +77,7 @@ class cc():
 
             self.r_dot_t = self.a*(G_ox_t)**self.n
             
-            self.m_dot_fuel = self.rho_fuel*np.pi*( (self.r_dot_t+np.sqrt(self.A_port_t/np.pi) )**2 - (self.A_port_t/np.pi) )*self.L#self.L*self.rho_fuel*self.r_dot_t*(2*np.sqrt(self.A_port_t*np.pi))
+            self.m_dot_fuel = self.rho_fuel*np.pi*( (self.r_dot_t+np.sqrt(self.A_port_t/np.pi) )**2 - (self.A_port_t/np.pi) )*self.L #self.L*self.rho_fuel*self.r_dot_t*(2*np.sqrt(self.A_port_t*np.pi))
             if(self.m_fuel_t<=0):
                 self.m_dot_fuel = 0
                 self.OF = 0
@@ -89,47 +88,51 @@ class cc():
 
             i+=1
 
-        #solve flame temperature
+        #solve flame temperature ~ assuming flame temperature = stagnation temperature
         T_cc = self.C.get_Tcomb(self.P_cc,self.OF) #K
-        #print(self.C.get_Tcomb(self.P_cc,self.OF) ,self.C.get_Tcomb(2*self.P_cc,self.OF) )
 
         #solve fluid properties
         fluid_prop = self.C.get_Chamber_MolWt_gamma(self.P_cc, self.OF, self.expratio)
         self.R = 8314/fluid_prop[0] # J/(kg K)
         self.y = fluid_prop[1] #(-)
 
-        #steady flow continuity equation
+        #call cea to get cc and exit temperature!!!!
+        temperatures = self.C.get_Temperatures(self.P_cc, self.OF, self.expratio,0,1)
+        T_cc = temperatures[0]
+        T_throat = temperatures[1]
+        T_exit = temperatures[2]
+
+        #call cea to grab cc density with C.get_Chamber_Density(P_cc,OF, expratio)
+        densities = self.C.get_Densities(self.P_cc, self.OF, self.expratio,0,1)
+        #rho_cc = densities[0]
+        rho_throat = densities[1]
+        rho_exit = densities[2]
+        
+        #steady flow continuity equation - TODO: double check this is total pressure!!!!!!
         self.P_cc = (self.m_dot_cc_t * np.sqrt( self.R*T_cc ) ) / ( self.A_throat * np.sqrt( self.y * (2 / (self.y+1))**( (self.y+1)/(self.y-1) ) ) )
+
+        #check if flow is choked:
+        #print( (self.m_dot_cc_t/(rho_exit*self.A_exit)) / (np.sqrt(self.y*self.R*T_exit)) )
 
         #Solve exit pressure -> assuming equilibrium flow
         exit_mach = self.C.get_MachNumber(self.P_cc, self.OF, self.expratio,0,1)
-                     
+        #print(exit_mach)
+
         #solve exit pressure - isentropic flow relation
-        P_exit = self.P_cc*(1+((self.y-1)/2)*exit_mach**2)**(self.y/(1-self.y))
-        
+        P_exit = self.P_cc / (1+((self.y-1)/2)*exit_mach**2)**(self.y/(self.y-1))
+
         #solve exit velocity
         self.v_exit = np.sqrt( ((2*self.y)/(self.y-1)) * self.R*T_cc* ( 1 - (P_exit/self.P_cc)**((self.y-1)/self.y) ) )
-        #test = np.sqrt( ((2*self.y)/(self.y-1)) *self.R*T_cc* (1-(P_exit/self.P_cc)**((self.y-1)/self.y)) )
-        #print(self.v_exit,self.v_exit/np.sqrt(self.y*self.R*T_cc))
 
         self.instThrust = (self.m_dot_cc_t*self.v_exit) + self.A_exit*(P_exit - self.P_atm)
-        #print((self.m_dot_cc_t*self.v_exit) , self.A_exit*(P_exit - self.P_atm))
 
-        #if np.isnan(self.instThrust):
-        #    self.instThrust = 0
-
-    
-            
+ 
         #recalculate new fuel grain size
         self.m_fuel_t = self.m_fuel_t-self.m_dot_fuel*self.timestep
 
         self.radius = self.radius + self.r_dot_t * self.timestep
 
         self.A_port_t = np.pi*self.radius**2
-
-
-        #recalculate O/F ratio
-        #self.OF = m_dot_ox/self.m_dot_fuel
 
 
 

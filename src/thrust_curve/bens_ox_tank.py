@@ -127,6 +127,7 @@ class OxTank():
         self.u_vap = CP.PropsSI('U', 'Q', 1, 'P', self.P_tank, 'N2O')  # Internal Energy of nitrous gas (kg/m^3)
 
         #Calculate m_ox from fill level
+        #TODO: MAKE M_OX AN INPUT OR CALCULATE FILL LEVEL BASED ON FLUID PROPERTEIES
         self.m_ox =  self.V_tank*(self.rho_liq*self.fill_level+self.rho_vap*(1-self.fill_level))
 
         self.x_tank = ( (self.V_tank/self.m_ox) - ((self.rho_liq)**-1) )/( ((self.rho_vap)**-1) - ((self.rho_liq)**-1)) #quality
