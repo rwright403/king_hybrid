@@ -22,7 +22,7 @@ p_cc_arr = []
 p_tank_arr = []
 P_cc = constants.P_atm
 
-r1ox = OxTank(constants.oxName, constants.timestep, constants.fill_level, constants.C_inj,
+r1ox = OxTank(constants.oxName, constants.timestep, constants.m_ox, constants.C_inj,
                constants.V_tank, constants.P_tank, constants.P_atm, constants.all_error)
 
 
@@ -44,7 +44,7 @@ while r1ox.t < constants.sim_time:
 
     #print(r1ox.P_tank, r1cc.P_cc,r1ox.P_tank- r1cc.P_cc,  )
 
-    print(r1ox.m_ox, r1cc.m_fuel_t)
+    #print(r1ox.m_ox, r1cc.m_fuel_t)
 
     #print(r1ox.t, r1cc.v_exit,r1cc.m_dot_cc_t,r1cc.R)
 

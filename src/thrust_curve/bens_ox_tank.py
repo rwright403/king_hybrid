@@ -101,10 +101,10 @@ def thermo_span_wagner(rho, T, param):
     return out
 
 class OxTank():
-    def __init__(self, oxidizer, timestep, fill_level, C_inj, V_tank, P_tank, P_cc, all_error):
+    def __init__(self, oxidizer, timestep, m_ox, C_inj, V_tank, P_tank, P_cc, all_error):
         self.oxidizer = oxidizer
         self.timestep = timestep
-        self.fill_level = fill_level
+        self.m_ox =  m_ox
         self.C_inj = C_inj
         self.m_dot_ox = 0
         self.V_tank = V_tank
@@ -126,9 +126,9 @@ class OxTank():
         self.u_liq = CP.PropsSI('U', 'Q', 0, 'P', self.P_tank, 'N2O')  # Internal Energy of liquid nitrous (kg/m^3)
         self.u_vap = CP.PropsSI('U', 'Q', 1, 'P', self.P_tank, 'N2O')  # Internal Energy of nitrous gas (kg/m^3)
 
-        #Calculate m_ox from fill level
-        #TODO: MAKE M_OX AN INPUT OR CALCULATE FILL LEVEL BASED ON FLUID PROPERTEIES
-        self.m_ox =  self.V_tank*(self.rho_liq*self.fill_level+self.rho_vap*(1-self.fill_level))
+        #Calculate fill levelfor user reference
+        percent_fill =( (self.m_ox/self.V_tank) - self.rho_vap) / (self.rho_liq - self.rho_vap)
+        print("% fill:", percent_fill)
 
         self.x_tank = ( (self.V_tank/self.m_ox) - ((self.rho_liq)**-1) )/( ((self.rho_vap)**-1) - ((self.rho_liq)**-1)) #quality
 
