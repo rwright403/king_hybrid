@@ -65,13 +65,15 @@ C_inj = 0.00002243097155 #m^2 #(num_orifices * Cd * orifice_diam)
 # 1 --> SPI 
 # 2 --> HEM
 # 3 --> Dyer
-inj_model = 2
+inj_model = 3
 
 
 ### Sim Variables
 timestep = 0.05 #s
 all_error = 0.01 
-sim_time = 9.048 #s (time engine will be simulated over)
+sim_time = 8.5#s (time engine will be simulated over)
+#NOTE: if this is too big and you are simulating over a range the script will break
+#is it really a leading edge simulation software if it isnt annoying to use?
 
 ###ROCKET DATA FOR TRAJECTORY SIM--> MVH-1
 rocket_fuselage_rad = intometer(5.5/2) #m --> for trajectory sim
@@ -92,6 +94,7 @@ model_p_cc_file_path = r'./src/p_cc.csv'
 model_p_tank_file_path = r'./src/p_tank.csv'
 
 ###Phoenix 1a
+name = "Phoenix 1a"
 
 m_fuel_i = 6.173983 #kg
 L = 0.4 #m
@@ -114,6 +117,7 @@ exp_p_tank_file_path = r'./src/bens_validation_data/Phoenix_1a/Phoenix_1a_Tank_P
 
 
 ###Deliverance II
+name = "Deliverance II"
 
 m_fuel_i = 1.5 #kg
 L = 0.3852333 #m
@@ -135,6 +139,8 @@ exp_p_tank_file_path = r'./src/bens_validation_data/UofT_Deliverance_II/UofT_Del
 
 ###Boundless
 """
+name = "Boundless"
+
 m_fuel_i = 5.44311 #kg
 L = 0.41130982 #m
 A_port_i = 0.001302041 #m^2
@@ -153,6 +159,7 @@ exp_p_cc_file_path = r'./src/bens_validation_data/UofW_Boundless/UofW_Boundless_
 exp_p_tank_file_path = r'./src/bens_validation_data/UofW_Boundless/UofW_Boundless_Tank_Pressure.csv'
 """
 
+### WATERLOO KISMET
 
 ###SENSITIVITY ANALYSIS INFORMATION!!!! (only works for engine rn)
 """

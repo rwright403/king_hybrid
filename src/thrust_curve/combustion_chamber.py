@@ -82,7 +82,7 @@ class cc():
         self.A_throat = A_throat 
         self.A_exit = A_exit 
         self.expratio = self.A_exit / self.A_throat
-        print(self.expratio)
+        #print(self.expratio)
 
         self.timestep = timestep
 

@@ -129,7 +129,7 @@ class OxTank():
 
         #Calculate fill levelfor user reference
         percent_fill =( (self.m_ox/self.V_tank) - self.rho_vap) / (self.rho_liq - self.rho_vap)
-        print("% fill:", percent_fill)
+        print("\n", "ox tank % fill:", percent_fill)
 
         self.x_tank = ( (self.V_tank/self.m_ox) - ((self.rho_liq)**-1) )/( ((self.rho_vap)**-1) - ((self.rho_liq)**-1)) #quality
 
@@ -172,7 +172,10 @@ class OxTank():
             self.t = self.t + self.timestep
             #assume only liquid draining from tank #NOTE: challenge this?
             self.rho_exit = self.rho_liq
-            #h_tank_exit = h_liq
+
+            if(self.inj_model == 1):
+                h_tank_exit = h_liq
+                #SPI Model --> single phase so using liquid enthalpy
 
             
 
@@ -208,10 +211,10 @@ class OxTank():
 
         m_dot_spi = self.C_inj * np.sqrt( 2 * self.rho_exit * (self.P_tank - self.P_cc)  )
 
-        if(self.P_cc < 1e6):
+        if(self.P_cc > 5e5):
             rho_vap_exit = CP.PropsSI('D', 'Q', 1, 'P', self.P_cc, 'N2O')
         else:
-            rho_vap_exit = CP.PropsSI('D', 'Q', 1, 'P', 1e6, 'N2O')
+            rho_vap_exit = CP.PropsSI('D', 'Q', 1, 'P', 5e5, 'N2O')
 
         #NOTE: need to check that rho_vap_exit is equal to to critical density!
         #BUG: h_vap_exit is wrong and uses tank quality even though it flashes?
@@ -219,9 +222,9 @@ class OxTank():
 
         #NOTE: factor of 5****
         #NOTE: factor of 5**** delete and figure out why its actually not 5x bigger!
-        m_dot_hem = self.C_inj * 5 * rho_vap_exit * np.sqrt( 2 * (h_tank_exit - h_vap_exit) )
+        m_dot_hem = self.C_inj * rho_vap_exit * np.sqrt( 2 * (h_tank_exit -  h_vap_exit) )
 
-        print(self.t, m_dot_hem, rho_vap_exit, np.sqrt( 2 * (h_tank_exit - h_vap_exit) ), h_tank_exit, h_vap_exit)
+        #print(self.t, m_dot_hem, rho_vap_exit, np.sqrt( 2 * (h_tank_exit - h_vap_exit) ), h_tank_exit, h_vap_exit)
 
         m_dot_dyer = ((dyer_k/(1+dyer_k)) * m_dot_spi) + ((1/(1+dyer_k)) * m_dot_hem)
 
@@ -229,7 +232,11 @@ class OxTank():
         if(self.inj_model == 1):
             self.m_dot_ox = m_dot_spi
         elif(self.inj_model == 2):
-            self.m_dot_ox = m_dot_hem
+            #print(self.x_tank)
+            if self.x_tank < 1:
+                self.m_dot_ox = m_dot_hem
+            else:
+                self.m_dot_ox = m_dot_spi
         elif(self.inj_model == 3):
             self.m_dot_ox = m_dot_dyer
 
