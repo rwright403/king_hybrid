@@ -18,7 +18,7 @@ class DataClass:
 
 #TODO: start by calculating variance
 
-def sensitivityAnalysis(fill_level,C_inj,V_tank,P_tank,m_fuel_i, a, n, L, A_port_i, A_throat, A_exit):
+def sensitivityAnalysis(m_ox,C_inj,V_tank,P_tank,m_fuel_i, a, n, L, A_port_i, A_throat, A_exit):
 
     time_arr = []
     m_dot_arr = []
@@ -26,16 +26,16 @@ def sensitivityAnalysis(fill_level,C_inj,V_tank,P_tank,m_fuel_i, a, n, L, A_port
     p_cc_arr = []
     p_tank_arr = []
 
-    P_cc = constants.P_atm
+    #P_cc = constants.P_atm
 
-    r1ox = OxTank(constants.oxName, constants.timestep, fill_level, C_inj, V_tank, P_tank, constants.P_atm, constants.all_error)
+    r1ox = OxTank(constants.oxName, constants.timestep, m_ox, C_inj, V_tank, P_tank, constants.P_atm, constants.all_error)
 
     r1cc = cc(constants.oxName, constants.fuelName, constants.CEA_fuel_str, m_fuel_i, 
         constants.rho_fuel, a, n, L, A_port_i,constants.P_atm, A_throat, A_exit, constants.timestep)
         
     while r1ox.t < constants.sim_time:
-        r1ox.inst(P_cc)
-        r1cc.inst(r1ox.m_dot_ox, P_cc)
+        r1ox.inst(r1cc.P_cc)
+        r1cc.inst(r1ox.m_dot_ox)
 
         time_arr.append(r1ox.t)
         m_dot_arr.append(r1ox.m_dot_ox)
@@ -113,7 +113,7 @@ big_data = []
 i_arr = []
 #malding if statements, you hate to see it for each input, then call function with sensitivity analysis inside
 
-if constants.test_var=="fill_level":
+if constants.test_var=="m_ox":
     while(i<=constants.max_bound):
         big_data.append( sensitivityAnalysis(i,constants.C_inj,constants.V_tank,constants.P_tank,constants.m_fuel_i,constants.a,constants.n,constants.L,constants.A_port_i, constants.A_throat, constants.A_exit) )
         i = update_i(i)
@@ -121,61 +121,61 @@ if constants.test_var=="fill_level":
 
 if constants.test_var=="C_inj":
     while(i<=constants.max_bound):
-        big_data.append( sensitivityAnalysis(constants.fill_level,i,constants.V_tank,constants.P_tank,constants.m_fuel_i,constants.a,constants.n,constants.L,constants.A_port_i, constants.A_throat, constants.A_exit) )
+        big_data.append( sensitivityAnalysis(constants.m_ox,i,constants.V_tank,constants.P_tank,constants.m_fuel_i,constants.a,constants.n,constants.L,constants.A_port_i, constants.A_throat, constants.A_exit) )
         i = update_i(i)
     produce_graphs(big_data,i_arr)
 
 if constants.test_var=="V_tank":
     while(i<=constants.max_bound):
-        big_data.append( sensitivityAnalysis(constants.fill_level,constants.C_inj,i,constants.P_tank,constants.m_fuel_i,constants.a,constants.n,constants.L,constants.A_port_i, constants.A_throat, constants.A_exit) )
+        big_data.append( sensitivityAnalysis(constants.m_ox,constants.C_inj,i,constants.P_tank,constants.m_fuel_i,constants.a,constants.n,constants.L,constants.A_port_i, constants.A_throat, constants.A_exit) )
         i = update_i(i)
     produce_graphs(big_data,i_arr)
 
 if constants.test_var=="P_tank":
     while(i<=constants.max_bound):
-        big_data.append( sensitivityAnalysis(constants.fill_level,constants.C_inj,constants.V_tank,i,constants.m_fuel_i,constants.a,constants.n,constants.L,constants.A_port_i, constants.A_throat, constants.A_exit) )
+        big_data.append( sensitivityAnalysis(constants.m_ox,constants.C_inj,constants.V_tank,i,constants.m_fuel_i,constants.a,constants.n,constants.L,constants.A_port_i, constants.A_throat, constants.A_exit) )
         i = update_i(i)
     produce_graphs(big_data,i_arr)
 
 if constants.test_var=="m_fuel_i":
     while(i<=constants.max_bound):
-        big_data.append( sensitivityAnalysis(constants.fill_level,constants.C_inj,constants.V_tank,constants.P_tank,i,constants.a,constants.n,constants.L,constants.A_port_i, constants.A_throat, constants.A_exit) )
+        big_data.append( sensitivityAnalysis(constants.m_ox,constants.C_inj,constants.V_tank,constants.P_tank,i,constants.a,constants.n,constants.L,constants.A_port_i, constants.A_throat, constants.A_exit) )
         i = update_i(i)
     produce_graphs(big_data,i_arr)
 
 if constants.test_var=="a":
     while(i<=constants.max_bound):
-        big_data.append( sensitivityAnalysis(constants.fill_level,constants.C_inj,constants.V_tank,constants.P_tank,constants.m_fuel_i,i,constants.n,constants.L,constants.A_port_i, constants.A_throat, constants.A_exit) )
+        big_data.append( sensitivityAnalysis(constants.m_ox,constants.C_inj,constants.V_tank,constants.P_tank,constants.m_fuel_i,i,constants.n,constants.L,constants.A_port_i, constants.A_throat, constants.A_exit) )
         i = update_i(i)
     produce_graphs(big_data,i_arr)
 
 if constants.test_var=="n":
     while(i<=constants.max_bound):
-        big_data.append( sensitivityAnalysis(constants.fill_level,constants.C_inj,constants.V_tank,constants.P_tank,constants.m_fuel_i,constants.a,i,constants.L,constants.A_port_i, constants.A_throat, constants.A_exit) )
+        big_data.append( sensitivityAnalysis(constants.m_ox,constants.C_inj,constants.V_tank,constants.P_tank,constants.m_fuel_i,constants.a,i,constants.L,constants.A_port_i, constants.A_throat, constants.A_exit) )
         i = update_i(i)
     produce_graphs(big_data,i_arr)
 
 if constants.test_var=="L":
     while(i<=constants.max_bound):
-        big_data.append( sensitivityAnalysis(constants.fill_level,constants.C_inj,constants.V_tank,constants.P_tank,constants.m_fuel_i,constants.a,constants.n,i,constants.A_port_i, constants.A_throat, constants.A_exit) )
+        big_data.append( sensitivityAnalysis(constants.m_ox,constants.C_inj,constants.V_tank,constants.P_tank,constants.m_fuel_i,constants.a,constants.n,i,constants.A_port_i, constants.A_throat, constants.A_exit) )
         i = update_i(i)
     produce_graphs(big_data,i_arr)
 
 if constants.test_var=="A_port_i":
     while(i<=constants.max_bound):
-        big_data.append( sensitivityAnalysis(constants.fill_level,constants.C_inj,constants.V_tank,constants.P_tank,constants.m_fuel_i,constants.a,constants.n,constants.L,i, constants.A_throat, constants.A_exit) )
+        big_data.append( sensitivityAnalysis(constants.m_ox,constants.C_inj,constants.V_tank,constants.P_tank,constants.m_fuel_i,constants.a,constants.n,constants.L,i, constants.A_throat, constants.A_exit) )
         i = update_i(i)
     produce_graphs(big_data,i_arr)
 
 if constants.test_var=="A_throat":
     while(i<=constants.max_bound):
-        big_data.append( sensitivityAnalysis(constants.fill_level,constants.C_inj,constants.V_tank,constants.P_tank,constants.m_fuel_i,constants.a,constants.n,constants.L,constants.A_port_i, i, constants.A_exit) )
+        big_data.append( sensitivityAnalysis(constants.m_ox,constants.C_inj,constants.V_tank,constants.P_tank,constants.m_fuel_i,constants.a,constants.n,constants.L,constants.A_port_i, i, constants.A_exit) )
         i = update_i(i)
     produce_graphs(big_data,i_arr)
 
 if constants.test_var=="A_exit":
     while(i<=constants.max_bound):
-        big_data.append( sensitivityAnalysis(constants.fill_level,constants.C_inj,constants.V_tank,constants.P_tank,constants.m_fuel_i,constants.a,constants.n,constants.L,constants.A_port_i, constants.A_throat, i) )
+        big_data.append( sensitivityAnalysis(constants.m_ox,constants.C_inj,constants.V_tank,constants.P_tank,constants.m_fuel_i,constants.a,constants.n,constants.L,constants.A_port_i, constants.A_throat, i) )
         i = update_i(i)
     produce_graphs(big_data,i_arr)
 
@@ -189,8 +189,6 @@ print(f"max_bound = {constants.max_bound}")
 print(f"num_iterations = {constants.num_iterations}\n")
 print(f"ENGINE DATA\n")
 print(f"oxName = '{constants.oxName}'")
-print(f"rho_ox_liq = {constants.rho_ox_liq}")
-print(f"rho_ox_gas = {constants.rho_ox_gas}")
 print(f"fuelName = '{constants.fuelName}'")
 print(f"rho_fuel = {constants.rho_fuel}")
 print(f"m_fuel_i = {constants.m_fuel_i}")
@@ -204,7 +202,7 @@ print(f"r_tank = {constants.r_tank}")
 print(f"height_tank = {constants.height_tank}")
 print(f"V_tank = {constants.V_tank}")
 print(f"P_tank = {constants.P_tank}")
-print(f"fill_level = {constants.fill_level}")
+print(f"m_ox = {constants.m_ox}")
 print(f"C_inj = {constants.C_inj}")
 print(f"P_atm = {constants.P_atm}")
 print(f"timestep = {constants.timestep}")
