@@ -23,7 +23,7 @@ p_tank_arr = []
 P_cc = constants.P_atm
 
 r1ox = OxTank(constants.oxName, constants.timestep, constants.m_ox, constants.C_inj,
-               constants.V_tank, constants.P_tank, constants.P_atm, constants.all_error)
+               constants.V_tank, constants.P_tank, constants.P_atm, constants.all_error, constants.inj_model)
 
 
 r1cc = cc(constants.oxName, constants.fuelName, constants.CEA_fuel_str, constants.m_fuel_i, 
@@ -33,21 +33,28 @@ r1cc = cc(constants.oxName, constants.fuelName, constants.CEA_fuel_str, constant
 ###ENTER THRUST CURVE
 r1ox.inst(P_cc)
 while r1ox.t < constants.sim_time:
+    
     r1cc.inst(r1ox.m_dot_ox)
     r1ox.inst(r1cc.P_cc)
 
+    #add to arrays
     time_arr.append(r1ox.t)
     m_dot_arr.append(r1ox.m_dot_ox)
     thrust_arr.append(r1cc.instThrust)
-    p_cc_arr.append(r1cc.P_cc)
+    p_cc_arr.append(r1cc.P_cc) #NOTE: convert to atmospheric depending on data
     p_tank_arr.append(r1ox.P_tank)
 
+    total_propellant = r1cc.total_propellant
     #print(r1ox.P_tank, r1cc.P_cc,r1ox.P_tank- r1cc.P_cc,  )
 
     #print(r1ox.m_ox, r1cc.m_fuel_t)
 
     #print(r1ox.t, r1cc.v_exit,r1cc.m_dot_cc_t,r1cc.R)
 
+    #print("time: ", r1ox.t)
+
+print("\n", "### mass balance ###")
+print("total propellant calculated through sim: ", total_propellant+r1ox.m_ox+r1cc.m_fuel_t, "total starting/input propellant: ", constants.m_ox+constants.m_fuel_i, "difference (conservation of mass): ",total_propellant+r1ox.m_ox+r1cc.m_fuel_t -constants.m_ox-constants.m_fuel_i)
 
 ###WRITE CSV FOR FLIGHT SIM AND VALIDATION
 to_csv(time_arr,m_dot_arr, "m_dot_ox")

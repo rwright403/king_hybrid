@@ -6,7 +6,7 @@ import CoolProp.CoolProp as CP
 import matplotlib.pyplot as plt
 import numpy as np
 
-def secant(func, x1, U_tank, m_ox, V_tank):
+def secant(func, x1):
     x_eps = x1 * 0.005  # Set the tolerance to be 0.5% of init guess
     x2 = x1 -x1 * 0.01  # Set a second point 1% away from the original guess
     F1 = func(x1)  # Evaluate function at x1
@@ -101,7 +101,7 @@ def thermo_span_wagner(rho, T, param):
     return out
 
 class OxTank():
-    def __init__(self, oxidizer, timestep, m_ox, C_inj, V_tank, P_tank, P_cc, all_error):
+    def __init__(self, oxidizer, timestep, m_ox, C_inj, V_tank, P_tank, P_cc, all_error, inj_model):
         self.oxidizer = oxidizer
         self.timestep = timestep
         self.m_ox =  m_ox
@@ -111,6 +111,7 @@ class OxTank():
         self.P_tank = P_tank
         self.P_cc = P_cc
         self.all_error = all_error
+        self.inj_model = inj_model
 
 
 
@@ -128,7 +129,7 @@ class OxTank():
 
         #Calculate fill levelfor user reference
         percent_fill =( (self.m_ox/self.V_tank) - self.rho_vap) / (self.rho_liq - self.rho_vap)
-        print("% fill:", percent_fill)
+        print("\n", "ox tank % fill:", percent_fill)
 
         self.x_tank = ( (self.V_tank/self.m_ox) - ((self.rho_liq)**-1) )/( ((self.rho_vap)**-1) - ((self.rho_liq)**-1)) #quality
 
@@ -148,7 +149,7 @@ class OxTank():
         ### start
         if self.x_tank < 1:
             while np.abs(Verror(self.T_tank, self.U_tank, self.m_ox, self.V_tank ) ) > self.V_tank_err:
-                self.T_tank = secant((lambda T: Verror(T, self.U_tank, self.m_ox, self.V_tank)), self.T_tank, self.U_tank, self.m_ox, self.V_tank)
+                self.T_tank = secant((lambda T: Verror(T, self.U_tank, self.m_ox, self.V_tank)), self.T_tank)
 
             #use temperature to calculate thermo properties of tank
             self.P_tank = CP.PropsSI('P', 'Q', self.x_tank, 'T', self.T_tank, 'N2O')
@@ -159,16 +160,25 @@ class OxTank():
             self.u_liq = CP.PropsSI('U', 'Q', 0, 'T', self.T_tank, 'N2O')
             self.u_vap = CP.PropsSI('U', 'Q', 1, 'T', self.T_tank, 'N2O')
 
+            #vapor exit for spi
+            h_vap_exit = CP.PropsSI('H', 'Q', self.x_tank, 'P', self.P_cc, 'N2O')
+
             self.x_tank = (self.U_tank/self.m_ox - self.u_liq)/(self.u_vap - self.u_liq)
             self.u_tank = self.x_tank*self.u_vap + (1 - self.x_tank)*self.u_liq
-            h_tank = self.x_tank*h_vap + (1 - self.x_tank)*h_liq
+            h_tank_exit = self.x_tank*h_vap + (1 - self.x_tank)*h_liq
             self.rho_tank = self.x_tank*self.rho_vap + (1-self.x_tank)*self.rho_liq
 
             #update current time
             self.t = self.t + self.timestep
-            #assume only liquid draining from tank
+            #assume only liquid draining from tank #NOTE: challenge this?
             self.rho_exit = self.rho_liq
-            h_exit = h_liq
+
+            if(self.inj_model == 1):
+                h_tank_exit = h_liq
+                #SPI Model --> single phase so using liquid enthalpy
+
+            
+
 
         else:
             #print("VAPOR PHASE")
@@ -176,22 +186,60 @@ class OxTank():
             self.rho_tank = self.m_ox/self.V_tank
             self.u_tank = self.U_tank/self.m_ox
 
-            #TODO: uerror frunction
             while np.abs(uerror(self.T_tank, self.rho_tank, self.u_tank) ) > self.u_tank_err:
-                self.T_tank = secant((lambda T: uerror(T, self.rho_tank, self.u_tank)), self.T_tank, self.U_tank, self.m_ox, self.V_tank)
+                self.T_tank = secant((lambda T: uerror(T, self.rho_tank, self.u_tank)), self.T_tank)
 
             self.P_tank = thermo_span_wagner(self.rho_tank, self.T_tank, 'p')
-            h_tank = thermo_span_wagner(self.rho_tank, self.T_tank, 'u')
+            h_tank_exit = thermo_span_wagner(self.rho_tank, self.T_tank, 'u')
 
             #update current time
             self.t = self.t + self.timestep
             #rho exit is rho vapor (assume only vapor left in tank)
             self.rho_exit = self.rho_tank
-            h_exit = h_tank + 7.3397e+05 #Convert from Span-Wagner enthalpy convention to NIST
+            h_tank_exit = h_tank_exit + 7.3397e+05 #Convert from Span-Wagner enthalpy convention to NIST
 
 
-        #injector model
-        self.m_dot_ox = self.C_inj * np.sqrt( 2 * self.rho_exit * (self.P_tank - self.P_cc)  ) #this uses a incompressible fluid assumption 
+            if(self.P_cc < 5e5):
+                h_vap_exit = CP.PropsSI('H', 'Q', 1, 'P', self.P_cc, 'N2O')
+            else:
+                h_vap_exit = CP.PropsSI('H', 'Q', 1, 'P', 5e5, 'N2O')
+            #BUG: ^
+
+
+        #dyer solve k to verify using correct model
+        dyer_k = np.sqrt( (self.P_tank - self.P_cc) / ( CP.PropsSI('P', 'Q', 1, 'T', self.T_tank, 'N2O') - self.P_cc) ) #call coolprop to get vapor pressure
+
+        m_dot_spi = self.C_inj * np.sqrt( 2 * self.rho_exit * (self.P_tank - self.P_cc)  )
+
+        if(self.P_cc > 5e5):
+            rho_vap_exit = CP.PropsSI('D', 'Q', 1, 'P', self.P_cc, 'N2O')
+        else:
+            rho_vap_exit = CP.PropsSI('D', 'Q', 1, 'P', 5e5, 'N2O')
+
+        #NOTE: need to check that rho_vap_exit is equal to to critical density!
+        #BUG: h_vap_exit is wrong and uses tank quality even though it flashes?
+        #i think this is the issue ^^^^^
+
+        #NOTE: factor of 5****
+        #NOTE: factor of 5**** delete and figure out why its actually not 5x bigger!
+        m_dot_hem = self.C_inj * rho_vap_exit * np.sqrt( 2 * (h_tank_exit -  h_vap_exit) )
+
+        #print(self.t, m_dot_hem, rho_vap_exit, np.sqrt( 2 * (h_tank_exit - h_vap_exit) ), h_tank_exit, h_vap_exit)
+
+        m_dot_dyer = ((dyer_k/(1+dyer_k)) * m_dot_spi) + ((1/(1+dyer_k)) * m_dot_hem)
+
+        ###use chosen injector model:
+        if(self.inj_model == 1):
+            self.m_dot_ox = m_dot_spi
+        elif(self.inj_model == 2):
+            #print(self.x_tank)
+            if self.x_tank < 1:
+                self.m_dot_ox = m_dot_hem
+            else:
+                self.m_dot_ox = m_dot_spi
+        elif(self.inj_model == 3):
+            self.m_dot_ox = m_dot_dyer
+
         #TODO: add feed system term ^
         #print(self.P_tank, self.P_cc,self.P_tank-self.P_cc, "   --->    ", self.m_dot_ox) 
         #print("mdotox:", self.m_dot_ox)
@@ -205,6 +253,6 @@ class OxTank():
         #move forward in time with differential eqns
         self.m_ox = self.m_ox - self.m_dot_ox*self.timestep
         self.m_dot_ox_prev = self.m_dot_ox
-        self.U_tank = self.U_tank -self.m_dot_ox*h_exit*self.timestep
+        self.U_tank = self.U_tank -self.m_dot_ox*h_tank_exit*self.timestep
 
         #print(self.m_dot_ox," ",self.m_ox," ",self.t)
