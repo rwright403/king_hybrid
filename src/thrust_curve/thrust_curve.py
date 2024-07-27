@@ -33,9 +33,11 @@ r1cc = cc(constants.oxName, constants.fuelName, constants.CEA_fuel_str, constant
 ###ENTER THRUST CURVE
 r1ox.inst(P_cc)
 while r1ox.t < constants.sim_time:
+    
     r1cc.inst(r1ox.m_dot_ox)
     r1ox.inst(r1cc.P_cc)
 
+    #add to arrays
     time_arr.append(r1ox.t)
     m_dot_arr.append(r1ox.m_dot_ox)
     thrust_arr.append(r1cc.instThrust)
@@ -50,7 +52,9 @@ while r1ox.t < constants.sim_time:
     #print(r1ox.t, r1cc.v_exit,r1cc.m_dot_cc_t,r1cc.R)
 
     #print("time: ", r1ox.t)
-print(total_propellant+r1ox.m_ox+r1cc.m_fuel_t,constants.m_ox+constants.m_fuel_i, total_propellant+r1ox.m_ox+r1cc.m_fuel_t -constants.m_ox-constants.m_fuel_i)
+
+print("\n", "### mass balance ###")
+print("total propellant calculated through sim: ", total_propellant+r1ox.m_ox+r1cc.m_fuel_t, "total starting/input propellant: ", constants.m_ox+constants.m_fuel_i, "difference (conservation of mass): ",total_propellant+r1ox.m_ox+r1cc.m_fuel_t -constants.m_ox-constants.m_fuel_i)
 
 ###WRITE CSV FOR FLIGHT SIM AND VALIDATION
 to_csv(time_arr,m_dot_arr, "m_dot_ox")

@@ -31,6 +31,17 @@ exp_time_thrust, exp_thrust = read_csv(constants.exp_thrust_file_path)
 exp_time_p_cc, exp_p_cc = read_csv(constants.exp_p_cc_file_path)
 exp_time_p_tank, exp_p_tank = read_csv(constants.exp_p_tank_file_path)
 
+#return summary of rocket!!!!
+print("\n")
+print("Rocket: ", constants.name)
+print("\n","### injector model: ###")
+if(constants.inj_model == 1):
+    print("SPI")
+elif(constants.inj_model == 2):
+    print("HEM")
+elif(constants.inj_model == 3):
+    print("DYER")
+print("\n")
 
 ###PLOT!!!
 plt.subplot(1,3,1)
