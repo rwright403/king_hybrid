@@ -1,0 +1,81 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import CoolProp.CoolProp as CP
+
+# Define the substance
+substance = 'NitrousOxide'
+
+# Create a range of temperatures for the saturated region
+T_min, T_max = CP.PropsSI('Tmin', substance), CP.PropsSI('Tcrit', substance)
+temperatures = np.linspace(T_min, T_max, 500)
+
+# Initialize arrays for saturated properties
+P_sat = np.zeros_like(temperatures)
+V_sat_liq = np.zeros_like(temperatures)
+V_sat_vap = np.zeros_like(temperatures)
+S_sat_liq = np.zeros_like(temperatures)
+S_sat_vap = np.zeros_like(temperatures)
+
+# Calculate saturated properties
+for i, T in enumerate(temperatures):
+    P_sat[i] = CP.PropsSI('P', 'T', T, 'Q', 0, substance)
+    V_sat_liq[i] = 1 / CP.PropsSI('D', 'T', T, 'Q', 0, substance)
+    V_sat_vap[i] = 1 / CP.PropsSI('D', 'T', T, 'Q', 1, substance)
+    S_sat_liq[i] = CP.PropsSI('S', 'T', T, 'Q', 0, substance) / 1000  # Convert J/(kg*K) to kJ/(kg*K)
+    S_sat_vap[i] = CP.PropsSI('S', 'T', T, 'Q', 1, substance) / 1000  # Convert J/(kg*K) to kJ/(kg*K)
+
+# Function to plot isotherm or isobar
+def plot_iso(ax, T_iso=None, P_iso=None, label_suffix=''):
+    if T_iso is not None:
+        V_liq = 1 / CP.PropsSI('D', 'T', T_iso, 'Q', 0, substance)
+        V_vap = 1 / CP.PropsSI('D', 'T', T_iso, 'Q', 1, substance)
+        P = CP.PropsSI('P', 'T', T_iso, 'Q', 0, substance)
+        S_liq = CP.PropsSI('S', 'T', T_iso, 'Q', 0, substance) / 1000
+        S_vap = CP.PropsSI('S', 'T', T_iso, 'Q', 1, substance) / 1000
+        ax[0].plot([V_liq, V_vap], [P, P], 'g--', label=f'Isotherm at T={T_iso}K {label_suffix}')
+        ax[1].plot([S_liq, S_vap], [T_iso, T_iso], 'g--', label=f'Isotherm at T={T_iso}K {label_suffix}')
+    elif P_iso is not None:
+        T_liq = CP.PropsSI('T', 'P', P_iso, 'Q', 0, substance)
+        T_vap = CP.PropsSI('T', 'P', P_iso, 'Q', 1, substance)
+        V_liq = 1 / CP.PropsSI('D', 'P', P_iso, 'Q', 0, substance)
+        V_vap = 1 / CP.PropsSI('D', 'P', P_iso, 'Q', 1, substance)
+        S_liq = CP.PropsSI('S', 'P', P_iso, 'Q', 0, substance) / 1000
+        S_vap = CP.PropsSI('S', 'P', P_iso, 'Q', 1, substance) / 1000
+        ax[0].plot([V_liq, V_vap], [P_iso, P_iso], 'g--', label=f'Isobar at P={P_iso/1e5}bar {label_suffix}')
+        ax[1].plot([S_liq, S_vap], [T_liq, T_vap], 'g--', label=f'Isobar at P={P_iso/1e5}bar {label_suffix}')
+
+# Input saturation temperature or pressure
+T_iso_input = float(input("Enter a saturation temperature (K) or '0' to skip: "))
+P_iso_input = float(input("Enter a saturation pressure (Pa) or '0' to skip: "))
+
+# Create subplots for P-V and T-S diagrams side by side
+fig, ax = plt.subplots(1, 2, figsize=(15, 7))
+
+# Plot P-V diagram
+ax[0].plot(V_sat_liq, P_sat, 'b-', label='Saturated Liquid')
+ax[0].plot(V_sat_vap, P_sat, 'r-', label='Saturated Vapor')
+ax[0].set_title('Pressure-Volume Diagram for N2O')
+ax[0].set_xlabel('Volume (m^3/kg)')
+ax[0].set_ylabel('Pressure (Pa)')
+ax[0].set_yscale('log')
+ax[0].set_xscale('log')
+ax[0].legend(loc='best')
+ax[0].grid(True, which="both", ls="--")
+
+# Plot T-S diagram
+ax[1].plot(S_sat_liq, temperatures, 'b-', label='Saturated Liquid')
+ax[1].plot(S_sat_vap, temperatures, 'r-', label='Saturated Vapor')
+ax[1].set_title('Temperature-Entropy Diagram for N2O')
+ax[1].set_xlabel('Entropy (kJ/(kg*K))')
+ax[1].set_ylabel('Temperature (K)')
+ax[1].legend(loc='best')
+ax[1].grid(True, which="both", ls="--")
+
+# Plot isotherm or isobar if input is provided
+if T_iso_input > 0:
+    plot_iso(ax, T_iso=T_iso_input, label_suffix='(User Input)')
+if P_iso_input > 0:
+    plot_iso(ax, P_iso=P_iso_input, label_suffix='(User Input)')
+
+plt.tight_layout()
+plt.show()
