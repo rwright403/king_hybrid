@@ -66,25 +66,32 @@ to_csv(time_arr,p_tank_arr, "p_tank")
 
 ###PLOTS
 if constants.thrust_curve_graphs == True:
-    plt.subplot(1,3,1)
+    plt.subplot(1,4,1)
     plt.plot(time_arr,m_dot_arr)
     plt.xlabel('Time (s)')
     plt.ylabel('m_dot_ox (kg/s)')
     plt.title('Mass Flow Rate Over Time')
     plt.grid(True)
 
-    plt.subplot(1,3,2)
+    plt.subplot(1,4,2)
+    plt.plot(time_arr,thrust_arr)
+    plt.xlabel('Time (s)')
+    plt.ylabel('Thrust (N)')
+    plt.title('Thrust Curve')
+    plt.grid(True)
+
+    plt.subplot(1,4,3)
     plt.plot(time_arr,p_cc_arr)
     plt.xlabel('Time (s)')
     plt.ylabel('Chamber Pressure (Pa)')
     plt.title('Chamber Pressure Over Time')
     plt.grid(True)
 
-    plt.subplot(1,3,3)
-    plt.plot(time_arr,thrust_arr)
+    plt.subplot(1,4,4)
+    plt.plot(time_arr,p_tank_arr)
     plt.xlabel('Time (s)')
-    plt.ylabel('Thrust (N)')
-    plt.title('Thrust Curve')
+    plt.ylabel('Tank Pressure (Pa)')
+    plt.title('Tank Pressure Over Time')
     plt.grid(True)
 
 
