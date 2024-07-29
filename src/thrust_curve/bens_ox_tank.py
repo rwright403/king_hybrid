@@ -132,8 +132,9 @@ class OxTank():
         print("\n", "ox tank % fill:", percent_fill)
 
         self.x_tank = ( (self.V_tank/self.m_ox) - ((self.rho_liq)**-1) )/( ((self.rho_vap)**-1) - ((self.rho_liq)**-1)) #quality
+        print(self.x_tank)
 
-        self.T_tank = CP.PropsSI('T', 'Q', self.x_tank, 'P', self.P_tank, 'N2O')  # Temperature of nitrous gas (kg/m^3)
+        self.T_tank = CP.PropsSI('T', 'Q', self.x_tank, 'P', self.P_tank, 'N2O')  # Temperature of nitrous (kg/m^3)
 
         self.u_tank = self.x_tank*self.u_vap + (1-self.x_tank)*self.u_liq
         self.U_tank = self.m_ox*self.u_tank
@@ -150,6 +151,8 @@ class OxTank():
         if self.x_tank < 1:
             while np.abs(Verror(self.T_tank, self.U_tank, self.m_ox, self.V_tank ) ) > self.V_tank_err:
                 self.T_tank = secant((lambda T: Verror(T, self.U_tank, self.m_ox, self.V_tank)), self.T_tank)
+
+            #print(self.T_tank-273.15)
 
             #use temperature to calculate thermo properties of tank
             self.P_tank = CP.PropsSI('P', 'Q', self.x_tank, 'T', self.T_tank, 'N2O')
