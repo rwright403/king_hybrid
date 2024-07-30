@@ -138,6 +138,46 @@ class OxTank():
 
         self.u_tank = self.x_tank*self.u_vap + (1-self.x_tank)*self.u_liq
         self.U_tank = self.m_ox*self.u_tank
+
+    def hold_time(self):
+        if(self.t > 0):
+            print("WARNING HOLD TIME CALLED WHILE ENGINE FIRING")
+
+        v_tank = (self.V_tank/self.m_ox)
+
+        # Get the critical temperature and pressure
+        T_crit = CP.PropsSI('Tcrit', 'N2O')
+        P_crit = CP.PropsSI('Pcrit', 'N2O')
+
+        v_crit = CP.PropsSI('V', 'T', T_crit, 'P', P_crit, 'N2O')
+
+        if(v_tank < v_crit):
+            x = 1
+        else:
+            x = 0
+
+        u_sat = CP.PropsSI('U', 'Q', x, 'V', v_tank, 'N2O')
+
+        #solve Q
+        Q_max = self.m_ox*(u_sat - self.u_tank)
+
+        ####HEAT TRANSFER MODEL!!!!!!
+
+        #TODO: add some of these to constants:
+        T_atm = 25 + 273.15
+
+        wall_thermal_resistance = 1
+        
+        cylinder_thermal_resistance = 1
+
+        thermal_resistance = 1/cylinder_thermal_resistance + 2/wall_thermal_resistance
+
+
+        Q_dot = (T_atm - self.T_tank)/thermal_resistance
+
+
+        return Q_max/Q_dot
+        
           
 
     def inst(self,P_cc):
