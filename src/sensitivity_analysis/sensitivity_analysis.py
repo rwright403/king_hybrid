@@ -28,7 +28,7 @@ def sensitivityAnalysis(m_ox,C_inj,V_tank,P_tank,m_fuel_i, a, n, L, A_port_i, A_
 
     #P_cc = constants.P_atm
 
-    r1ox = OxTank(constants.oxName, constants.timestep, m_ox, C_inj, V_tank, P_tank, constants.P_atm, constants.all_error)
+    r1ox = OxTank(constants.oxName, constants.timestep, m_ox, C_inj, V_tank, P_tank, constants.P_atm, constants.all_error, constants.inj_model)
 
     r1cc = cc(constants.oxName, constants.fuelName, constants.CEA_fuel_str, m_fuel_i, 
         constants.rho_fuel, a, n, L, A_port_i,constants.P_atm, A_throat, A_exit, constants.timestep)

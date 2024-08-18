@@ -25,7 +25,6 @@ def secant(func, x1):
     return x
 
 def Verror(T_tank, U_tank, m_ox, V_tank):
-    #tank temp evaluates to none when lambda used
 
     rho_liq = CP.PropsSI('D', 'Q', 0, 'T', T_tank, 'N2O')  # Density of liquid nitrous (kg/m^3)
     rho_vap = CP.PropsSI('D', 'Q', 1, 'T', T_tank, 'N2O')  # Density of nitrous gas (kg/m^3)
@@ -124,8 +123,8 @@ class OxTank():
         self.rho_liq = CP.PropsSI('D', 'Q', 0, 'P', self.P_tank, 'N2O')  # Density of liquid nitrous (kg/m^3)
         self.rho_vap = CP.PropsSI('D', 'Q', 1, 'P', self.P_tank, 'N2O')  # Density of nitrous gas (kg/m^3)
 
-        self.u_liq = CP.PropsSI('U', 'Q', 0, 'P', self.P_tank, 'N2O')  # Internal Energy of liquid nitrous (kg/m^3)
-        self.u_vap = CP.PropsSI('U', 'Q', 1, 'P', self.P_tank, 'N2O')  # Internal Energy of nitrous gas (kg/m^3)
+        self.u_liq = CP.PropsSI('U', 'Q', 0, 'P', self.P_tank, 'N2O')  # Internal Energy of liquid nitrous (kJ/kg)
+        self.u_vap = CP.PropsSI('U', 'Q', 1, 'P', self.P_tank, 'N2O')  # Internal Energy of nitrous gas (kJ/kg)
 
         #Calculate fill levelfor user reference
         percent_fill =( (self.m_ox/self.V_tank) - self.rho_vap) / (self.rho_liq - self.rho_vap)
@@ -134,14 +133,17 @@ class OxTank():
         self.x_tank = ( (self.V_tank/self.m_ox) - ((self.rho_liq)**-1) )/( ((self.rho_vap)**-1) - ((self.rho_liq)**-1)) #quality
         print(self.x_tank)
 
-        self.T_tank = CP.PropsSI('T', 'Q', self.x_tank, 'P', self.P_tank, 'N2O')  # Temperature of nitrous (kg/m^3)
+        self.T_tank = CP.PropsSI('T', 'Q', self.x_tank, 'P', self.P_tank, 'N2O')  # Temperature of nitrous (K)
 
         self.u_tank = self.x_tank*self.u_vap + (1-self.x_tank)*self.u_liq
         self.U_tank = self.m_ox*self.u_tank
 
-    def hold_time(self):
+
+    #TODO: TEST THIS FUNCTION!!!
+    ### NOTE: diams input in SI!!!!!! DONT INPUT IMPERIAL FUNCTION IS CIVILIZED NOT FREE!
+    def hold_time(self, T_atm, k_cond, L_wall, d_outer, d_inner):
         if(self.t > 0):
-            print("WARNING HOLD TIME CALLED WHILE ENGINE FIRING")
+            print("WARNING HOLD TIME CALLED AT INVALID TIME T")
 
         v_tank = (self.V_tank/self.m_ox)
 
@@ -162,13 +164,10 @@ class OxTank():
         Q_max = self.m_ox*(u_sat - self.u_tank)
 
         ####HEAT TRANSFER MODEL!!!!!!
-
-        #TODO: add some of these to constants:
-        T_atm = 25 + 273.15
-
-        wall_thermal_resistance = 1
+        A_inner = 0.25*np.pi*d_inner**2
+        wall_thermal_resistance = L_wall/(k_cond*A_inner)
         
-        cylinder_thermal_resistance = 1
+        cylinder_thermal_resistance = np.ln(d_outer/d_inner)/(2*np.pi*L_wall*k_cond)
 
         thermal_resistance = 1/cylinder_thermal_resistance + 2/wall_thermal_resistance
 
