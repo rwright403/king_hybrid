@@ -24,7 +24,7 @@ for i, T in enumerate(temperatures):
     S_sat_liq[i] = CP.PropsSI('S', 'T', T, 'Q', 0, substance) / 1000  # Convert J/(kg*K) to kJ/(kg*K)
     S_sat_vap[i] = CP.PropsSI('S', 'T', T, 'Q', 1, substance) / 1000  # Convert J/(kg*K) to kJ/(kg*K)
 
-"""
+
 # Function to plot isotherm or isobar
 def plot_iso(ax, T_iso=None, P_iso=None, label_suffix=''):
     if T_iso is not None:
@@ -48,7 +48,6 @@ def plot_iso(ax, T_iso=None, P_iso=None, label_suffix=''):
 # Input saturation temperature or pressure
 #T_iso_input = float(input("Enter a saturation temperature (K) or '0' to skip: "))
 #P_iso_input = float(input("Enter a saturation pressure (Pa) or '0' to skip: "))
-"""
 
 
 

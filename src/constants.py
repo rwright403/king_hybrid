@@ -30,9 +30,9 @@ fuel paraffin  C 20   H 42    wt%=100.00
 h,KJ/mol=-13313.49  t(k)=298.15   rho,kg/m3={rho_fuel}
 """
 
-#-13313.49
+#heat of combustion -13313.49 found from:
 # https://web.stanford.edu/~cantwell/AA283_Course_Material/AA283_Resources/References/paraffin%20heat%20of%20formation.pdf
-#previously using C 32 H 66, h,KJ/Kgmol=-1860600     t(k)=298.15   rho,kg/m3={rho_fuel}, it seems pretty insensitive to this
+#
 
 a = 0.155/1000 #m/s
 n = 0.5
@@ -75,6 +75,10 @@ sim_time = 8.5#s (time engine will be simulated over)
 #NOTE: if this is too big and you are simulating over a range the script will break
 #is it really a leading edge simulation software if it isnt annoying to use?
 
+###Other constants
+k_tank_wall = 0.237 #kW/(m K)
+
+
 ###ROCKET DATA FOR TRAJECTORY SIM--> MVH-1
 rocket_fuselage_rad = intometer(5.5/2) #m --> for trajectory sim
 rocket_dry_mass = 30 #kg
@@ -94,6 +98,7 @@ model_p_cc_file_path = r'./src/p_cc.csv'
 model_p_tank_file_path = r'./src/p_tank.csv'
 
 ###Phoenix 1a
+"""
 name = "Phoenix 1a"
 
 m_fuel_i = 6.173983 #kg
@@ -113,7 +118,7 @@ C_inj = 0.00002243097155 #m^2 (number of orifices * Cd * Orifice Area)
 exp_thrust_file_path = r'./src/bens_validation_data/Phoenix_1a/Phoenix_1a_Thrust.csv'
 exp_p_cc_file_path = r'./src/bens_validation_data/Phoenix_1a/Phoenix_1a_CC_Pressure.csv'
 exp_p_tank_file_path = r'./src/bens_validation_data/Phoenix_1a/Phoenix_1a_Tank_Pressure.csv'
-
+"""
 
 
 ###Deliverance II
@@ -181,3 +186,5 @@ test_var = "C_inj"
 min_bound = 1.71e-5
 max_bound = 2.39e-5
 num_iterations=3
+
+
