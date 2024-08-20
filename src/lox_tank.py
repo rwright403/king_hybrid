@@ -38,7 +38,7 @@ def perror(Mach_guess, y, pratio):
 
 #BUG: there is some timestep issue ???
 class simpleAdiabaticExtPressurantTank():
-    def __init__(self, pressurant, P_prestank, m_pres, P_proptank, V_PRESTANK, TIMESTEP):
+    def __init__(self, pressurant, P_prestank, m_pres, P_proptank, V_PRESTANK, OUTLET_DIAM, TIMESTEP):
 
         ###setup initial conditions###
         self.pressurant = pressurant #string name for coolprop
@@ -51,7 +51,7 @@ class simpleAdiabaticExtPressurantTank():
 
         #downstream
         self.P_proptank = P_proptank #Pa
-        self.outlet_diam = 0.00254 #m #TODO: make this an input
+        self.outlet_diam = OUTLET_DIAM #m #TODO: make this an input
         self.A_outlet = 0.5*np.pi*self.outlet_diam**2 #m^2
 
         #setup calcs
@@ -81,11 +81,9 @@ class simpleAdiabaticExtPressurantTank():
 
 
 
-    #TODO: PASS IN DOWNSTREAM PRESSURE BECAUSE THAT WILL BE CHANGING THORUGHOUT BURN
-    #def inst(self, P_downstream)
-    #self.P_proptank = P_downstream
-    #self.pratio = self.P_prestank/self.P_proptank
-    def inst(self):
+    def inst(self, P_downstream):
+        self.P_proptank = P_downstream
+        self.pratio = self.P_prestank/self.P_proptank
 
         #step 1: find the mach number from the pressure drop using the secant method
         while np.abs(perror(self.M_outlet, self.y, self.pratio)) > self.pratio_error:
@@ -116,23 +114,14 @@ class simpleAdiabaticExtPressurantTank():
         self.rho_pres = self.m_pres / self.V_PRESTANK #kg/m^3
         
         #NOTE: using previous R and y to solve new conditions, just be aware
-        #print(self.m_pres,self.m_PRES_FILL)
         self.T_prestank = self.T_prestank*(self.m_pres/self.m_prev)**(self.y-1)
         self.P_prestank = (self.m_pres*self.R*self.T_prestank)/self.V_PRESTANK
-        self.pratio = self.P_prestank/self.P_proptank #TODO: can move to start once we pass in downstream pressure and couple to propellant tank
-        #print(self.P_prestank, 6e5*(self.m_pres/self.m_PRES_FILL)**self.y)
-        
-        #print(self.pratio, self.M_outlet)  
-
-        #print(self.m_pres, (1/self.rho_pres), self.T_prestank, self.P_prestank, CP.PropsSI('P', 'T', self.T_prestank, 'D', self.rho_pres, 'He'))
 
         self.m_prev = self.m_pres
         #TODO: check units!
         self.s_prestank = CP.PropsSI('S', 'P', self.P_prestank, 'D', self.rho_pres, self.pressurant) / 1000 #kJ/kg
 
         #print("P: ", self.P_prestank, "v: ", (1/self.rho_pres), "T: ", self.T_prestank, "s: ", self.s_prestank)
-
-#NOTE: extremely high jump in mass flow rate on second timestep. Is this numerical instability???
 
 
 
@@ -324,7 +313,7 @@ def uerror(T_guess, u2, ullage_vec):
     return u_diff
 
 #https://www.nasa.gov/wp-content/uploads/2024/04/gfssp-tankpressurization-jpp2001.pdf?emrc=66201987b6c8c
-class testingSimpleAdiabaticPropellantTank(): #it is not simple
+class simpleAdiabaticPropellantTank(): #it is not simple
     def __init__(self, propellant, pressurant, id_PROPTANK, P_proptank, m_prop, V_PROPTANK, TIMESTEP):
         self.pressurant = pressurant
         self.propellant = propellant
@@ -567,9 +556,7 @@ class testingSimpleAdiabaticPropellantTank(): #it is not simple
 
 #MAIN PROGRAM HERE!!!!
 t = 0
-TIMESTEP = 0.0005
-print("TIMESTEP: ", TIMESTEP)
-#BUG: TIMESTEP DRASTICALLY CHANGES SOME VALUES?
+TIMESTEP = 0.05
 
 m_expelled = 0
 
@@ -581,14 +568,14 @@ v_tank_arr = []
 T_tank_arr = []
 s_tank_arr = []
 
-pressurantTank = simpleAdiabaticExtPressurantTank('He', 2e6, 0.5, 1e5, 0.01, TIMESTEP)
-#BUG: tank doesnt start at input pressure????
+P_downstream = 2e5
+OUTLET_DIAM = 0.00254
 
+pressurantTank = simpleAdiabaticExtPressurantTank('He', 1e6, 0.5, P_downstream, 0.01, OUTLET_DIAM,TIMESTEP)
+#TODO: ADD LOX TANK --> propellantTank = simpleAdiabaticPropellantTank('O2', 'He', id_PROPTANK, P_proptank, m_prop, V_PROPTANK, TIMESTEP)
 
 while(pressurantTank.P_prestank > pressurantTank.P_proptank):
-#while(t<3*TIMESTEP):
-    #RUN THROUGH EACH CV AT EACH INSTANT
-    pressurantTank.inst()
+#while(t<5*TIMESTEP):
 
     #RECORD DATA
     time_arr.append(t)
@@ -600,8 +587,11 @@ while(pressurantTank.P_prestank > pressurantTank.P_proptank):
     T_tank_arr.append(pressurantTank.T_prestank)
     s_tank_arr.append(pressurantTank.s_prestank)
 
-    #print(pressurantTank.m_pres, t)
-    #print(t, pressurantTank.m_dot*TIMESTEP)
+    #RUN THROUGH EACH CV AT EACH INSTANT
+    pressurantTank.inst(P_downstream) #TODO: ADD LOX TANK --> change P_downstream to the pressure from the propellant tank
+    #TODO: ADD LOX TANK --> propellantTank.inst(pressurantTank.m_dot_pres, pressurantTank.h_pres, t)
+    print(t, pressurantTank.M_outlet)
+    #print(t, pressurantTank.T_prestank, pressurantTank.s_prestank)
 
     #UPDATE TIME
     t += TIMESTEP
