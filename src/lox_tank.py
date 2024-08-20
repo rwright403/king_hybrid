@@ -2,10 +2,12 @@ import CoolProp.CoolProp as CP #I love coolprop! ~ units: http://www.coolprop.or
 import matplotlib.pyplot as plt
 import numpy as np
 
+#TODO: DOUBLE CHECK PropsSI units
+
 R_UNIV = 8.314 #J/mol
 
 def secant(func, x1):
-    x_eps = x1 * 0.005  # Set the tolerance to be 0.5% of init guess
+    x_eps = x1 * 0.0005  # Set the tolerance to be 0.5% of init guess
     x2 = x1 - x1 * 0.05  # Set a second point 1% away from the original guess
     #print("x1 and x2: ", x1,x2)
     F1 = func(x1)  # Evaluate function at x1
@@ -33,6 +35,8 @@ def perror(Mach_guess, y, pratio):
     #print(pratio_diff)
     return pratio_diff
 
+
+#BUG: there is some timestep issue ???
 class simpleAdiabaticExtPressurantTank():
     def __init__(self, pressurant, P_prestank, m_pres, P_proptank, V_PRESTANK, TIMESTEP):
 
@@ -41,14 +45,14 @@ class simpleAdiabaticExtPressurantTank():
 
         #upstream
         self.P_prestank = P_prestank #Pa
-        self.m_PRES_FILL = m_pres #kg
+        self.m_prev = m_pres #kg
         self.m_pres = m_pres #kg
         self.V_PRESTANK = V_PRESTANK #m^3
 
         #downstream
         self.P_proptank = P_proptank #Pa
-        self.outlet_diam = 0.00254/4 #m #TODO: make this an input
-        self.A_outlet = 0.25*np.pi*self.outlet_diam**2 #m^2
+        self.outlet_diam = 0.00254 #m #TODO: make this an input
+        self.A_outlet = 0.5*np.pi*self.outlet_diam**2 #m^2
 
         #setup calcs
         self.pratio = self.P_prestank/self.P_proptank #-
@@ -56,25 +60,31 @@ class simpleAdiabaticExtPressurantTank():
 
         self.rho_pres = self.m_pres / self.V_PRESTANK #kg/m^3
 
-        self.u_pres = CP.PropsSI('U', 'D', self.rho_pres, 'P', self.P_prestank, pressurant)  #kJ/kg
+        self.u_pres = CP.PropsSI('U', 'D', self.rho_pres, 'P', self.P_prestank, pressurant) /1000 #kJ/kg
         self.T_prestank = CP.PropsSI('T', 'D', self.rho_pres, 'P', self.P_prestank, pressurant)  #K
 
-        self.M_outlet = 1
+        self.M_outlet = 1 #first guess for mach number
 
         # Get the specific heat capacities at constant pressure and volume
         #TODO: units
         Cp = CP.PropsSI('C', 'T', self.T_prestank, 'P', self.P_prestank, pressurant)  # Cp at specified T and P
         Cv = CP.PropsSI('O', 'T', self.T_prestank, 'P', self.P_prestank, pressurant)  # Cv at specified T and P
         self.y = Cp/Cv #-
-        self.R = Cp-Cv
+        self.R = Cp-Cv #can probably just call coolprop to get this too
 
         self.TIMESTEP = TIMESTEP
         self.m_dot = 0 #kg/s
-        self.T_outlet = 0 #K
+        self.T_outlet = self.T_prestank #K
+
+        self.s_prestank = CP.PropsSI('S', 'T', self.T_prestank, 'D', self.rho_pres, pressurant) / 1000 #kJ/kg
+
 
 
 
     #TODO: PASS IN DOWNSTREAM PRESSURE BECAUSE THAT WILL BE CHANGING THORUGHOUT BURN
+    #def inst(self, P_downstream)
+    #self.P_proptank = P_downstream
+    #self.pratio = self.P_prestank/self.P_proptank
     def inst(self):
 
         #step 1: find the mach number from the pressure drop using the secant method
@@ -83,7 +93,7 @@ class simpleAdiabaticExtPressurantTank():
 
         #TODO: if mach number is above critical, flow reached limitting condition of choked flow
         if(self.M_outlet > 1):
-            self.M_outlet = 1 #flow is choked
+            self.M_outlet = 1 #flow is choked 
 
         #print(self.T_prestank) 
         #print(self.M_outlet)
@@ -91,31 +101,38 @@ class simpleAdiabaticExtPressurantTank():
         #step 2: solve velocity of outlet 
         self.T_outlet = self.T_prestank*(self.P_proptank/self.P_prestank)**((self.y-1)/self.y)
         velo_outlet = self.M_outlet*np.sqrt(self.y*self.R*self.T_outlet)
-        #print(T_outlet,v_outlet)
+        #print(velo_outlet)
 
         #step 3: solve mass flow rate, need density
         rho_outlet = self.rho_pres * (self.T_prestank/self.T_outlet)**((self.y-1)) #NOTE: triple check this when not hungry
+        
         self.m_dot = rho_outlet*velo_outlet*self.A_outlet
-        #print(rho_outlet)
-
-
 
         #step 4: update conservation of mass and recalculate tank properties for next step and update
-        self.m_pres = self.m_pres - self.m_dot*self.TIMESTEP
+        self.m_pres -= self.m_dot*self.TIMESTEP
+
+                #print(self.m_pres, self.m_dot, rho_outlet, velo_outlet)
 
         self.rho_pres = self.m_pres / self.V_PRESTANK #kg/m^3
         
         #NOTE: using previous R and y to solve new conditions, just be aware
         #print(self.m_pres,self.m_PRES_FILL)
-        self.T_prestank = self.T_prestank*(self.m_pres/self.m_PRES_FILL)**(self.y-1)
+        self.T_prestank = self.T_prestank*(self.m_pres/self.m_prev)**(self.y-1)
         self.P_prestank = (self.m_pres*self.R*self.T_prestank)/self.V_PRESTANK
-        self.pratio = self.P_prestank/self.P_proptank
-        #print(self.T_prestank,self.P_prestank)  
+        self.pratio = self.P_prestank/self.P_proptank #TODO: can move to start once we pass in downstream pressure and couple to propellant tank
+        #print(self.P_prestank, 6e5*(self.m_pres/self.m_PRES_FILL)**self.y)
+        
+        #print(self.pratio, self.M_outlet)  
 
-        #print((1/self.rho_pres), self.T_prestank, self.P_prestank, CP.PropsSI('P', 'T', self.T_prestank, 'D', self.rho_pres, 'He'))
+        #print(self.m_pres, (1/self.rho_pres), self.T_prestank, self.P_prestank, CP.PropsSI('P', 'T', self.T_prestank, 'D', self.rho_pres, 'He'))
 
+        self.m_prev = self.m_pres
+        #TODO: check units!
+        self.s_prestank = CP.PropsSI('S', 'P', self.P_prestank, 'D', self.rho_pres, self.pressurant) / 1000 #kJ/kg
 
+        #print("P: ", self.P_prestank, "v: ", (1/self.rho_pres), "T: ", self.T_prestank, "s: ", self.s_prestank)
 
+#NOTE: extremely high jump in mass flow rate on second timestep. Is this numerical instability???
 
 
 
@@ -550,47 +567,102 @@ class testingSimpleAdiabaticPropellantTank(): #it is not simple
 
 #MAIN PROGRAM HERE!!!!
 t = 0
-TIMESTEP = 0.05
+TIMESTEP = 0.0005
+print("TIMESTEP: ", TIMESTEP)
+#BUG: TIMESTEP DRASTICALLY CHANGES SOME VALUES?
 
 m_expelled = 0
 
 time_arr = []
 m_pres_arr = []
 p_tank_arr = []
+m_dot_arr = []
+v_tank_arr = []
+T_tank_arr = []
+s_tank_arr = []
 
-pressurantTank = simpleAdiabaticExtPressurantTank('He', 5e6, 0.5, 1e5, 0.01, TIMESTEP)
-#BUG: honestly output seems weird, its like the tank reaches downstream pressure while having too much mass,
-#increasing mass initially in tank changes the final mass in the tank even when reaches downstream pressure?
+pressurantTank = simpleAdiabaticExtPressurantTank('He', 2e6, 0.5, 1e5, 0.01, TIMESTEP)
+#BUG: tank doesnt start at input pressure????
 
-while(pressurantTank.P_prestank > 1e5):
 
+while(pressurantTank.P_prestank > pressurantTank.P_proptank):
+#while(t<3*TIMESTEP):
     #RUN THROUGH EACH CV AT EACH INSTANT
     pressurantTank.inst()
 
     #RECORD DATA
     time_arr.append(t)
-    m_pres_arr.append(pressurantTank.m_dot*TIMESTEP)
     m_expelled += pressurantTank.m_dot*TIMESTEP
+    m_pres_arr.append(pressurantTank.m_pres)
     p_tank_arr.append(pressurantTank.P_prestank)
+    m_dot_arr.append(pressurantTank.m_dot)
+    v_tank_arr.append(1/pressurantTank.rho_pres)
+    T_tank_arr.append(pressurantTank.T_prestank)
+    s_tank_arr.append(pressurantTank.s_prestank)
+
+    #print(pressurantTank.m_pres, t)
+    #print(t, pressurantTank.m_dot*TIMESTEP)
 
     #UPDATE TIME
     t += TIMESTEP
 
-print("consv. of mass: ", m_expelled + pressurantTank.m_pres, "expelled, m in tank", m_expelled , pressurantTank.m_pres)
-#BUG: tank is producing mass and violating conservation of mass
+print("consv. of mass: ", m_expelled + pressurantTank.m_pres, "expelled: ", m_expelled , "m remaining: ", pressurantTank.m_pres)
 
-plt.subplot(1,2,1)
-plt.plot(time_arr,m_pres_arr)
+plt.subplot(1,5,1)
+plt.plot(time_arr,m_pres_arr, color = 'r')
 plt.xlabel('Time (s)')
-plt.ylabel('m_pres_ox (kg)')
+plt.ylabel('Pressurant Mass (kg)')
 plt.title('Pressurant Mass Over Time')
 plt.grid(True)
 
-plt.subplot(1,2,2)
-plt.plot(time_arr,p_tank_arr)
+plt.subplot(1,5,2)
+plt.plot(time_arr,m_dot_arr, color = 'r')
+plt.xlabel('Time (s)')
+plt.ylabel('Mass Flow Rate (kg/s)')
+plt.title('Mass Flow Rate Over Time')
+plt.grid(True)
+
+plt.subplot(1,5,3)
+plt.plot(time_arr,p_tank_arr, color = 'r')
 plt.xlabel('Time (s)')
 plt.ylabel('Pressure (Pa)')
 plt.title('Pressure Over Time')
 plt.grid(True)
 
+plt.subplot(1,5,4)
+plt.plot(v_tank_arr,p_tank_arr)
+plt.xlabel('v Tank (m^3/kg)')
+plt.ylabel('Pressure (Pa)')
+plt.title('P-v diagram')
+plt.grid(True)
+
+plt.subplot(1,5,5)
+plt.plot(s_tank_arr,T_tank_arr)
+plt.xlabel('s Tank (kJ/kg)')
+plt.ylabel('Temperature (K)')
+plt.title('T-s diagram')
+plt.grid(True)
+
+
+#add helium saturation curve to P-v diagram
+# Create an array of specific volumes
+v_sat_arr = np.linspace(v_tank_arr[0], v_tank_arr[-1], 100) #100 points
+#v_sat_arr = np.linspace(0.01, 0.1, 100) #100 points
+
+# Initialize an array to store the corresponding pressures
+p_sat_arr = []
+
+# Loop over specific volumes to calculate the corresponding saturation pressure
+for v in v_sat_arr:
+    try:
+        # Calculate the saturation pressure at the given specific volume
+        p_sat_arr.append(CP.PropsSI('P', 'X', 1, 'D', 1/v, 'He') ) #CP.PropsSI('P', 'T', CP.PropsSI('Tcrit', 'He'), 'D', 1/v, 'He') #TODO: pass in pressurant here
+    except ValueError:
+        p_sat_arr.append(np.nan)  # Assign NaN if the calculation fails (e.g., outside saturation region)
+
+plt.plot(v_sat_arr,p_sat_arr)
+
 plt.show()
+
+#testing
+#print( CP.PropsSI('T', 'P', 2e6, 'D', 0.5/0.01, 'He') )
