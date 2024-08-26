@@ -25,9 +25,16 @@ add_new_fuel(fuel_name, fuel_properties)
 
 ox_name = 'N2O'
 
-expratio = 12
-OF_ratio = [2, 4, 6, 8, 10, 12]
-chamber_pressures = [10, 20, 30, 40, 50, 60]
+apogee_height = 3048 #m
+optimal_height = (2/3)*apogee_height #m above launch pad
+P_exit = 1000 * 101.29*( ((15.04 - 0.00649*optimal_height)+273.1)/288.08)**5.256 #Pa
+
+
+OF_ratio = [4, 5, 6, 7, 8, 9]
+chamber_pressures = [10, 20, 30, 40, 50]
+
+
+
 
 ###END USER INPUT
 
@@ -56,6 +63,20 @@ for j in OF_ratio:
     p_cc_arr = []
 
     for k in chamber_pressures:
+
+        ###solve expansion ratio for each chamber pressure using y guess
+        ###pick ideal expansion altitude and solve expansion ratio
+
+        """
+        first need to get ratio of specific heats (y), from testing noticed in range of expected chamber pressures
+        and expansion ratios y was constant to expratio and only changed with P_cc so we can solve here w/out losing accuracy
+        """
+        #fluid_prop = CEA_Obj.get_Chamber_MolWt_gamma(k, j, 5.5) #expratio guess 5.5
+        y = 1.23 #fluid_prop[1] # (-)
+
+        expratio = ( ( ((y+1)/2)**(1/(y-1)) ) * ( (P_exit/k)**(1/y) ) * np.sqrt( ((y+1)/(y-1)) * ( (1- (P_exit/k)**((y-1)/y) )) ) )**-1
+
+
         i = ceaObj.get_IvacCstrTc_ChmMwGam(Pc=k, MR=j, eps=expratio)
         flame_temp_mw_ratio_arr.append(i[2] / i[3])
         flame_temp_arr.append(i[2])
@@ -90,6 +111,7 @@ for Pc in chamber_pressures:
     of_arr = []
     isp_arr = []
 
+    expratio = 5.5
     isp_prev = 0
     max_isp = 0
     of_store = 0
@@ -115,6 +137,9 @@ axs[2].grid(True)
 #show graphs, and TODO: print out stoichiometric O/F, O/F at highest flame temp/mw
 plt.show()
 
+
+
+#NOTE: does this even make sense/is it relevant????
 #let user input desired O/F ratio
 input_of = 0
 while(input_of ==0):
