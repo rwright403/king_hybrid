@@ -116,6 +116,7 @@ class simpleAdiabaticExtPressurantTank():
         #NOTE: using previous R and y to solve new conditions, just be aware
         self.T_prestank = self.T_prestank*(self.m_pres/self.m_prev)**(self.y-1)
         self.P_prestank = (self.m_pres*self.R*self.T_prestank)/self.V_PRESTANK
+        #BUG: P_prestank increases on second timestep??? see note above for potential fix!
 
         self.m_prev = self.m_pres
         #TODO: check units!
@@ -484,6 +485,8 @@ class simpleAdiabaticPropellantTank(): #it is not simple
 
 
         ###NOTE: step 4 - heat transfer will boil off some LOX!!!!
+
+        ###BUG: NOTE: TODO: is the lox really a compressed liquid? or is it a saturated liquid vapor???
         
         #translate pure substance to sat liq vap vector!!!
 
