@@ -235,3 +235,7 @@ class cc():
 
 
         #print(self.m_fuel_t, self.radius)
+
+        #print(self.OF)
+
+
