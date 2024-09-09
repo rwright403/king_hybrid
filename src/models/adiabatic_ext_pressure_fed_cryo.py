@@ -1,3 +1,6 @@
+###NOTE: THIS IS BAD! should have neglected mixing of helium and GOX!!!
+
+from rocketcea.cea_obj_w_units import CEA_Obj #how to access this as a non us citizen?
 import CoolProp.CoolProp as CP #I love coolprop! ~ units: http://www.coolprop.org/v4/apidoc/CoolProp.html
 import matplotlib.pyplot as plt
 import numpy as np
@@ -36,7 +39,7 @@ def perror(Mach_guess, y, pratio):
     return pratio_diff
 
 
-#BUG: there is some timestep issue ???
+
 class simpleAdiabaticExtPressurantTank():
     def __init__(self, pressurant, P_prestank, m_pres, P_proptank, V_PRESTANK, OUTLET_DIAM, TIMESTEP):
 
@@ -109,14 +112,14 @@ class simpleAdiabaticExtPressurantTank():
         #step 4: update conservation of mass and recalculate tank properties for next step and update
         self.m_pres -= self.m_dot*self.TIMESTEP
 
-                #print(self.m_pres, self.m_dot, rho_outlet, velo_outlet)
+        #print(self.m_pres, self.m_dot, rho_outlet, velo_outlet)
 
         self.rho_pres = self.m_pres / self.V_PRESTANK #kg/m^3
         
         #NOTE: using previous R and y to solve new conditions, just be aware
         self.T_prestank = self.T_prestank*(self.m_pres/self.m_prev)**(self.y-1)
         self.P_prestank = (self.m_pres*self.R*self.T_prestank)/self.V_PRESTANK
-        #BUG: P_prestank increases on second timestep??? see note above for potential fix!
+        #BUG: P_prestank increases on second timestep for certain??? see note above for potential fix!
 
         self.m_prev = self.m_pres
         #TODO: check units!
@@ -314,10 +317,12 @@ def uerror(T_guess, u2, ullage_vec):
     return u_diff
 
 #https://www.nasa.gov/wp-content/uploads/2024/04/gfssp-tankpressurization-jpp2001.pdf?emrc=66201987b6c8c
-class simpleAdiabaticPropellantTank(): #it is not simple
+class simpleAdiabaticCryoOxidizerTank(): #it is not simple
     def __init__(self, propellant, pressurant, id_PROPTANK, P_proptank, m_prop, V_PROPTANK, TIMESTEP):
         self.pressurant = pressurant
         self.propellant = propellant
+
+        self.P_proptank = P_proptank
 
         ###setup state vectors for fluids
 
@@ -343,15 +348,18 @@ class simpleAdiabaticPropellantTank(): #it is not simple
         self.propellant_liq_vec.m = m_prop
         self.propellant_liq_vec.v = V_PROPTANK/m_prop
         self.propellant_liq_vec.P = P_proptank
+        self.propellant_liq_vec.R = None
 
         self.propellant_liq_vec.T = CP.PropsSI('T', 'V', self.propellant_liq_vec.v, 'P', self.P_proptank, self.propellant)
+        # ^ValueError: Input pair variable is invalid and output(s) are non-trivial; cannot do state update : PropsSI("T","V",5.148147988e-06,"P",200000,"O2")
+        #NOTE: might be input error the inputs might be garbage
         self.propellant_liq_vec.cp = CP.PropsSI('C', 'V', self.propellant_liq_vec.v, 'P', self.P_proptank, self.propellant)
         self.propellant_liq_vec.u = CP.PropsSI('U', 'V', self.propellant_liq_vec.v, 'P', self.P_proptank, self.propellant)
 
 
         #fluid: sat liq vapor NOTE: SATURATED LIQUID VAPOR PURE SUBSTANCE
         self.sat_liq_vap_propellant = sat_liq_vap_property_vector()
-
+        self.sat_liq_vap_propellant.R = None
 
         #fluid: pure propellant vapor vec NOTE: PURE SUBSTANCE
         self.propellant_vapor_vec = std_state_property_vector()
@@ -369,9 +377,7 @@ class simpleAdiabaticPropellantTank(): #it is not simple
         self.id_PROPTANK = id_PROPTANK #in metric
         self.A_proptank = 0.25*np.pi*id_PROPTANK**2 #NOTE: passing in metric tank diam!!!!!
 
-        #remaining setup
-        self.P_proptank = P_proptank
-
+        #TODO: oxygen starts as saturated liquid vapor!!!!!!
         self.V_ullage = 0 #m^3
         self.V_prop = V_PROPTANK #m^3
 
@@ -385,8 +391,8 @@ class simpleAdiabaticPropellantTank(): #it is not simple
 
 
 
-
-    def inst(self, m_dot_pres, h_pres, t):
+###TODO: DEBUG!!!!!!
+    def inst(self, m_dot_pres, h_pres, t): #thermo HELL
 
         ###NOTE: step 1: ADDING PRESSURANT
 
@@ -404,24 +410,23 @@ class simpleAdiabaticPropellantTank(): #it is not simple
 
         #BUG: this is not updating everything that needs to be updated!
         #now that pressurant is added, ullage is compressed so recalc volume
-        if(t != self.TIMESTEP):
+        if(t != TIMESTEP):
             #coolprop gives specific, convert to molar
-            #solving specific entropy before compressing!!!!!
+            #solving specific entropy before additional helium compresses
             self.ullage_vec.s_pres_M = self.ullage_vec.M_pres * CP.PropsSI('S', 'T', self.ullage_vec.T, 'P', self.ullage_vec.P_pres, self.pressurant)
             self.ullage_vec.s_prop_M = self.ullage_vec.M_prop * CP.PropsSI('S', 'T', self.ullage_vec.T, 'P', self.ullage_vec.P_prop, self.propellant)
             
 
             s_1_M = self.ullage_vec.X_pres * self.ullage_vec.s_pres_M + self.ullage_vec.X_prop * self.ullage_vec.s_prop_M
 
-            #now we compress!!!!!!!!!
+            #now we add helium and compress
             #normally ullage is a mixture of pressurant and propellant so we need to update the mixture properties!!!
             self.V_ullage -= self.added_pressurant_vec.v * self.added_pressurant_vec.m
             self.ullage_vec.v = self.V_ullage/self.ullage_vec.m
 
             #NOW SECANT METHOD TO ITERATIVELY SOLVE FOR FINAL TEMP AND PRESSURE USING ISENTROPIC PROCESS ASSUMPTION
             #def serror(T_2_guess, s_1_M, ullage_vec):
-            #NOTE: is this updating everything in the ullage vector? --> no
-            #NOTE: using both S and P error?
+            #NOTE: is this updating everything in the ullage vector? --> yes?
 
             while np.abs(serror(self.ullage_vec.T, s_1_M, self.ullage_vec)) > self.sratio_error:
                 self.ullage_vec.T = secant((lambda S: serror(self.ullage_vec.T, s_1_M, self.ullage_vec)), s_1_M) #changed to serror from perror i think perror was a mistake but idk
@@ -440,19 +445,19 @@ class simpleAdiabaticPropellantTank(): #it is not simple
             self.ullage_vec.s_prop_M = self.ullage_vec.M_prop * CP.PropsSI('S', 'T', self.ullage_vec.T, 'P', self.ullage_vec.P_prop, self.propellant)
 
 
-
+        
         else: 
+            #BUG: I DONT LIKE THIS!
             #if its the first timestep, ullage is purely pressurant so update ullage vector to equal pressurant vector
             self.V_ullage = self.added_pressurant_vec.v * self.added_pressurant_vec.m
             self.ullage_vec = self.added_pressurant_vec
             #NOTE: only standard properties updated here, all mixture properties are 0 NOTE: this might not be compatible in future steps?
-
+        
 
 
         ###NOTE: step 2 - mixing of ullage vector and pressurant vector
         #now that initial properties are updated, can solve mixture and get final ullage properties
         self.ullage_vec = solve_final_mixture(self.added_pressurant_vec, self.ullage_vec, 1)
-        #TODO: finish updating all properties
 
 
         ###NOTE: step 3 - heat transfer from ullage into liquid propellant and update ullage
@@ -469,27 +474,38 @@ class simpleAdiabaticPropellantTank(): #it is not simple
         #since energy is being transfered out of ullage, we need to recalculate new temperature!!!!
         self.ullage_vec.u -= Q_interface/self.ullage_vec.m
 
-        ###TODO: PUT SECANT METHOD TO FIND TEMPERATURE HERE!!!!!
-        #NOTE: should we just pass in ullage vector???????
+        ###secant method to find ullage temperature
         while np.abs(uerror(self.ullage_vec.T, self.ullage_vec.u, self.ullage_vec)) > self.uratio_error:
                 self.ullage_vec.T = secant((lambda U: uerror(self.ullage_vec.T, self.ullage_vec.u, self.ullage_vec)), self.ullage_vec.u)
         
         #now that we know temperature, we can get all the other properties!!!!!! (know u, u_pres_M and prop, )
 
-        self.ullage_vec.P_pres = CP.PropsSI('P', 'T', self.ullage_vec.T, 'P', self.ullage_vec.u_pres_M, self.pressurant)
+        self.ullage_vec.P_pres = CP.PropsSI('P', 'T', self.ullage_vec.T, 'U', (self.ullage_vec.u_pres_M/self.ullage_vec.M_pres), self.pressurant)
+        self.ullage_vec.P_prop = CP.PropsSI('P', 'T', self.ullage_vec.T, 'U', (self.ullage_vec.u_prop_M/self.ullage_vec.M_prop), self.propellant)
 
         self.ullage_vec.P = self.ullage_vec.X_pres * self.ullage_vec.P_pres + self.ullage_vec.X_prop * self.ullage_vec.P_prop
 
-        
+        self.ullage_vec.R = self.ullage_vec.X_pres * self.added_pressurant_vec.R + self.ullage_vec.X_prop * self.propellant_vapor_vec.R
+
+        #solve cv of components
+        self.ullage_vec.cv_pres_M = self.ullage_vec.M_pres *CP.PropsSI('CVMASS', 'T', self.ullage_vec.T, 'U', (self.ullage_vec.u_pres_M/self.ullage_vec.M_pres), self.pressurant)
+        self.ullage_vec.cv_prop_M = self.ullage_vec.M_prop *CP.PropsSI('CVMASS', 'T', self.ullage_vec.T, 'U', (self.ullage_vec.u_prop_M/self.ullage_vec.M_prop), self.propellant)
+
+        #use mol ratios to find ullage cv
+        self.ullage_vec.cv = self.ullage_vec.X_pres * self.ullage_vec.cv_pres_M + self.ullage_vec.X_prop * self.ullage_vec.cv_prop_M
+
+        #solve entropy of components!
+        self.ullage_vec.s_pres_M = self.ullage_vec.M_pres * CP.PropsSI('S', 'T', self.ullage_vec.T, 'U', (self.ullage_vec.u_pres_M/self.ullage_vec.M_pres), self.pressurant)
+        self.ullage_vec.s_prop_M = self.ullage_vec.M_prop * CP.PropsSI('S', 'T', self.ullage_vec.T, 'U', (self.ullage_vec.u_prop_M/self.ullage_vec.M_prop), self.propellant)
+            
 
 
 
-        ###NOTE: step 4 - heat transfer will boil off some LOX!!!!
 
-        ###BUG: NOTE: TODO: is the lox really a compressed liquid? or is it a saturated liquid vapor???
+
+        ###NOTE: step 4 - heat transfer will boil off some LOX!!!! --> isochoric heating
         
         #translate pure substance to sat liq vap vector!!!
-
         #know the mass and specific volume is the same between comp liquid and sat liq vap states:
         self.sat_liq_vap_propellant.m = self.propellant_liq_vec.m
         self.sat_liq_vap_propellant.v = self.propellant_liq_vec.v
@@ -497,13 +513,19 @@ class simpleAdiabaticPropellantTank(): #it is not simple
         #first law!
         self.sat_liq_vap_propellant.u = self.propellant_liq_vec.u + Q_interface/self.propellant_liq_vec.m
 
+        u_f = CP.PropsSI('U', 'X', 1, 'P', self.sat_liq_vap_propellant.P, self.propellant)
+        u_g = CP.PropsSI('U', 'X', 0, 'P', self.sat_liq_vap_propellant.P, self.propellant)
+
+        self.sat_liq_vap_propellant.x = (self.sat_liq_vap_propellant.u-u_f) / (u_g-u_f)
+
         #easy update T and P for sat liquid vapor because we know its on the sat liquid vapor line
         self.sat_liq_vap_propellant.T = CP.PropsSI('T', 'V', self.sat_liq_vap_propellant.v, 'U', self.sat_liq_vap_propellant.u, self.propellant)
         self.sat_liq_vap_propellant.P = CP.PropsSI('P', 'V', self.sat_liq_vap_propellant.v, 'U', self.sat_liq_vap_propellant.u, self.propellant)
 
+        self.sat_liq_vap_propellant.cv = CP.PropsSI('CVMASS', 'X', self.sat_liq_vap_propellant.x, 'T', self.sat_liq_vap_propellant.T, self.propellant)
 
 
-        #use heat transfer to solve mass transfer from propellant liquid to ullage mixture for vapor vector!!!
+        #use heat transfer to solve mass transfer from propellant liquid vapor to ullage mixture for vapor vector?
         T_sat = CP.PropsSI('T', 'X', 0, 'P', self.P_proptank, self.propellant)
 
         h_f = CP.PropsSI('H', 'X', 1, 'P', self.sat_liq_vap_propellant.P, self.propellant)
@@ -519,15 +541,15 @@ class simpleAdiabaticPropellantTank(): #it is not simple
 
 
 
-        ###NOTE: step 5 - 
+        ###NOTE: step 5 -  mixing ullage with vapor, first need to translate sat_liq_vap vector to vap vector
         self.propellant_vapor_vec.m = m_dot_vap*self.TIMESTEP #kg
 
         self.propellant_vapor_vec.T = self.sat_liq_vap_propellant.T #K
         self.propellant_vapor_vec.P = self.sat_liq_vap_propellant.P #Pa
 
-        self.propellant_vapor_vec.v = CP.PropsSI('V', 'X', 1, 'P', self.propellant_vapor_vec.P, self.propellant)
-        self.propellant_vapor_vec.cv = CP.PropsSI('CVMASS', 'X', 1, 'P', self.propellant_vapor_vec.P, self.propellant)
-        self.propellant_vapor_vec.u = CP.PropsSI('U', 'X', 1, 'P', self.propellant_vapor_vec.P, self.propellant)
+        self.propellant_vapor_vec.v = CP.PropsSI('V', 'X', 0, 'P', self.propellant_vapor_vec.P, self.propellant) #kg/m^3
+        self.propellant_vapor_vec.cv = CP.PropsSI('CVMASS', 'X', 0, 'P', self.propellant_vapor_vec.P, self.propellant) 
+        self.propellant_vapor_vec.u = CP.PropsSI('U', 'X', 0, 'P', self.propellant_vapor_vec.P, self.propellant) 
 
 
         
@@ -536,126 +558,73 @@ class simpleAdiabaticPropellantTank(): #it is not simple
         self.ullage_vec = solve_final_mixture(self.propellant_vapor_vec, self.ullage_vec, 0)
 
         #TODO: update liquid vector!!!!!!
+        self.propellant_liq_vec.T = self.sat_liq_vap_propellant.T #K
+        self.propellant_liq_vec.P = self.sat_liq_vap_propellant.P #Pa
+
+        self.propellant_liq_vec.m = self.sat_liq_vap_propellant.m - m_dot_vap*self.TIMESTEP #kg
+
+        self.propellant_liq_vec.v = CP.PropsSI('V', 'X', 1, 'P', self.propellant_liq_vec.P, self.propellant)
+        self.propellant_liq_vec.cv = CP.PropsSI('CVMASS', 'X', 1, 'P', self.propellant_liq_vec.P, self.propellant)
+        self.propellant_liq_vec.u = CP.PropsSI('U', 'X', 1, 'P', self.propellant_liq_vec.P, self.propellant)
+
+
+
+
+
+
+
+
 
         ##NOTE: #step 6 - solve mass flow rate out of tank and then update properties of sat liq vap and ullage
-
 
         #NOW WE CAN FINALLY SOLVE MASS FLOW RATE OUT OF TANK:
         self.m_dot_proptank = m_dot_pres * (1/self.propellant_liq_vec.v) * self.ullage_vec.R * self.ullage_vec.T / self.P_proptank
 
         #update initial conditions for next iteration!!!!! less mass in tank, particularily new tank pressure
-
-
-        #return mass flow rate of propellant and new tank pressure
+        
+        #update propellant liquid properties, assuming incompressible
+        self.propellant_liq_vec.m -= self.m_dot_proptank * TIMESTEP
 
         #update heat transfer properties for propellant (pure substance liquid)
         self.propellant_liq_vec.cp = CP.PropsSI('C', 'T', self.propellant_liq_vec.T, 'P', self.P_proptank, self.propellant)
         self.propellant_liq_vec.k = CP.PropsSI('L', 'T', self.propellant_liq_vec.T, 'P', self.P_proptank, self.propellant)
         self.propellant_liq_vec.visc = CP.PropsSI('V', 'T', self.propellant_liq_vec.T, 'P', self.P_proptank, self.propellant)
         self.propellant_liq_vec.update_beta()
-
         
 
 
-#MAIN PROGRAM HERE!!!!
-t = 0
-TIMESTEP = 0.05
+        #update ullage properties (volume changed) recalc propellant volume
+        self.V_prop = self.propellant_liq_vec.m * self.propellant_liq_vec.v
 
-m_expelled = 0
+        #update ullage properties
+        self.V_ullage = self.V_TANK - self.V_prop
+        self.ullage_vec.v = self.V_ullage / self.ullage_vec.m
 
-time_arr = []
-m_pres_arr = []
-p_tank_arr = []
-m_dot_arr = []
-v_tank_arr = []
-T_tank_arr = []
-s_tank_arr = []
+        #Now iteratively solve temperature based on first law!!!!!
+        ###secant method to find ullage temperature
+        while np.abs(uerror(self.ullage_vec.T, self.ullage_vec.u, self.ullage_vec)) > self.uratio_error:
+                self.ullage_vec.T = secant((lambda U: uerror(self.ullage_vec.T, self.ullage_vec.u, self.ullage_vec)), self.ullage_vec.u)
+        
+        #now that we know temperature, we can get all the other properties!!!!!! (know u, u_pres_M and prop, )
 
-P_downstream = 2e5
-OUTLET_DIAM = 0.00254
+        self.ullage_vec.P_pres = CP.PropsSI('P', 'T', self.ullage_vec.T, 'U', (self.ullage_vec.u_pres_M/self.ullage_vec.M_pres), self.pressurant)
+        self.ullage_vec.P_prop = CP.PropsSI('P', 'T', self.ullage_vec.T, 'U', (self.ullage_vec.u_prop_M/self.ullage_vec.M_prop), self.propellant)
 
-pressurantTank = simpleAdiabaticExtPressurantTank('He', 1e6, 0.5, P_downstream, 0.01, OUTLET_DIAM,TIMESTEP)
-#TODO: ADD LOX TANK --> propellantTank = simpleAdiabaticPropellantTank('O2', 'He', id_PROPTANK, P_proptank, m_prop, V_PROPTANK, TIMESTEP)
+        self.ullage_vec.P = self.ullage_vec.X_pres * self.ullage_vec.P_pres + self.ullage_vec.X_prop * self.ullage_vec.P_prop
 
-while(pressurantTank.P_prestank > pressurantTank.P_proptank):
-#while(t<5*TIMESTEP):
+        self.ullage_vec.R = self.ullage_vec.X_pres * self.added_pressurant_vec.R + self.ullage_vec.X_prop * self.propellant_vapor_vec.R
 
-    #RECORD DATA
-    time_arr.append(t)
-    m_expelled += pressurantTank.m_dot*TIMESTEP
-    m_pres_arr.append(pressurantTank.m_pres)
-    p_tank_arr.append(pressurantTank.P_prestank)
-    m_dot_arr.append(pressurantTank.m_dot)
-    v_tank_arr.append(1/pressurantTank.rho_pres)
-    T_tank_arr.append(pressurantTank.T_prestank)
-    s_tank_arr.append(pressurantTank.s_prestank)
+        #solve cv of components
+        self.ullage_vec.cv_pres_M = self.ullage_vec.M_pres *CP.PropsSI('CVMASS', 'T', self.ullage_vec.T, 'U', (self.ullage_vec.u_pres_M/self.ullage_vec.M_pres), self.pressurant)
+        self.ullage_vec.cv_prop_M = self.ullage_vec.M_prop *CP.PropsSI('CVMASS', 'T', self.ullage_vec.T, 'U', (self.ullage_vec.u_prop_M/self.ullage_vec.M_prop), self.propellant)
 
-    #RUN THROUGH EACH CV AT EACH INSTANT
-    pressurantTank.inst(P_downstream) #TODO: ADD LOX TANK --> change P_downstream to the pressure from the propellant tank
-    #TODO: ADD LOX TANK --> propellantTank.inst(pressurantTank.m_dot_pres, pressurantTank.h_pres, t)
-    print(t, pressurantTank.M_outlet)
-    #print(t, pressurantTank.T_prestank, pressurantTank.s_prestank)
+        #use mol ratios to find ullage cv
+        self.ullage_vec.cv = self.ullage_vec.X_pres * self.ullage_vec.cv_pres_M + self.ullage_vec.X_prop * self.ullage_vec.cv_prop_M
 
-    #UPDATE TIME
-    t += TIMESTEP
+        #solve entropy of components!
+        self.ullage_vec.s_pres_M = self.ullage_vec.M_pres * CP.PropsSI('S', 'T', self.ullage_vec.T, 'U', (self.ullage_vec.u_pres_M/self.ullage_vec.M_pres), self.pressurant)
+        self.ullage_vec.s_prop_M = self.ullage_vec.M_prop * CP.PropsSI('S', 'T', self.ullage_vec.T, 'U', (self.ullage_vec.u_prop_M/self.ullage_vec.M_prop), self.propellant)
+            
+        self.P_proptank = self.ullage_vec.P
 
-print("consv. of mass: ", m_expelled + pressurantTank.m_pres, "expelled: ", m_expelled , "m remaining: ", pressurantTank.m_pres)
-
-plt.subplot(1,5,1)
-plt.plot(time_arr,m_pres_arr, color = 'r')
-plt.xlabel('Time (s)')
-plt.ylabel('Pressurant Mass (kg)')
-plt.title('Pressurant Mass Over Time')
-plt.grid(True)
-
-plt.subplot(1,5,2)
-plt.plot(time_arr,m_dot_arr, color = 'r')
-plt.xlabel('Time (s)')
-plt.ylabel('Mass Flow Rate (kg/s)')
-plt.title('Mass Flow Rate Over Time')
-plt.grid(True)
-
-plt.subplot(1,5,3)
-plt.plot(time_arr,p_tank_arr, color = 'r')
-plt.xlabel('Time (s)')
-plt.ylabel('Pressure (Pa)')
-plt.title('Pressure Over Time')
-plt.grid(True)
-
-plt.subplot(1,5,4)
-plt.plot(v_tank_arr,p_tank_arr)
-plt.xlabel('v Tank (m^3/kg)')
-plt.ylabel('Pressure (Pa)')
-plt.title('P-v diagram')
-plt.grid(True)
-
-plt.subplot(1,5,5)
-plt.plot(s_tank_arr,T_tank_arr)
-plt.xlabel('s Tank (kJ/kg)')
-plt.ylabel('Temperature (K)')
-plt.title('T-s diagram')
-plt.grid(True)
-
-
-#add helium saturation curve to P-v diagram
-# Create an array of specific volumes
-v_sat_arr = np.linspace(v_tank_arr[0], v_tank_arr[-1], 100) #100 points
-#v_sat_arr = np.linspace(0.01, 0.1, 100) #100 points
-
-# Initialize an array to store the corresponding pressures
-p_sat_arr = []
-
-# Loop over specific volumes to calculate the corresponding saturation pressure
-for v in v_sat_arr:
-    try:
-        # Calculate the saturation pressure at the given specific volume
-        p_sat_arr.append(CP.PropsSI('P', 'X', 1, 'D', 1/v, 'He') ) #CP.PropsSI('P', 'T', CP.PropsSI('Tcrit', 'He'), 'D', 1/v, 'He') #TODO: pass in pressurant here
-    except ValueError:
-        p_sat_arr.append(np.nan)  # Assign NaN if the calculation fails (e.g., outside saturation region)
-
-plt.plot(v_sat_arr,p_sat_arr)
-
-plt.show()
-
-#testing
-#print( CP.PropsSI('T', 'P', 2e6, 'D', 0.5/0.01, 'He') )
+        #after finishing ^ it seems there is allegedly a thermo mixtures library, would have been nice...

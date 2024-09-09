@@ -56,7 +56,7 @@ def merror(C, P_cc, OF, expratio, A_exit, m_dot_in):
     #print(m_dot_i, m_dot_in,m_dot_i - m_dot_in)
     return m_dot_i - m_dot_in
 
-class cc():
+class model():
     def __init__(self, oxidizer_name, fuel_name, fuel_properties, m_fuel_i, rho_fuel, a, n, L, A_port_i, P_atm, A_throat, A_exit, timestep):
        
         ### Setup RocketCEA fuel characteristics
@@ -65,7 +65,6 @@ class cc():
 
         self.C = CEA_Obj(oxName=oxidizer_name, fuelName=fuel_name, pressure_units='Pa', isp_units='sec', cstar_units='m/s', temperature_units='K', sonic_velocity_units='m/s', enthalpy_units='kJ/kg', density_units='kg/m^3', specific_heat_units='kJ/kg-K')
 
-        # fuel grain
         #initalizing y and R
         self.y = 0 
         self.R = 0 # J/Kg*K
@@ -75,7 +74,7 @@ class cc():
         self.a = a 
         self.n = n 
 
-        # geometry
+        #fuel grain geometry
         self.L = L
         self.A_port_t = A_port_i
 
@@ -150,7 +149,7 @@ class cc():
         #print(initial_enthalpy,final_enthalpy,initial_enthalpy-final_enthalpy)
 
 
-        # solve fluid properties
+        #resolve fluid properties
         fluid_prop = self.C.get_Chamber_MolWt_gamma(self.P_cc, self.OF, self.expratio)
         self.R = 8314 / fluid_prop[0] # J/(kg K)
         self.y = fluid_prop[1] # (-)
@@ -193,6 +192,7 @@ class cc():
 
                 self.v_exit = np.sqrt(((2 * self.y) / (self.y - 1)) * self.R * T_cc * (1 - (P_exit / self.P_cc)**((self.y - 1) / self.y)))
         
+
         #v_exit = exit_mach * np.sqrt(self.y*self.R*T_exit)
 
 

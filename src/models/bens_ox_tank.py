@@ -99,7 +99,7 @@ def thermo_span_wagner(rho, T, param):
 
     return out
 
-class OxTank():
+class model():
     def __init__(self, oxidizer, timestep, m_ox, C_inj, V_tank, P_tank, P_cc, all_error, inj_model):
         self.oxidizer = oxidizer
         self.timestep = timestep
