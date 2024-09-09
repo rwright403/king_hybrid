@@ -26,7 +26,7 @@ add_new_fuel(fuel_name, fuel_properties)
 ox_name = 'N2O'
 
 apogee_height = 3048 #m
-optimal_height = (2/3)*apogee_height #m above launch pad
+optimal_height = (2/3)*apogee_height #m above launch pad - #NOTE: this uses a rule of thumb, works rlly well for small change in alt sounding rocket flight
 P_exit = 1000 * 101.29*( ((15.04 - 0.00649*optimal_height)+273.1)/288.08)**5.256 #Pa
 
 
@@ -131,7 +131,7 @@ for Pc in chamber_pressures:
 
     print(f"For Pc={Pc} bar, Max ISP: {max_isp}, O/F Ratio: {of_store}")
     #graph OF vs max theoretical ISP
-    axs[2].plot(of_arr, isp_arr, label=f'Pc={Pc} bar  [{bar_to_psi(Pc)} PSI]')
+    axs[2].plot(of_arr, isp_arr, label=f'Pc={Pc} bar [{bar_to_psi(Pc)} PSI]')
 
 axs[2].legend()
 axs[2].grid(True)
@@ -139,19 +139,8 @@ axs[2].grid(True)
 #show graphs, and TODO: print out stoichiometric O/F, O/F at highest flame temp/mw
 plt.show()
 
-### step 2 ###
 
 
-
-
-
-
-
-
-"""
-#note expratio guess
-#expratio = 5
-"""
 
 selected_OF = 0
 while(selected_OF == 0):
@@ -160,106 +149,89 @@ while(selected_OF == 0):
 selected_Pcc = 0
 while(selected_Pcc == 0):
     selected_Pcc = float(input("Pick and Enter P_cc (bar): "))
-"""
-"""
-selected_OF = 8
-selected_Pcc = 40
-
-i = ceaObj.get_IvacCstrTc_ChmMwGam(selected_Pcc, selected_OF, expratio)
-Isp = i[0]
-T_flame = i[2] 
-Mw = i[3]
-y = i[4]
-
-
-### plot CF vs P1/P2 ###
-P_atm = 1 #bar
-expratio = [4,5,10,80,100,200]
-P_exit = [0.7,0.8,0.9,1,1.1,1.2]
-
-#note: we have selected P_cc so y will be constant!!!!!
-
-for l in expratio:
-    test = ceaObj.get_IvacCstrTc_ChmMwGam(selected_Pcc, selected_OF, l)
-    print("next expratio")
-
-    P_ratio_arr = []
-    Cf_arr = []
-
-
-    for m in P_exit:
-
-        Cf = np.sqrt( ((2*y**2)/(y-1))*(2/(y+1))**((y+1)/(y-1))*(1-(m/selected_Pcc)**((y-1)/y)) ) + ((m-P_atm)/selected_Pcc)*l
-        P_ratio_arr.append(selected_Pcc/m)
-        Cf_arr.append(Cf)
-
-        print(((m-P_atm)/selected_Pcc)*l)
-    
-    plt.plot(P_ratio_arr, Cf_arr, label=f'expratio={l}')
-
-
-#now we know that design will deviate from selected P_cc through operation and iteration so want to look at impact of P_cc change 
-#abstract P_cc to expratio array and use gamma for each line!!!!!
-
-#for a given expansion ratio
-expratio = 1
 
 
 
-plt.title(label=f'Cf vs P_cc/P_exit')
-plt.xlabel('P_cc/P_exit')
-plt.ylabel('Cf')
-plt.legend()
-plt.grid(True)
-plt.show()
 
-"""
-input_of = 0
-while(input_of ==0):
-    input_of = input("Pick and Enter O/F ratio: ")
-
-#now graph chamber pressure vs m dot for a given A_throat once selected O/F ratio
-    
+#selected_OF = 8
+###NOTE: BUG: UNIT CONVERSION!!!!!
+selected_Pcc *= 1e5
 
 
-P_cc_min = chamber_pressures[0] #Bar
-P_cc_max = chamber_pressures[-1] #Bar
-P_cc_step = 2 #Bar
-P_cc_current = P_cc_min
 
-throat_diam_min = 0.75 #in
-throat_diam_max = 1.75 #in
-throat_diam_step = 0.125 #in
-throat_diam_current = throat_diam_min
+#step 2: solving the throat area
 
-while(throat_diam_current<=throat_diam_max):
-    mdot_arr = []
-    p_cc_arr.clear()
+#use atmospheric model to get exit pressure at optimal height
+#NOTE: DOCUMENT
+P_pad = 1000 * 101.29*( ((15.04 - 0.00649*0)+273.1)/288.08)**5.256 #Pa #NOTE: sea level for getting base program
+P_exit = 1000 * 101.29*( ((15.04 - 0.00649*optimal_height)+273.1)/288.08)**5.256 #Pa
+P_apogee = 1000 * 101.29*( ((15.04 - 0.00649*apogee_height)+273.1)/288.08)**5.256 #Pa #NOTE: sea level for getting base program
+
+
+#solve expansion ratio for optimal height
+[print(P_exit, selected_Pcc)]
+expratio = ( ( ((y+1)/2)**(1/(y-1)) ) * ( (P_exit/selected_Pcc)**(1/y) ) * np.sqrt( ((y+1)/(y-1)) * ( (1- (P_exit/selected_Pcc)**((y-1)/y) )) ) )**-1
+print("expansion ratio: ", expratio)
+
+
+
+#solve inital and final Cf, assuming rocket can always reach apogee (uses expansion ratio!!!!)
+Cf_opt = np.sqrt( ((2*y**2)/(y-1)) * ( (2/(y+1))**((y+1)/(y-1)) ) * (1- (P_exit/selected_Pcc)**((y-1)/y)) ) 
+
+#start calculate impulse with spreadsheet line of best fit eqn
+It_est = 2.73*apogee_height + 4829
+
+#use impulse estimation to graph a bunch of preliminary thrust curves that differ based on burn time and show the user
+burn_time_arr = [2,3, 4, 5, 6, 7, 8, 9, 10]
+
+for t in burn_time_arr:
+
     #solve throat area
-    A_throat = (np.pi/4)*((0.0254*throat_diam_current)**2)
+    A_throat = It_est / (t*selected_Pcc*Cf_opt)
 
-    while(P_cc_current<=P_cc_max):
-                #call cea object - solve cstar
-        cstar = ceaObj.get_Cstar(P_cc_current, input_of)
-        print(cstar)
+    #solve thrust
+    F_thrust = selected_Pcc*A_throat*Cf_opt
 
-        #solve mdot / A throat
-        j = P_cc_current/cstar
-        #add to arrays
-        mdot_arr.append(cstar)
-        p_cc_arr.append(P_cc_current)
+    #plot curve
+    
+    time = [0, t, t]  # Example times (t0, t1, t2)
+    thrust = [F_thrust, F_thrust, 0]  # Example thrust values (initial, final, 0)
 
-        P_cc_current+=P_cc_step
-        #print(cstar)
-    plt.plot(p_cc_arr, mdot_arr, label=f'throat area (m^2) {A_throat:.6f}')
-    P_cc_current=P_cc_min
-    throat_diam_current+=throat_diam_step
+    # Plot the thrust curve
+    plt.plot(time, thrust, label=f't={t}, Throat Diam={39.3701*(np.sqrt(4*A_throat/np.pi))} (in)')
 
-
-plt.title(label=f'mdot vs pressure for '+ ox_name + ' ' + fuel_name + f' at O/F Ratio {input_of}')
-plt.xlabel('Chamber Pressure (Bar)')
-plt.ylabel('mdot (kg/s)')
-plt.legend()
+plt.title(label=f'Preliminary Thrust Curve Based on Estimated Total Impulse' )
+plt.xlabel('Burn Time (s)')
+plt.ylabel('Thrust (N)')
 plt.grid(True)
+plt.legend()
 plt.show()
-"""
+
+
+#allow the user to pick the burn time
+
+selected_tburn = 0
+while(selected_tburn == 0):
+    selected_tburn = float(input("Pick and Enter Burn Time (s): "))
+
+
+
+A_throat = It_est / (selected_tburn*selected_Pcc*Cf_opt)
+
+#solve exit area
+
+#solve exit velocity under those conditions
+
+#solve mass flow rate #do we need this????
+
+#solve Mprop
+
+
+
+
+#ask user to update constants?
+
+
+
+
+
