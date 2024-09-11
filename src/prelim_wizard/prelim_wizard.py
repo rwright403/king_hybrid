@@ -222,14 +222,14 @@ A_throat = It_est / (selected_tburn*selected_Pcc*Cf_opt)
 
 #solve exit velocity under those conditions
 
-#solve mass flow rate #do we need this????
+#TODO: solve mass flow rate #do we need this???? --> steady state performance at an instant is nice
 
 #solve Mprop
 
 
 
 
-#ask user to update constants?
+#update variables in input file!!!!
 
 
 

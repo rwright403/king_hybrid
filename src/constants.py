@@ -73,7 +73,7 @@ timestep = 0.05 #s
 all_error = 0.01 
 sim_time = 8.5#s (time engine will be simulated over)
 #NOTE: if this is too big and you are simulating over a range the script will break
-#is it really a leading edge simulation software if it isnt annoying to use?
+#is it really a leading edge simulation software if the ux is poor?
 
 ###Other constants
 k_tank_wall = 0.237 #kW/(m K)
