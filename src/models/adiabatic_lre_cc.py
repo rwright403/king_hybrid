@@ -7,7 +7,7 @@ import numpy as np
 
 #TODO: DOUBLE CHECK PropsSI units       
 
-class adiabatic_lre_cc():
+class model():
     def __init__(self, oxidizer_name, fuel_name, A_throat, A_exit, P_atm, TIMESTEP):
 
         #use SI UNITS
@@ -34,7 +34,7 @@ class adiabatic_lre_cc():
 
         self.TIMESTEP = TIMESTEP
 
-#NOTE: no injector term currently in this script!!!!!
+    #NOTE: no injector term currently in this script!!!!!
     def inst(self, m_dot_ox, m_dot_fuel):
         
 
