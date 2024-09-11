@@ -1,12 +1,15 @@
 import argparse
 import importlib
 from src.thrust_curve import thrust_curve
+#from src.sensitivity_analysis import sensitivity_analysis
+
 
 
 def run(input_file):
 
     # Dynamically import the input file
     program_input = importlib.import_module(f"src.inputs.{input_file}")
+
 
     user_input = 0
     while(user_input ==0):
@@ -29,11 +32,12 @@ def run(input_file):
         from src.flight_sim import flight_sim
 
     if user_input =='3':
-        from src.sensitivity_analysis import sensitivity_analysis
+        pass
+        #sensitivity_analysis.sensitivityAnalysis(program_input)
 
     if user_input =='4':
         thrust_curve.run_thrust_curve(program_input)
         from src.model_validation import model_validation
 
     if user_input == '5':
-        print("wizard in progress")
+        from src.prelim_wizard import prelim_wizard
