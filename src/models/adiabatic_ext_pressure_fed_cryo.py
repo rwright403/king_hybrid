@@ -318,7 +318,8 @@ def uerror(T_guess, u2, ullage_vec):
 
 #https://www.nasa.gov/wp-content/uploads/2024/04/gfssp-tankpressurization-jpp2001.pdf?emrc=66201987b6c8c
 class simpleAdiabaticCryoOxidizerTank(): #it is not simple
-    def __init__(self, propellant, pressurant, id_PROPTANK, P_proptank, m_prop, V_PROPTANK, TIMESTEP):
+    def __init__(self, propellant, pressurant, id_PROPTANK, P_proptank, m_prop, V_PROPTANK, TIMESTEP, pressurant_name, P_prestank, m_pres, P_oxtank, V_PRESTANK, OUTLET_DIAM):
+        
         self.pressurant = pressurant
         self.propellant = propellant
 
@@ -385,6 +386,8 @@ class simpleAdiabaticCryoOxidizerTank(): #it is not simple
         self.uratio_error = 0.01
         self.TIMESTEP = TIMESTEP
 
+        self.pressurantTank = simpleAdiabaticExtPressurantTank(pressurant_name, P_prestank, m_pres, P_oxtank, V_PRESTANK, OUTLET_DIAM, TIMESTEP)
+
 
         
 
@@ -392,7 +395,12 @@ class simpleAdiabaticCryoOxidizerTank(): #it is not simple
 
 
 ###TODO: DEBUG!!!!!!
-    def inst(self, m_dot_pres, h_pres, t): #thermo HELL
+    def inst(self, t): #thermo HELL
+
+        #run pressurant tank
+        self.pressurantTank.inst(self.P_proptank)
+        m_dot_pres = self.pressurant.m_dot_pres
+        h_pres = self.pressurant.h_pres
 
         ###NOTE: step 1: ADDING PRESSURANT
 
