@@ -30,7 +30,7 @@ Program has tested and validated hybrid component models and in progress liquid 
 
 
 
-Ryan "king hybrid" Wright, University of Victoria, BC, Canada, 2023-->
+Ryan "king hybrid" Wright, University of Victoria, BC, Canada, 2023--> forever (mech lab reference)
 %                                             &@&.                       
 %                                          @@      /@                    
 %                               %@@@@@@,  @&    @%   %(                  
