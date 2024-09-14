@@ -23,11 +23,11 @@ def run(input_file):
         user_input = input("Enter number to select analysis: ")
 
     if user_input =='1':
-        print("Running Thrust Curve from inputs in constants.py")
+        #print("Running Thrust Curve from inputs in constants.py") #TODO: UPDATE
         thrust_curve.run_thrust_curve(program_input)
 
     if user_input =='2':
-        print("Running Flight Sim from inputs in constants.py")
+        #print("Running Flight Sim from inputs in constants.py") #TODO: UPDATE
         thrust_curve.run_thrust_curve(program_input)
         from src.flight_sim import flight_sim
 
