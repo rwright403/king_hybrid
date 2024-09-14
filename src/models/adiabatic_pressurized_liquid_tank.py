@@ -157,7 +157,7 @@ class model():
         self.P_tank = self.R_pres*self.T_pres/self.v_pres
         
 
-        print("Ptank is still wrong:", self.P_tank, self.T_pres, self.m_pres, self.cv_pres, v_pres_prev, self.v_pres, self.R_pres)
+        #print("Ptank is still wrong:", self.P_tank, self.T_pres, self.m_pres, self.cv_pres, v_pres_prev, self.v_pres, self.R_pres)
 
 
         #TODO: need to solve new self.T_prop FOR NEXT HEAT TRANSFER, ALSO CHECK OTHER ITERATIONS
