@@ -24,9 +24,17 @@ def secant(func, x1): #THANK YOU BEN KLAMMER!
     x = x2
     return x
 
-def Verror(): #TODO: PASS IN ALL VARIABLES
-    V_tank_diff = 1
-    return V_tank_diff
+#NOTE: not sure if this will work and if equations are too coupled, we will see
+def verror(T_pres,m_pres,cv_pres,P_tank_prev,v_pres_prev,Q_transfer,v_pres,R_pres): #TODO: PASS IN ALL VARIABLES
+
+    P_tank = (T_pres*m_pres*cv_pres + P_tank_prev*v_pres_prev + Q_transfer) / ((m_pres*cv_pres*v_pres)/(R_pres) + v_pres)
+    #print("Ptank is still wrong:", P_tank, T_pres, m_pres, cv_pres, v_pres_prev, v_pres, R_pres)
+        
+    #assuming pressurant behaves as an ideal gas w const specific heats, update T w ideal gas law
+    v_pres_new = R_pres*T_pres/P_tank
+
+    v_tank_diff = v_pres_new - v_pres
+    return v_tank_diff
 
 
 #TODO: DOUBLE CHECK PropsSI units
@@ -73,7 +81,9 @@ class model():
         ###heat transfer coefficients:
         self.C = 0.27 #NOTE: DOUBLE CHECK THIS APPLIES TO SPECIFIC FLUIDS OR IF ITS GENERAL
         self.n = 0.25
-        self.K_H = 1 #this is a heat transfer corrective factor that is set to 1 from paper, might need to adjust later???
+        self.K_H = 1 #this is a heat transfer corrective factor that is set to 1 from paper, might need to adjust later??
+        
+        self.v_tank_err = 0.001 #NOTE: DOUBLE CHECK MAGNITUDE IF SECANT METHOD WITH VERROR FAILS WITH A SECANT ERROR
 
 
     def inst(self, P_downstream):
@@ -122,6 +132,8 @@ class model():
         Q_dot = hc*self.A_proptank * (self.T_prop - self.T_pres)
         Q_transfer= Q_dot * self.TIMESTEP
 
+
+        """
         ###use first law to solve pressure #TODO: FILL IN HEAT TRANSFER PLACEHOLDER CONST USED FOR NOW
         #should be -P_tank_prev, wait no this should be ok
         #NOTE: problem is that second term is about double the first term!
@@ -129,15 +141,23 @@ class model():
         #print(self.P_tank, self.T_pres*self.m_pres*self.cv_pres, - self.P_tank*v_pres_prev, Q_transfer, ((self.m_pres*self.cv_pres*self.v_pres)/(self.R_pres)+ self.v_pres), )
         #print(self.v_pres)
         self.P_tank = (self.T_pres*self.m_pres*self.cv_pres + self.P_tank*v_pres_prev + Q_transfer) / ((self.m_pres*self.cv_pres*self.v_pres)/(self.R_pres) + self.v_pres)
-        print("Ptank is still wrong:", self.P_tank, self.T_pres, self.m_pres, self.cv_pres, v_pres_prev, self.v_pres, self.R_pres)
         
+        #v_pres_new = self.R_pres*self.T_pres/self.P_tank
+        #print("testing: ",v_pres_new, self.v_pres)
+
+
         #assuming pressurant behaves as an ideal gas w const specific heats, update T w ideal gas law
         self.T_pres = self.P_tank*self.v_pres/self.R_pres
 
         """
-        while np.abs(uerror(self.T_tank, self.rho_tank, self.u_tank) ) > self.u_tank_err:
-            self.T_tank = secant((lambda T: uerror(T, self.rho_tank, self.u_tank)), self.T_tank)
-        """
+        while np.abs(verror(self.T_pres,self.m_pres,self.cv_pres,self.P_tank,self.v_pres,Q_transfer,self.v_pres,self.R_pres) ) > self.v_tank_err:
+            self.T_pres = secant((lambda T: verror(T, self.m_pres,self.cv_pres,self.P_tank,self.v_pres,Q_transfer,self.v_pres,self.R_pres)), self.T_pres)
+        
+        #now use new T_pres to solve P_tank
+        self.P_tank = self.R_pres*self.T_pres/self.v_pres
+        
+
+        print("Ptank is still wrong:", self.P_tank, self.T_pres, self.m_pres, self.cv_pres, v_pres_prev, self.v_pres, self.R_pres)
 
 
         #TODO: need to solve new self.T_prop FOR NEXT HEAT TRANSFER, ALSO CHECK OTHER ITERATIONS
