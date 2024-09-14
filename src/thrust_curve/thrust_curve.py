@@ -156,7 +156,7 @@ def run_thrust_curve(inputs):
         s1_fuel_tank.inst(P_cc)
         
         #TODO: FIX with sim time? not sure its not working w OF now
-        while (r1ox.t < 2):
+        while (r1ox.t < 4):
             #print(r1cc.OF)
             #BUG: cant handle 2 inputs to r1cc????
             #print("initial mass flow rates: ",r1ox.m_dot_ox, s1_fuel_tank.m_dot_fuel)
