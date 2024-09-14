@@ -13,8 +13,7 @@ the analysis_mode vector selects the types of models used by the program.
 A continuation of Ben Klammer's work. All the hybrid stuff in this program is ripped from of it:
 https://github.com/UVicRocketry/HybridModeling
 He does some really cool things like optimization that this program does not do. 
-I would recommend checking his thesis and program out. His work taught me a good amount of what
-I know about propulsion
+I would recommend checking his thesis and program out. His work taught me a good amount of what I know about propulsion
 
 I made this progam to help with rocket engine design. I decided to make this over alternatives like
 already built software packages alternatives because I enjoy programming and I value having the control
