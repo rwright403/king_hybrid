@@ -85,12 +85,16 @@ class model():
         
         self.v_tank_err = 0.001 #NOTE: DOUBLE CHECK MAGNITUDE IF SECANT METHOD WITH VERROR FAILS WITH A SECANT ERROR
 
+        #pres_name, m_pres, fuel_name, m_fuel, P_tank, id_PROPTANK, TIMESTEP):
+        print("\n------------\nsummary of adiabatic_fuel_tank inputs: \nPressurant: ", pres_name ,"\nm_pres: ", m_pres ,"(kg)\nFuel: ", fuel_name,"\nm_fuel: ", m_fuel ,"(kg)\nP_tank: ", P_tank, "(Pa)\nid_PROPTANK: ", id_PROPTANK, "(m)\nTimestep: ", TIMESTEP,"\n------------\n\n\n")
+
 
     def inst(self, P_downstream):
 
         #solve mass flow out of tank
-        #BUG: negative P_tank on second iter
-        self.m_dot_fuel = self.C_inj * np.sqrt( 2* (self.P_tank-P_downstream) / self.rho_prop )
+        
+        self.m_dot_fuel = self.C_inj * np.sqrt( 2* self.rho_prop* (self.P_tank-P_downstream) )
+        #print(self.m_dot_fuel,self.C_inj,self.P_tank,P_downstream,self.rho_prop )
         
         #update mass using consv of mass
         self.m_fuel -= self.m_dot_fuel * self.TIMESTEP
@@ -98,7 +102,7 @@ class model():
         #update volume, assuming incompressible liquid fuel
         V_fuel = self.m_fuel/self.rho_prop
 
-        v_pres_prev = self.v_pres
+        v_pres_prev = self.v_pres #TODO: DELETE IF NOT USED
 
 
         self.v_pres = (self.V_tank - V_fuel)/self.m_pres
