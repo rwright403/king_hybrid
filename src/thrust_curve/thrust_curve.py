@@ -174,6 +174,8 @@ def run_thrust_curve(inputs):
             p_cc_arr.append(r1cc.P_cc)
             p_ox_tank_arr.append(r1ox.P_tank)
             p_fuel_tank_arr.append(s1_fuel_tank.P_tank)
+
+            #print(r1cc.instThrust,s1_fuel_tank.P_tank)
             
 
 

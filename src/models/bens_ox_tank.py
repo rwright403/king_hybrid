@@ -139,6 +139,10 @@ class model():
         self.U_tank = self.m_ox*self.u_tank
 
 
+        print("\n------------\nsummary of bens ox tank inputs: \nOxidizer: ", oxidizer ,"\nTimestep: ", timestep,"\nm_ox: ", m_ox ,"(kg)\nC_inj: ", C_inj, "(m^2)\nV_tank: ", V_tank, "(m^3)\nP_tank: ", P_tank, "(Pa)\nP_cc: ", P_cc, "(Pa)\n------------\n\n\n")
+
+
+
     #TODO: TEST THIS FUNCTION!!!
     ### NOTE: diams input in SI!!!!!! DONT INPUT IMPERIAL FUNCTION IS CIVILIZED NOT FREE!
     def hold_time(self, T_atm, k_cond, L_wall, d_outer, d_inner):
@@ -202,7 +206,7 @@ class model():
             self.u_liq = CP.PropsSI('U', 'Q', 0, 'T', self.T_tank, 'N2O')
             self.u_vap = CP.PropsSI('U', 'Q', 1, 'T', self.T_tank, 'N2O')
 
-            #vapor exit for spi
+            #vapor exit for hem
             h_vap_exit = CP.PropsSI('H', 'Q', self.x_tank, 'P', self.P_cc, 'N2O')
 
             self.x_tank = (self.U_tank/self.m_ox - self.u_liq)/(self.u_vap - self.u_liq)
