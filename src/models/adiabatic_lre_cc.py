@@ -35,10 +35,12 @@ class model():
 
         self.TIMESTEP = TIMESTEP
 
+        print("\n------------\nsummary of adiabatic_lre_cc inputs: \nOxidizer: ", oxidizer_name ,"\nFuel: ", fuel_name,"\nA_throat: ", A_throat ,"(m^2)\nA_exit: ", A_exit, "(m^2)\nP_atm: ", P_atm, "(Pa)\nTimestep: ", TIMESTEP,"\n------------\n\n\n")
+
     #NOTE: no injector term currently in this script!!!!!
     def inst(self, m_dot_ox, m_dot_fuel):
-        m_dot_fuel *= 100
-        print("NOTE: for debugging multiplied m_dot_fuel by 100")
+        #m_dot_fuel *= 100
+        #print("NOTE: for debugging multiplied m_dot_fuel by 100")
         
         #print("this should not be nan: ",m_dot_ox,m_dot_fuel)
         #update O/F ratio and m_dot_cc
@@ -56,7 +58,7 @@ class model():
         
         #print(self.m_dot_cc_t, m_dot_fuel, m_dot_ox)
 
-        #NOTE: P_cc too high?
+        #NOTE: P_cc too high? --> too low
         #print("AAAAA:", self.m_dot_cc_t, self.A_throat, self.R, T_cc, self.y)
         self.P_cc = (self.m_dot_cc_t / self.A_throat ) * np.sqrt( self.R*T_cc )  / ( np.sqrt( self.y * (2 / (self.y+1))**( (self.y+1)/(self.y-1) ) ) )
 
@@ -70,6 +72,7 @@ class model():
         T_cc = temperatures[0]
         #T_throat = temperatures[1]
         #T_exit = temperatures[2]
+
 
         ###START: NOZZLE
         #solve critical pressure:
@@ -104,5 +107,5 @@ class model():
         #solve thrust
         self.instThrust = (self.m_dot_cc_t * self.v_exit) + self.A_exit * (P_exit - self.P_atm)
 
-        print(self.instThrust, self.P_cc, self.OF)
-        #print(self.instThrust, self.m_dot_cc_t, m_dot_fuel, m_dot_ox,)
+        ##print(self.instThrust, self.P_cc, self.OF, self.v_exit, T_cc)
+        #print(self.instThrust, self.m_dot_cc_t, self.OF,m_dot_fuel, m_dot_ox,)
