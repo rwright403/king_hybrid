@@ -1,4 +1,5 @@
 ###NOTE: THIS IS BAD! should have neglected mixing of helium and GOX!!!
+###NOTE: I forgot about moving boundary work --> ^extra bad :(
 
 from rocketcea.cea_obj_w_units import CEA_Obj #how to access this as a non us citizen?
 import CoolProp.CoolProp as CP #I love coolprop! ~ units: http://www.coolprop.org/v4/apidoc/CoolProp.html
@@ -216,7 +217,7 @@ class heat_transfer_property_vector():
         delta_T = 1e-3  # Small temperature change for finite difference
         # Get specific volume (V) in m^3/kg
         v1 = CP.PropsSI('V', 'T', self.T, 'P', self.P, self.propellant)
-        v2 = CP.PropsSI('V', 'T', self.T, 'P', self.P, self.propellant)
+        v2 = CP.PropsSI('V', 'T', self.T, 'P', self.P, self.propellant) #BUG: this is wrong did i forget to add/subtract delta T?
         # Calculate the partial derivative of V with respect to T at constant P
         dVdT_P = (v2 - v1) / delta_T
         # Calculate the coefficient of thermal expansion (beta)
@@ -371,7 +372,7 @@ class simpleAdiabaticCryoOxidizerTank(): #it is not simple
 
 
         ###coefficients and setup for heat transfer analysis
-        self.C = 0.27
+        self.C = 0.27 #NOTE: DOUBLE CHECK THIS APPLIES TO SPECIFIC FLUIDS OR IF ITS GENERAL
         self.n = 0.25
         self.K_H = 1 #this is a heat transfer corrective factor that is set to 1 from paper
 

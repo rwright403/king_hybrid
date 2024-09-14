@@ -6,7 +6,7 @@ CC_MODEL_MAP = {
 TANK_MODEL_MAP = {
     1: 'src.models.bens_ox_tank',
     2: 'src.models.adiabatic_ext_pressure_fed_cryo',
-    3: 'src.tank_models.adiabatic_pressurized'
+    3: 'src.models.adiabatic_pressurized_liquid_tank'
 }
 
 
@@ -37,13 +37,10 @@ def get_model(model_code, char):
         module_path = TANK_MODEL_MAP.get(model_code, None)
     if(char == "C"):
         module_path = CC_MODEL_MAP.get(model_code, None)
-
-
-    print(str,module_path)    
+ 
     if module_path is None:
         raise ValueError(f"Model {model_code} is not defined.")
     
-    print("HERE!!!", module_path)
     module = importlib.import_module(module_path)
     return module.model  # or whichever class is appropriate for your tank model
 
@@ -52,6 +49,11 @@ def get_model(model_code, char):
 def run_thrust_curve(inputs):
 
     ### SETUP FOR BOTH ENGINES:
+
+    r1cc = None
+    r1ox = None
+    s1_fuel_tank = None
+
     time_arr = []
     m_dot_arr = []
     thrust_arr = []
@@ -126,50 +128,48 @@ def run_thrust_curve(inputs):
 
     ### for liquid setup fuel tank
     if len(inputs.analysis_mode) == 3:
+        fuel_tank_model_class = get_model(inputs.analysis_mode[2],'T')
+
         pressure_data = [p_cc_arr, p_ox_tank_arr, p_fuel_tank_arr]
 
-        if inputs.analysis_mode[1] == 1:
-            print("model invalid for fuel tank")
+        if inputs.analysis_mode[2] == 1:
+            print("model invalid for fuel tank (cannot use hybrid cc for liquid engine)")
         
-        if inputs.analysis_mode[1] == 2:
-            print("model invalid for fuel tank")
+        if inputs.analysis_mode[2] == 2:
+            print("todo: implement")
             
-        if inputs.analysis_mode[1] == 3:
-            r1ox = OxTank_model_class(inputs.pressurant_name, inputs.m_pressurant, inputs.fuel_name, inputs.m_fuel, inputs.P_fueltank, inputs.ID_PROPTANK, inputs.TIMESTEP)
+        if inputs.analysis_mode[2] == 3:
+            s1_fuel_tank = fuel_tank_model_class(inputs.pressurant_name, inputs.m_pressurant, inputs.fuel_name, inputs.m_fuel, inputs.P_fueltank, inputs.ID_PROPTANK, inputs.TIMESTEP)
         
-    ### LIQUID THRUST CURVE
-    """
-    time_arr = []
-    m_dot_arr = []
-    thrust_arr = []
-    p_cc_arr = []
-    p_ox_tank_arr = []
-    p_fuel_tank_arr = []
-    pressure_data = [p_cc_arr, p_tank_arr]
-    P_cc = inputs.P_atm
-    while(pressurantTank.P_prestank > pressurantTank.P_proptank):
-    #while(t<5*TIMESTEP):
+        ### LIQUID THRUST CURVE
+        
+        time_arr = []
+        m_dot_arr = []
+        thrust_arr = []
+        p_cc_arr = []
+        p_ox_tank_arr = []
+        p_fuel_tank_arr = []
+        pressure_data = [p_cc_arr, p_ox_tank_arr, p_fuel_tank_arr]
+        P_cc = inputs.P_atm
+        
+        r1ox.inst(P_cc)
+        s1_fuel_tank.inst(P_cc)
+        
+        #TODO: FIX with sim time? not sure its not working w OF now
+        while (r1ox.t < 20):
+            #print(r1cc.OF)
+            #BUG: cant handle 2 inputs to r1cc????
+            #print("initial mass flow rates: ",r1ox.m_dot_ox, s1_fuel_tank.m_dot_fuel)
+            #NOTE: fuel seems to be significantly underpredicting, and nan propagating through model
+            r1cc.inst(r1ox.m_dot_ox, s1_fuel_tank.m_dot_fuel)
+            #print("thrust curve: ",r1ox.t, r1cc.P_cc)
+            r1ox.inst(r1cc.P_cc)
+            s1_fuel_tank.inst(r1cc.P_cc)
+    
 
-        #RECORD DATA
-        time_arr.append(t)
-        m_expelled += pressurantTank.m_dot*TIMESTEP
-        m_pres_arr.append(pressurantTank.m_pres)
-        P_tank_arr.append(pressurantTank.P_prestank)
-        P_proptank_arr.append(pressurantTank.P_proptank)
-        m_dot_arr.append(pressurantTank.m_dot)
-        v_tank_arr.append(1/pressurantTank.rho_pres)
-        T_tank_arr.append(pressurantTank.T_prestank)
-        s_tank_arr.append(pressurantTank.s_prestank)
-
-        #RUN THROUGH EACH CV AT EACH INSTANT
-        pressurantTank.inst(oxidizerTank.P_proptank)
-        oxidizerTank.inst(pressurantTank.m_dot_pres, pressurantTank.h_pres, t)
-
-        #TODO: ADD FUEL TANK MODEL -->
-        fuelTank.inst(P_atm)
-        #TODO: ADD COMBUSTION CHAMBER MODEL -->`
-        lre_cc.inst(1,2) 
-        """
+            #RECORD DATA
+            time_arr.append(r1ox.t)
+            
 
 
     ###WRITE CSV FOR FLIGHT SIM, VALIDATION AND OTHER EXTERNAL ANALYSIS

@@ -12,7 +12,8 @@ class model():
 
         #use SI UNITS
         self.C = CEA_Obj(oxName=oxidizer_name, fuelName=fuel_name, pressure_units='Pa', isp_units='sec', cstar_units='m/s', temperature_units='K', sonic_velocity_units='m/s', enthalpy_units='kJ/kg', density_units='kg/m^3', specific_heat_units='kJ/kg-K')
-        
+        #NOTE: SEEMS TO BREAK ABOVE
+
         self.P_cc = 0
         self.OF = 0
 
@@ -37,7 +38,7 @@ class model():
     #NOTE: no injector term currently in this script!!!!!
     def inst(self, m_dot_ox, m_dot_fuel):
         
-
+        #print("this should not be nan: ",m_dot_ox,m_dot_fuel)
         #update O/F ratio and m_dot_cc
         self.m_dot_cc_t = m_dot_ox + m_dot_fuel
         self.OF = m_dot_ox/m_dot_fuel
@@ -48,9 +49,16 @@ class model():
         self.y = fluid_prop[1] # (-)
         temperatures = self.C.get_Temperatures(self.P_cc, self.OF, self.expratio, 0, 1)
         T_cc = temperatures[0]
-        
 
-        self.P_cc = (self.m_dot_cc_t /  self.A_throat ) * np.sqrt( self.R*T_cc )  / ( np.sqrt( self.y * (2 / (self.y+1))**( (self.y+1)/(self.y-1) ) ) )
+        #print("TEMPERATURE: ",T_cc)
+        
+        #print(self.m_dot_cc_t, m_dot_fuel, m_dot_ox)
+
+        #NOTE: P_cc too high?
+        #print("AAAAA:", self.m_dot_cc_t, self.A_throat, self.R, T_cc, self.y)
+        self.P_cc = (self.m_dot_cc_t / self.A_throat ) * np.sqrt( self.R*T_cc )  / ( np.sqrt( self.y * (2 / (self.y+1))**( (self.y+1)/(self.y-1) ) ) )
+
+        #print("in cc:", self.P_cc)
 
         #resolve fluid properties
         fluid_prop = self.C.get_Chamber_MolWt_gamma(self.P_cc, self.OF, self.expratio)
