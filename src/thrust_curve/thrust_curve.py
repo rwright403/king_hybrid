@@ -81,9 +81,9 @@ def run_thrust_curve(inputs):
     OxTank_model_class = get_model(inputs.analysis_mode[1], 'T')
 
     if inputs.analysis_mode[1] == 1:
-        r1ox = OxTank_model_class(inputs.oxName, inputs.timestep, inputs.m_ox, inputs.C_inj,
+        r1ox = OxTank_model_class(inputs.oxName, inputs.timestep, inputs.m_ox, inputs.C_inj_1,
                 inputs.V_tank, inputs.P_tank, inputs.P_atm, inputs.all_error, inputs.inj_model)
-        
+    
     if inputs.analysis_mode[1] == 2:
         pass
         #TODO: how to handle two functions!!!!
@@ -139,7 +139,7 @@ def run_thrust_curve(inputs):
             print("todo: implement")
             
         if inputs.analysis_mode[2] == 3:
-            s1_fuel_tank = fuel_tank_model_class(inputs.pressurant_name, inputs.m_pressurant, inputs.fuel_name, inputs.m_fuel, inputs.P_fueltank, inputs.ID_PROPTANK, inputs.TIMESTEP)
+            s1_fuel_tank = fuel_tank_model_class(inputs.pressurant_name, inputs.m_pressurant, inputs.fuel_name, inputs.m_fuel, inputs.P_fueltank, inputs.ID_PROPTANK, inputs.V_tank_2, inputs.C_inj_2, inputs.T_amb, inputs.TIMESTEP)
         
         ### LIQUID THRUST CURVE
         
@@ -159,7 +159,7 @@ def run_thrust_curve(inputs):
         m_fuel_burned = 0
         m_ox_burned = 0
         #TODO: FIX with sim time? not sure its not working w OF now
-        while (r1ox.t < 1.2):
+        while (r1ox.t < 4):
             #print(r1cc.OF)
             #BUG: cant handle 2 inputs to r1cc????
             #print("initial mass flow rates: ",r1ox.m_dot_ox, s1_fuel_tank.m_dot_fuel)
