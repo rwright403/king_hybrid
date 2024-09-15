@@ -100,11 +100,11 @@ def thermo_span_wagner(rho, T, param):
     return out
 
 class model():
-    def __init__(self, oxidizer, timestep, m_ox, C_inj, V_tank, P_tank, P_cc, all_error, inj_model):
+    def __init__(self, oxidizer, timestep, m_ox, C_inj_2, V_tank, P_tank, P_cc, all_error, inj_model):
         self.oxidizer = oxidizer
         self.timestep = timestep
         self.m_ox =  m_ox
-        self.C_inj = C_inj
+        self.C_inj = C_inj_2
         self.m_dot_ox = 0
         self.V_tank = V_tank
         self.P_tank = P_tank
@@ -139,7 +139,7 @@ class model():
         self.U_tank = self.m_ox*self.u_tank
 
 
-        print("\n------------\nsummary of bens ox tank inputs: \nOxidizer: ", oxidizer ,"\nTimestep: ", timestep,"\nm_ox: ", m_ox ,"(kg)\nC_inj: ", C_inj, "(m^2)\nV_tank: ", V_tank, "(m^3)\nP_tank: ", P_tank, "(Pa)\nP_cc: ", P_cc, "(Pa)\n------------\n\n\n")
+        print("\n------------\nsummary of bens ox tank inputs: \nOxidizer: ", oxidizer ,"\nTimestep: ", timestep,"\nm_ox: ", m_ox ,"(kg)\nC_inj: ", C_inj_2, "(m^2)\nV_tank: ", V_tank, "(m^3)\nP_tank: ", P_tank, "(Pa)\nP_cc: ", P_cc, "(Pa)\n------------\n\n\n")
 
 
 

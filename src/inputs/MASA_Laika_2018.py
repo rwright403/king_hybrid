@@ -17,6 +17,7 @@ thrust_curve_graphs = True
 
 ### ENVIRONMENTAL DATA
 P_atm = 101325 #Pa
+T_amb = 275 #K
 
 ### Launch Canada Timmins Pad
 latitude = 47.989083
@@ -81,7 +82,7 @@ oxName = 'N2O'
 timestep = timestep 
 m_ox = 4.48 #kg 
 #NOTE: GUESSING Cd
-C_inj =  1* 0.00001735222#0.8* 0.0000136284 #(num_orifices * Cd * orifice_diam) Note: guessing Cd of 0.6, NOTE: when it doesnt work this is why :)
+C_inj_1 =  0.6* 0.00007471705 #1* 0.00001735222#(num_orifices * Cd * orifice_diam) Note: guessing Cd of 0.6, NOTE: when it doesnt work this is why :)
 V_tank = 6.4e-3 # - from report: "5.8L of nos in a 6.4L tank"
 P_tank = 5.171e6 #Pa
 P_atm = P_atm 
@@ -116,11 +117,14 @@ OUTLET_DIAM = None
 #
 
 pressurant_name = 'N2' 
-m_pressurant  = 0.12 #NOTE: guessing for now, they gave a volume, should i change inputs to this model?
+m_pressurant  = 0.12 #NOTE: estimated for now based on volume they gave in report, should i change inputs to this model?
 fuel_name = 'Ethanol' #NOTE: This might not work, assuming 100% when they used 95% as well
 m_fuel = 1.12 #kg 
-P_fueltank = 8.21e6 #Pa
+P_fueltank = 4.82633e6 #Pa
 ID_PROPTANK = 0.0254*5 #m 
+V_tank_2 = 2.16e-3 #m^3
+C_inj_2 = 0.6*0.0000136284 #m^2
+T_amb = T_amb
 TIMESTEP = timestep
 #NOTE: no V_tank????
 
