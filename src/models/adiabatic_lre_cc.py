@@ -18,7 +18,7 @@ class model():
         self.OF = 0
 
         self.y = 0 
-        self.R = 0 # J/Kg*K
+        self.R = 0 # J/kg*K
 
         # initial values (treat as private members)
         self.P_cc = P_atm
@@ -39,13 +39,13 @@ class model():
 
     #NOTE: no injector term currently in this script!!!!!
     def inst(self, m_dot_ox, m_dot_fuel):
-        #m_dot_fuel *= 100
-        #print("NOTE: for debugging multiplied m_dot_fuel by 100")
         
         #print("this should not be nan: ",m_dot_ox,m_dot_fuel)
         #update O/F ratio and m_dot_cc
-        self.m_dot_cc_t = m_dot_ox + m_dot_fuel
         self.OF = m_dot_ox/m_dot_fuel
+        self.m_dot_cc_t = m_dot_ox + m_dot_fuel
+        #print("testing with a factor multiplied to m_dot_cc_t just to feel")
+        #self.m_dot_cc_t *= 2
         
         #CALL CEA to solve combustion
         fluid_prop = self.C.get_Chamber_MolWt_gamma(self.P_cc, self.OF, self.expratio)
@@ -54,13 +54,15 @@ class model():
         temperatures = self.C.get_Temperatures(self.P_cc, self.OF, self.expratio, 0, 1)
         T_cc = temperatures[0]
 
-        #print("TEMPERATURE: ",T_cc)
+        ##("TEMPERATURE: ",T_cc)
         
-        #print(self.m_dot_cc_t, m_dot_fuel, m_dot_ox)
+        ##(self.m_dot_cc_t, m_dot_fuel, m_dot_ox)
 
         #NOTE: P_cc too high? --> too low
         #print("AAAAA:", self.m_dot_cc_t, self.A_throat, self.R, T_cc, self.y)
         self.P_cc = (self.m_dot_cc_t / self.A_throat ) * np.sqrt( self.R*T_cc )  / ( np.sqrt( self.y * (2 / (self.y+1))**( (self.y+1)/(self.y-1) ) ) )
+
+        #print("NOTE: for debugging multiplied P_cc by 2")
 
         #print("in cc:", self.P_cc)
 
@@ -68,10 +70,12 @@ class model():
         fluid_prop = self.C.get_Chamber_MolWt_gamma(self.P_cc, self.OF, self.expratio)
         self.R = 8314 / fluid_prop[0] # J/(kg K)
         self.y = fluid_prop[1] # (-)
+
         temperatures = self.C.get_Temperatures(self.P_cc, self.OF, self.expratio, 0, 1)
         T_cc = temperatures[0]
         #T_throat = temperatures[1]
         #T_exit = temperatures[2]
+        #print(T_cc, T_throat, T_exit)
 
 
         ###START: NOZZLE
@@ -106,6 +110,7 @@ class model():
 
         #solve thrust
         self.instThrust = (self.m_dot_cc_t * self.v_exit) + self.A_exit * (P_exit - self.P_atm)
+        #print(self.m_dot_cc_t,self.v_exit, T_cc)
 
-        ##print(self.instThrust, self.P_cc, self.OF, self.v_exit, T_cc)
+        print(self.instThrust, self.OF)
         #print(self.instThrust, self.m_dot_cc_t, self.OF,m_dot_fuel, m_dot_ox,)
