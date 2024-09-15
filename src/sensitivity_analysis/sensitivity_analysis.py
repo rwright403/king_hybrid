@@ -100,7 +100,7 @@ def sensitivityAnalysis(inputs):
 
     r1ox = OxTank(inputs.oxName, inputs.timestep, m_ox, C_inj, V_tank, P_tank, inputs.P_atm, inputs.all_error, inputs.inj_model)
 
-    r1cc = cc(inputs.oxName, inputs.fuelName, inputs.CEA_fuel_str, m_fuel_i, 
+    r1cc = cc(inputs.oxName, inputs.fuelName, inputs.CEA_fuel_str, inputs.m_fuel_i, 
         inputs.rho_fuel, a, n, L, A_port_i,inputs.P_atm, A_throat, A_exit, inputs.timestep)
         
     while r1ox.t < inputs.sim_time:
@@ -181,7 +181,7 @@ def update_i(i):
 i = inputs.min_bound
 big_data = []
 i_arr = []
-#malding if statements, you hate to see it for each input, then call function with sensitivity analysis inside
+#malding if statements, you hate to see it for each inputs, then call function with sensitivity analysis inside
 
 if inputs.test_var=="m_ox":
     while(i<=inputs.max_bound):
