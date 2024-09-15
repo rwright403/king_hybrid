@@ -65,8 +65,8 @@ A_exit = None
 
 oxidizer_name = 'N2O'
 fuel_name = 'Ethanol'
-A_throat = 0.00102028641
-A_exit = 0.00202682991
+A_throat = 0.00102028641 #m^2
+A_exit = 0.00527334324 #m^2
 P_atm = P_atm
 TIMESTEP = timestep
 
@@ -80,7 +80,8 @@ TIMESTEP = timestep
 oxName = 'N2O'
 timestep = timestep 
 m_ox = 4.48 #kg 
-C_inj = 0.6 * 0.00001735222 #(num_orifices * Cd * orifice_diam) Note: guessing Cd of 0.6, when it doesnt work this is why :)
+#NOTE: GUESSING Cd
+C_inj =  1* 0.00001735222#0.8* 0.0000136284 #(num_orifices * Cd * orifice_diam) Note: guessing Cd of 0.6, NOTE: when it doesnt work this is why :)
 V_tank = 6.4e-3 # - from report: "5.8L of nos in a 6.4L tank"
 P_tank = 5.171e6 #Pa
 P_atm = P_atm 
@@ -118,8 +119,8 @@ pressurant_name = 'N2'
 m_pressurant  = 0.12 #NOTE: guessing for now, they gave a volume, should i change inputs to this model?
 fuel_name = 'Ethanol' #NOTE: This might not work, assuming 100% when they used 95% as well
 m_fuel = 1.12 #kg 
-P_fueltank = 5.171e6 #Pa
-ID_PROPTANK = 0.254*5 #m 
+P_fueltank = 8.21e6 #Pa
+ID_PROPTANK = 0.0254*5 #m 
 TIMESTEP = timestep
 #NOTE: no V_tank????
 

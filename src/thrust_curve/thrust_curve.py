@@ -120,7 +120,7 @@ def run_thrust_curve(inputs):
 
             #print(r1ox.t, r1cc.v_exit,r1cc.m_dot_cc_t,r1cc.R)
 
-            print("time: ", r1ox.t)
+            #print("time: ", r1ox.t)
 
         print("\n", "### mass balance ###")
         print("total propellant calculated through sim: ", total_propellant+r1ox.m_ox+r1cc.m_fuel_t, "total starting/input propellant: ", inputs.m_ox+inputs.m_fuel_i, "difference (conservation of mass): ",total_propellant+r1ox.m_ox+r1cc.m_fuel_t -inputs.m_ox-inputs.m_fuel_i)
@@ -155,8 +155,11 @@ def run_thrust_curve(inputs):
         r1ox.inst(P_cc)
         s1_fuel_tank.inst(P_cc)
         
+
+        m_fuel_burned = 0
+        m_ox_burned = 0
         #TODO: FIX with sim time? not sure its not working w OF now
-        while (r1ox.t < 4):
+        while (r1ox.t < 1.2):
             #print(r1cc.OF)
             #BUG: cant handle 2 inputs to r1cc????
             #print("initial mass flow rates: ",r1ox.m_dot_ox, s1_fuel_tank.m_dot_fuel)
@@ -166,6 +169,8 @@ def run_thrust_curve(inputs):
             r1ox.inst(r1cc.P_cc)
             s1_fuel_tank.inst(r1cc.P_cc)
     
+            m_fuel_burned += s1_fuel_tank.m_dot_fuel*r1ox.timestep
+            m_ox_burned += r1ox.m_dot_ox*r1ox.timestep
 
             #RECORD DATA
             time_arr.append(r1ox.t)
@@ -175,7 +180,11 @@ def run_thrust_curve(inputs):
             p_ox_tank_arr.append(r1ox.P_tank)
             p_fuel_tank_arr.append(s1_fuel_tank.P_tank)
 
+            print(s1_fuel_tank.m_fuel)
+
             #print(r1cc.instThrust,s1_fuel_tank.P_tank)
+            
+        print("total propellant burned in simshould match report: ", m_fuel_burned, m_ox_burned)
             
 
 
