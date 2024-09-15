@@ -42,7 +42,7 @@ def verror(T_pres,m_pres,cv_pres,P_tank_prev,v_pres_prev,Q_transfer,v_pres,R_pre
 #TODO: FINISH!!!!!!
   
 class model():
-    def __init__(self, pres_name, m_pres, fuel_name, m_fuel, P_tank, id_PROPTANK, TIMESTEP):
+    def __init__(self, pres_name, m_pres, fuel_name, m_fuel, P_tank, id_PROPTANK, V_tank_2, C_inj_2, T_amb, TIMESTEP):
         self.pres = pres_name
         self.m_fuel = m_fuel
         self.fuel = fuel_name
@@ -54,12 +54,10 @@ class model():
         self.TIMESTEP = TIMESTEP
 
         #TODO: ADD TO INIT
-        self.cd = 0.4
-        self.A_exit = 0.25*np.pi*36*(0.0254*0.064)**2
-        self.T_amb = 275 #K
-        self.V_tank = 2.16e-3 #m^3
+        self.V_tank = V_tank_2
+        self.T_amb = T_amb
 
-        self.C_inj = 0.2*0.0000136284# 0.6 * 0.00001735222
+        self.C_inj = C_inj_2
 
         #setup!!!
         #NOTE: assuming fuel density at ambient temp!
