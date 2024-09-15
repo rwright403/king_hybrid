@@ -1,7 +1,10 @@
 import argparse
 import importlib
 from src.thrust_curve import thrust_curve
+
+#from src.sensitivity_analysis import sensitivity_analysis
 from src.model_validation import model_validation
+from src.prelim_wizard import prelim_wizard
 #from src.sensitivity_analysis import sensitivity_analysis
 
 
@@ -41,4 +44,4 @@ def run(input_file):
         model_validation.validate(program_input)
 
     if user_input == '5':
-        from src.prelim_wizard import prelim_wizard
+        prelim_wizard.magic(program_input)
