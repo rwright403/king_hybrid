@@ -207,7 +207,7 @@ class model():
             self.u_vap = CP.PropsSI('U', 'Q', 1, 'T', self.T_tank, 'N2O')
 
             #vapor exit for hem
-            h_vap_exit = CP.PropsSI('H', 'Q', self.x_tank, 'P', self.P_cc, 'N2O')
+            #h_vap_exit = CP.PropsSI('H', 'Q', self.x_tank, 'P', self.P_cc, 'N2O')
 
             self.x_tank = (self.U_tank/self.m_ox - self.u_liq)/(self.u_vap - self.u_liq)
             self.u_tank = self.x_tank*self.u_vap + (1 - self.x_tank)*self.u_liq
@@ -245,45 +245,31 @@ class model():
             h_tank_exit = h_tank_exit + 7.3397e+05 #Convert from Span-Wagner enthalpy convention to NIST
 
 
-            if(self.P_cc < 5e5):
-                h_vap_exit = CP.PropsSI('H', 'Q', 1, 'P', self.P_cc, 'N2O')
-            else:
-                h_vap_exit = CP.PropsSI('H', 'Q', 1, 'P', 5e5, 'N2O')
-            #BUG: ^
-
-
-        #dyer solve k to verify using correct model
-        dyer_k = np.sqrt( (self.P_tank - self.P_cc) / ( CP.PropsSI('P', 'Q', 1, 'T', self.T_tank, 'N2O') - self.P_cc) ) #call coolprop to get vapor pressure
-
-        m_dot_spi = self.C_inj * np.sqrt( 2 * self.rho_exit * (self.P_tank - self.P_cc)  )
-
-        if(self.P_cc > 5e5):
-            rho_vap_exit = CP.PropsSI('D', 'Q', 1, 'P', self.P_cc, 'N2O')
-        else:
-            rho_vap_exit = CP.PropsSI('D', 'Q', 1, 'P', 5e5, 'N2O')
-
-        #NOTE: need to check that rho_vap_exit is equal to to critical density!
-        #BUG: h_vap_exit is wrong and uses tank quality even though it flashes?
-        #i think this is the issue ^^^^^
-
-        #NOTE: factor of 5****
-        #NOTE: factor of 5**** delete and figure out why its actually not 5x bigger!
-        m_dot_hem = self.C_inj * rho_vap_exit * np.sqrt( 2 * (h_tank_exit -  h_vap_exit) )
-
-        #print(self.t, m_dot_hem, rho_vap_exit, np.sqrt( 2 * (h_tank_exit - h_vap_exit) ), h_tank_exit, h_vap_exit)
-
-        m_dot_dyer = ((dyer_k/(1+dyer_k)) * m_dot_spi) + ((1/(1+dyer_k)) * m_dot_hem)
+        rho_vap_exit = CP.PropsSI('D', 'Q', 1, 'P', self.P_cc, 'N2O')
 
         ###use chosen injector model:
         if(self.inj_model == 1):
+            m_dot_spi = self.C_inj * np.sqrt( 2 * self.rho_exit * (self.P_tank - self.P_cc)  )
             self.m_dot_ox = m_dot_spi
+
         elif(self.inj_model == 2):
-            #print(self.x_tank)
             if self.x_tank < 1:
+                h_vap_exit = CP.PropsSI('H', 'Q', 1, 'P', self.P_cc, 'N2O')
+                m_dot_hem = self.C_inj * rho_vap_exit * np.sqrt( 2 * (h_tank_exit -  h_vap_exit) )
                 self.m_dot_ox = m_dot_hem
             else:
                 self.m_dot_ox = m_dot_spi
+
         elif(self.inj_model == 3):
+            m_dot_spi = self.C_inj * np.sqrt( 2 * self.rho_exit * (self.P_tank - self.P_cc)  )
+
+            h_vap_exit = CP.PropsSI('H', 'Q', 1, 'P', self.P_cc, 'N2O')
+            m_dot_hem = self.C_inj * rho_vap_exit * np.sqrt( 2 * (h_tank_exit -  h_vap_exit) )
+
+            #dyer solve k to verify using correct model
+            dyer_k = np.sqrt( (self.P_tank - self.P_cc) / ( CP.PropsSI('P', 'Q', 1, 'T', self.T_tank, 'N2O') - self.P_cc) ) #call coolprop to get vapor pressure
+            
+            m_dot_dyer = ((dyer_k/(1+dyer_k)) * m_dot_spi) + ((1/(1+dyer_k)) * m_dot_hem)
             self.m_dot_ox = m_dot_dyer
 
         #TODO: add feed system term ^
