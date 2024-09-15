@@ -59,7 +59,7 @@ class model():
         self.T_amb = 275 #K
         self.V_tank = 2.16e-3 #m^3
 
-        self.C_inj = 0.6 * 0.00001735222
+        self.C_inj = 0.2*0.0000136284# 0.6 * 0.00001735222
 
         #setup!!!
         #NOTE: assuming fuel density at ambient temp!
@@ -83,7 +83,7 @@ class model():
         self.n = 0.25
         self.K_H = 1 #this is a heat transfer corrective factor that is set to 1 from paper, might need to adjust later??
         
-        self.v_tank_err = 0.001 #NOTE: DOUBLE CHECK MAGNITUDE IF SECANT METHOD WITH VERROR FAILS WITH A SECANT ERROR
+        self.v_tank_err = 0.00005 #NOTE: DOUBLE CHECK MAGNITUDE IF SECANT METHOD WITH VERROR FAILS WITH A SECANT ERROR
 
         #pres_name, m_pres, fuel_name, m_fuel, P_tank, id_PROPTANK, TIMESTEP):
         print("\n------------\nsummary of adiabatic_fuel_tank inputs: \nPressurant: ", pres_name ,"\nm_pres: ", m_pres ,"(kg)\nFuel: ", fuel_name,"\nm_fuel: ", m_fuel ,"(kg)\nP_tank: ", P_tank, "(Pa)\nid_PROPTANK: ", id_PROPTANK, "(m)\nTimestep: ", TIMESTEP,"\n------------\n\n\n")
@@ -94,6 +94,7 @@ class model():
         #solve mass flow out of tank
         
         self.m_dot_fuel = self.C_inj * np.sqrt( 2* self.rho_prop* (self.P_tank-P_downstream) )
+
         #print(self.m_dot_fuel,self.C_inj,self.P_tank,P_downstream,self.rho_prop )
         
         #update mass using consv of mass
@@ -155,11 +156,13 @@ class model():
 
         """
         while np.abs(verror(self.T_pres,self.m_pres,self.cv_pres,self.P_tank,self.v_pres,Q_transfer,self.v_pres,self.R_pres) ) > self.v_tank_err:
+            #print(self.T_pres)
             self.T_pres = secant((lambda T: verror(T, self.m_pres,self.cv_pres,self.P_tank,self.v_pres,Q_transfer,self.v_pres,self.R_pres)), self.T_pres)
         
         #now use new T_pres to solve P_tank
         self.P_tank = self.R_pres*self.T_pres/self.v_pres
         
+        #print(self.v_pres, self.P_tank, self.T_pres)
 
         #print("Ptank is still wrong:", self.P_tank, self.T_pres, self.m_pres, self.cv_pres, v_pres_prev, self.v_pres, self.R_pres)
 
