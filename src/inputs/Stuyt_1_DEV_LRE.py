@@ -143,5 +143,6 @@ exp_p_fuel_tank_file_path = None
 
 ### Estimates for Sizing Wizard ###
 min_TW_ratio = 11
+Cd_est = 0.6
 
 """fuck hybrids"""
