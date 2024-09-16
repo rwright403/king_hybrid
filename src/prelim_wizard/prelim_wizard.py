@@ -60,7 +60,6 @@ def magic(inputs):
             #first need to get ratio of specific heats (y), from testing noticed in range of expected chamber pressures
             #and expansion ratios y was constant to expratio and only changed with P_cc so we can solve here w/out losing accuracy
 
-            #fluid_prop = CEA_Obj.get_Chamber_MolWt_gamma(k, j, 5.5) #expratio guess 5.5
             y = 1.23 #fluid_prop[1] # (-)
 
             expratio = ( ( ((y+1)/2)**(1/(y-1)) ) * ( (P_exit/k)**(1/y) ) * np.sqrt( ((y+1)/(y-1)) * ( (1- (P_exit/k)**((y-1)/y) )) ) )**-1
@@ -90,8 +89,8 @@ def magic(inputs):
     axs[2].set_xlabel('O/F Ratio')
     axs[2].set_ylabel('ISP (s)')
 
-    ispObj = CEA_Obj(
-        oxName=inputs.oxidizer_name, fuelName=inputs.fuel_name, pressure_units='Bar', isp_units='sec', cstar_units='m/s',
+    C = CEA_Obj(
+        oxName=inputs.oxidizer_name, fuelName=inputs.fuel_name, pressure_units='Pa', isp_units='sec', cstar_units='m/s',
         temperature_units='K', sonic_velocity_units='m/s', enthalpy_units='kJ/kg', density_units='kg/m^3',
         specific_heat_units='kJ/kg-K'
     )
@@ -109,7 +108,7 @@ def magic(inputs):
         i = 0.55
 
         while i < 16:
-            isp = ispObj.get_Isp(Pc=Pc, MR=i, eps=expratio, frozen=0, frozenAtThroat=0)
+            isp = C.get_Isp(Pc=(Pc)*1e5, MR=i, eps=expratio, frozen=0, frozenAtThroat=0)
             of_arr.append(i)
             isp_arr.append(isp)
 
@@ -140,7 +139,7 @@ def magic(inputs):
 
 
 
-    ###NOTE: UNIT CONVERSION!!!!!
+    ###NOTE: UNIT CONVERSION FROM BAR TO Pa!!!!!
     selected_Pcc *= 1e5
 
     ### Step 2: solving the throat area
@@ -167,7 +166,7 @@ def magic(inputs):
     rocket_dry_mass = (1.03e-3)*It_est + 21
 
     #use impulse estimation to graph a bunch of preliminary thrust curves that differ based on burn time and show the user
-    burn_time_arr = [2,3, 4, 5, 6, 7, 8, 9, 10]
+    burn_time_arr = [2, 3, 4, 5, 6, 7, 8, 9, 10]
 
     for t in burn_time_arr:
 
@@ -255,12 +254,14 @@ def magic(inputs):
 
 
     #solve exit velocity under those conditions
-    fluid_prop = CEA_Obj.get_Chamber_MolWt_gamma(selected_Pcc, selected_OF, expratio)
+    fluid_prop = C.get_Chamber_MolWt_gamma(selected_Pcc, selected_OF, expratio)
     R = 8314 / fluid_prop[0] # J/(kg K)
     y = fluid_prop[1] # (-)
-    v_exit = np.sqrt(((2 * y) / (y - 1)) * R * T_cc * (1 - (P_exit / selected_Pcc)**((y - 1) / y)))
-    temperatures = CEA_Obj.get_Temperatures(selected_Pcc, selected_OF, expratio, 0, 1)
+
+    temperatures = C.get_Temperatures(selected_Pcc, selected_OF, expratio, 0, 1)
     T_cc = temperatures[0]
+
+    v_exit = np.sqrt(((2 * y) / (y - 1)) * R * T_cc * (1 - (P_exit / selected_Pcc)**((y - 1) / y)))
 
     #TODO: solve mass flow rate #do we need this???? --> steady state performance at an instant is nice
     m_dot_cc = thrust / v_exit
@@ -271,11 +272,11 @@ def magic(inputs):
     #pick tank pressures:
     selected_P_ox_tank = 0
     while(selected_P_ox_tank == 0):
-        selected_tburn = float(input("Pick and Enter Oxidizer Tank Pressure (Bar): "))
+        selected_P_ox_tank = float(input("Pick and Enter Oxidizer Tank Pressure (Bar): "))*1e5
 
     selected_P_fuel_tank = 0
     while(selected_P_fuel_tank == 0):
-        selected_tburn = float(input("Pick and Enter Oxidizer Tank Pressure (Bar): "))
+        selected_P_fuel_tank = float(input("Pick and Enter Fuel Tank Pressure (Bar): "))*1e5
 
 
     #estimate injector area!!!!
@@ -283,13 +284,75 @@ def magic(inputs):
     
     #estimate propellant densities with coolprop
     rho_fuel = CP.PropsSI('D', 'P', selected_P_fuel_tank, 'T', 275, inputs.fuel_name)
-    rho_oxidizer = CP.PropsSI('D', 'P', selected_P_fuel_tank, 'X', 0.5, inputs.oxidizer_name)
+    rho_oxidizer = CP.PropsSI('D', 'P', selected_P_fuel_tank, 'T', 275, inputs.oxidizer_name)
     
     A_ox_inj = m_dot_ox / (inputs.Cd_est*np.sqrt(2*rho_oxidizer*(selected_P_ox_tank-selected_Pcc)))
 
     A_fuel_inj = m_dot_fuel / (inputs.Cd_est*np.sqrt(2*rho_fuel*(selected_P_fuel_tank-selected_Pcc)))
     
+    ### Finally, print a summary of the results
+
+    print(f"\n\n\n------------\nPreliminary Design Summary:\n------------\nCombustion Chamber:\nP_cc: {selected_Pcc} (Pa)\nO/F Ratio: {selected_OF}")
+    print(f"Flame Temperature: {T_cc}\nRatio of Specific Heats: {y}\nReactant Gas Const. {R} (J/(kg K))")
+    print(f"Total Impulse: {It_est} (N s)\nAverage Thrust {thrust} (N)\nMass Flow Rate {m_dot_cc} (kg/s)\nExit Velocity: {v_exit} (m/s)\nBurn Time (s)")
+    print(f"Expansion Ratio: {expratio}\nThroat Diameter {throat_diam} (in)")
+    print(f"Feed System Pressures:\nOxidizer Tank Pressure: {selected_P_ox_tank} (Pa)\nFuel Tank Pressure: {selected_P_fuel_tank} (Pa)")
+    print(f"Preliminary Injector Solved by Assuming Fuel and Oxidizer Orifices Follow SPI Model and a Cd guess of {inputs.Cd_est}")
+    print(f"Oxidizer Injector Discharge Area: {A_ox_inj} (m^2), Fuel Injector Discharge Area {A_fuel_inj} (m^2)")
+    print("------------\n")
+    confirm = 0
+    while(confirm == 0):
+        confirm = float(input("Copy Results into input file? (Confirm -->'Y' /Any Other Char to Exit)"))
+
+        if((confirm != 'Y') or (confirm != 'y')):
+            exit()
+
+        else:
+            #TODO: Implement
+            print("NOT IMPLEMENTED YET L MY BAD GUYS JUST COPY PASTE FOR NOW")
+
+            """ 2 --> adiabatic_lre_cc"""
+            #
+
+            oxidizer_name = oxidizer_name
+            fuel_name = fuel_name
+            A_throat = 0.00102028641 #m^2
+            A_exit = 0.00527334324 #m^2
+            P_atm = P_atm
+            TIMESTEP = timestep
+
+            """ 1 --> bens_ox_tank"""
+            #
+
+            oxName = oxidizer_name
+            timestep = timestep 
+            m_ox = 4.48 #kg 
+            #NOTE: GUESSING Cd
+            C_inj_1 =  0.35 * 0.00007471705 #1* 0.00001735222#(num_orifices * Cd * orifice_diam) Note: guessing Cd of 0.6, NOTE: when it doesnt work this is why :)
+            V_tank = 6.4e-3 # - from report: "5.8L of nos in a 6.4L tank"
+            P_tank = 5.171e6 #Pa
+            P_atm = P_atm 
+            all_error = 0.01
+
+            """simpleAdiabaticPressurizedTank"""
+            #
+
+            pressurant_name = pressurant_name
+            m_pressurant  = 0.12 #NOTE: estimated for now based on volume they gave in report, should i change inputs to this model?
+            fuel_name = fuel_name #NOTE: This might not work, assuming 100% when they used 95% as well
+            m_fuel = 1.12 #kg 
+            P_fueltank = 4.82633e6 #Pa
+            ID_PROPTANK = 0.0254*5 #m 
+            V_tank_2 = 2.16e-3 #m^3
+            C_inj_2 = 0.6*0.0000136284 #m^2
+            T_amb = T_amb
+            TIMESTEP = timestep
+
+            print("Done, That Was Easy!")
+
+
     #update variables in input file!!!!
+
 
 
 
