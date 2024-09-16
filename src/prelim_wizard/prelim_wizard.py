@@ -348,8 +348,6 @@ def magic(inputs):
             T_amb = T_amb
             TIMESTEP = timestep
 
-            print("Done, That Was Easy!")
-
 
     #update variables in input file!!!!
 
