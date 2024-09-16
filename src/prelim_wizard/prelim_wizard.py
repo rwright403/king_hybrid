@@ -1,5 +1,6 @@
 from rocketcea.cea_obj_w_units import CEA_Obj
 from rocketcea.cea_obj import add_new_fuel
+import CoolProp.CoolProp as CP #I love coolprop! ~ units: http://www.coolprop.org/v4/apidoc/CoolProp.html
 
 import matplotlib
 matplotlib.use('Qt5Agg')  # Use the TkAgg backend
@@ -184,7 +185,7 @@ def magic(inputs):
         # Plot the thrust curve
         plt.plot(time, thrust, label=f't={t}, Throat Diam={39.3701*(np.sqrt(4*A_throat/np.pi))} (in)')
 
-    print("The following solved by assuming ideal expansion at 2/3 apogee.\nThis is a good assumption for low altitude suborbital rockets")
+    print("The following solved by assuming ideal expansion (calculated at 2/3rds altitude) occurs throughout burn.\nThis is a good assumption for low altitude suborbital rockets")
 
     min_start_thrust = (rocket_dry_mass*9.81) * inputs.min_TW_ratio
     print(f"For reference: to achieve the estimated min_start_thrust of {inputs.min_TW_ratio}, need a starting thrust of {min_start_thrust:.2f} (N).")
@@ -202,6 +203,8 @@ def magic(inputs):
     while(selected_tburn == 0):
         selected_tburn = float(input("Pick and Enter Burn Time (s): "))
 
+
+    ### Step 3: Evaluate Nozzle Performance
     A_throat = It_est / (selected_tburn*selected_Pcc*Cf_opt)
     throat_diam = 39.3701*(2 *np.sqrt(A_throat/np.pi))
 
@@ -252,15 +255,42 @@ def magic(inputs):
 
 
     #solve exit velocity under those conditions
+    fluid_prop = CEA_Obj.get_Chamber_MolWt_gamma(selected_Pcc, selected_OF, expratio)
+    R = 8314 / fluid_prop[0] # J/(kg K)
+    y = fluid_prop[1] # (-)
+    v_exit = np.sqrt(((2 * y) / (y - 1)) * R * T_cc * (1 - (P_exit / selected_Pcc)**((y - 1) / y)))
+    temperatures = CEA_Obj.get_Temperatures(selected_Pcc, selected_OF, expratio, 0, 1)
+    T_cc = temperatures[0]
 
     #TODO: solve mass flow rate #do we need this???? --> steady state performance at an instant is nice
+    m_dot_cc = thrust / v_exit
 
-    #solve Mprop
+    m_dot_fuel = m_dot_cc/(selected_OF +1)
+    m_dot_ox = m_dot_cc - m_dot_fuel
+
+    #pick tank pressures:
+    selected_P_ox_tank = 0
+    while(selected_P_ox_tank == 0):
+        selected_tburn = float(input("Pick and Enter Oxidizer Tank Pressure (Bar): "))
+
+    selected_P_fuel_tank = 0
+    while(selected_P_fuel_tank == 0):
+        selected_tburn = float(input("Pick and Enter Oxidizer Tank Pressure (Bar): "))
 
 
+    #estimate injector area!!!!
+    print(f"estimating reqiured injector areas for fuel and oxidizer assuming a Cd of {inputs.Cd_est} and SPI model")
+    
+    #estimate propellant densities with coolprop
+    rho_fuel = CP.PropsSI('D', 'P', selected_P_fuel_tank, 'T', 275, inputs.fuel_name)
+    rho_oxidizer = CP.PropsSI('D', 'P', selected_P_fuel_tank, 'X', 0.5, inputs.oxidizer_name)
+    
+    A_ox_inj = m_dot_ox / (inputs.Cd_est*np.sqrt(2*rho_oxidizer*(selected_P_ox_tank-selected_Pcc)))
 
-
+    A_fuel_inj = m_dot_fuel / (inputs.Cd_est*np.sqrt(2*rho_fuel*(selected_P_fuel_tank-selected_Pcc)))
+    
     #update variables in input file!!!!
+
 
 
 
