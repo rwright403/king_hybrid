@@ -163,10 +163,8 @@ class model():
         #print(self.v_pres, self.P_tank, self.T_pres)
 
         #print("Ptank is still wrong:", self.P_tank, self.T_pres, self.m_pres, self.cv_pres, v_pres_prev, self.v_pres, self.R_pres)
-        print(self.P_tank, self.m_fuel, self.v_pres, (self.V_tank - V_fuel), "m^3")
+        #print(self.P_tank, self.m_fuel, self.v_pres, (self.V_tank - V_fuel), "m^3")
 
-
-        #TODO: need to solve new self.T_prop FOR NEXT HEAT TRANSFER, ALSO CHECK OTHER ITERATIONS
 
         
 
