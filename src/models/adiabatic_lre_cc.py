@@ -11,7 +11,7 @@ class model():
     def __init__(self, oxidizer_name, fuel_name, A_throat, A_exit, P_atm, TIMESTEP):
 
         #use SI UNITS
-        self.C = CEA_Obj(oxName=oxidizer_name, fuelName=fuel_name, pressure_units='Pa', isp_units='sec', cstar_units='m/s', temperature_units='K', sonic_velocity_units='m/s', enthalpy_units='kJ/kg', density_units='kg/m^3', specific_heat_units='kJ/kg-K')
+        self.C = CEA_Obj(oxName=oxidizer_name, fuelName=fuel_name, pressure_units='Pa', isp_units='sec', cstar_units='m/s', temperature_units='K', sonic_velocity_units='m/s', enthalpy_units='J/kg', density_units='kg/m^3', specific_heat_units='J/kg-K')
         #NOTE: SEEMS TO BREAK ABOVE
 
         self.P_cc = 0
@@ -26,7 +26,8 @@ class model():
         self.v_exit = 0
         self.r_dot_t = 0.1 
 
-        self.m_dot_cc_t = 0        
+        self.m_dot_cc_t = 0
+        self.prev_thrust = 0
         self.instThrust = 0
 
         self.A_throat = A_throat 
@@ -109,8 +110,9 @@ class model():
         
 
         #solve thrust
+        self.prev_thrust = self.instThrust
         self.instThrust = (self.m_dot_cc_t * self.v_exit) + self.A_exit * (P_exit - self.P_atm)
         #print(self.m_dot_cc_t,self.v_exit, T_cc)
 
-        print(self.instThrust, self.OF)
+        #print(self.instThrust, self.OF)
         #print(self.instThrust, self.m_dot_cc_t, self.OF,m_dot_fuel, m_dot_ox,)

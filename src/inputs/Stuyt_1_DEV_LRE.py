@@ -41,7 +41,7 @@ pressurant_name = 'N2'
 ### CC models ###
 
 """ 1 --> hybrid_cc_w_fuel_grain"""
-#
+#"""fuck hybrids"""
 """
 oxName = None
 fuelName = None
@@ -70,8 +70,8 @@ A_exit = None
 
 oxidizer_name = oxidizer_name
 fuel_name = fuel_name
-A_throat = 0.00102028641 #m^2
-A_exit = 0.00527334324 #m^2
+A_throat = 0.001342491 #m^2
+A_exit = 0.0055046156 #m^2
 P_atm = P_atm
 TIMESTEP = timestep
 
@@ -84,11 +84,11 @@ TIMESTEP = timestep
 
 oxName = oxidizer_name
 timestep = timestep 
-m_ox = 4.48 #kg 
+m_ox = 7.650873122104811 #kg 
 #NOTE: GUESSING Cd
-C_inj_1 =  0.35 * 0.00007471705 #1* 0.00001735222#(num_orifices * Cd * orifice_diam) Note: guessing Cd of 0.6, NOTE: when it doesnt work this is why :)
-V_tank = 6.4e-3 # - from report: "5.8L of nos in a 6.4L tank"
-P_tank = 5.171e6 #Pa
+C_inj_1 =  0.6 * 03.090605599220321e-5 #Note: guessing Cd of 0.6
+V_tank = 0.01177057403 #m^3
+P_tank = 5.2e6 #Pa
 P_atm = P_atm 
 all_error = 0.01
 
@@ -121,22 +121,30 @@ OUTLET_DIAM = None
 #
 
 pressurant_name = pressurant_name
-m_pressurant  = 0.12 #NOTE: estimated for now based on volume they gave in report, should i change inputs to this model?
-fuel_name = fuel_name #NOTE: This might not work, assuming 100% when they used 95% as well
-m_fuel = 1.12 #kg 
-P_fueltank = 4.82633e6 #Pa
+m_pressurant  = 0.12 #NOTE: estimated for now based on amount of pressurant used by MASA's Laika
+fuel_name = fuel_name
+m_fuel = 1.5301746244209624 #kg 
+P_fueltank = 5.2e6 #Pa
 ID_PROPTANK = 0.0254*5 #m 
-V_tank_2 = 2.16e-3 #m^3
-C_inj_2 = 0.6*0.0000136284 #m^2
+V_tank_2 = 0.0037961342 #m^3 
+C_inj_2 = 0.6*6.566075013100621e-6 #m^2
 T_amb = T_amb
 TIMESTEP = timestep
 
 
-### Plotting
+### Calling experimental data for thrust curve
 exp_thrust_file_path = None
 exp_p_cc_file_path = None
 exp_p_ox_tank_file_path = None
 exp_p_fuel_tank_file_path = None
+
+
+### Sensitivity Analysis:
+test_var_name = "C_inj_2"
+min_bound = 0.5*6.566075013100621e-6 #m^2
+max_bound = 0.7*6.566075013100621e-6 #m^2
+num_iterations = 3
+
 
 ### TODO: Add rocket definition
 
@@ -144,5 +152,5 @@ exp_p_fuel_tank_file_path = None
 ### Estimates for Sizing Wizard ###
 min_TW_ratio = 11
 Cd_est = 0.6
-
-"""fuck hybrids"""
+mass_fraction_estimate = 0.2657741984
+characteristic_len = 1 #m

@@ -122,8 +122,8 @@ def run_thrust_curve(inputs):
 
             #print("time: ", r1ox.t)
 
-        print("\n", "### mass balance ###")
-        print("total propellant calculated through sim: ", total_propellant+r1ox.m_ox+r1cc.m_fuel_t, "total starting/input propellant: ", inputs.m_ox+inputs.m_fuel_i, "difference (conservation of mass): ",total_propellant+r1ox.m_ox+r1cc.m_fuel_t -inputs.m_ox-inputs.m_fuel_i)
+        #print("\n", "### mass balance ###")
+        #print("total propellant calculated through sim: ", total_propellant+r1ox.m_ox+r1cc.m_fuel_t, "total starting/input propellant: ", inputs.m_ox+inputs.m_fuel_i, "difference (conservation of mass): ",total_propellant+r1ox.m_ox+r1cc.m_fuel_t -inputs.m_ox-inputs.m_fuel_i)
 
 
     ### for liquid setup fuel tank
@@ -151,7 +151,15 @@ def run_thrust_curve(inputs):
         p_fuel_tank_arr = []
         pressure_data = [p_cc_arr, p_ox_tank_arr, p_fuel_tank_arr]
         P_cc = inputs.P_atm
-        
+
+        #SAVE VALUES TO PRINT OUTPUTS FOR HEAT TRANSFER HAND CALC:
+        y_peak = 0
+        cp_peak = 0
+        P_cc_peak = 0
+        C_star_peak = 0
+        T_flame_peak = 0
+        viscosity_peak = 0
+
         r1ox.inst(P_cc)
         s1_fuel_tank.inst(P_cc)
         
@@ -159,7 +167,7 @@ def run_thrust_curve(inputs):
         m_fuel_burned = 0
         m_ox_burned = 0
         #TODO: FIX with sim time? not sure its not working w OF now
-        while (r1ox.t < 4):
+        while (r1ox.t < 7):
             #print(r1cc.OF)
             #BUG: cant handle 2 inputs to r1cc????
             #print("initial mass flow rates: ",r1ox.m_dot_ox, s1_fuel_tank.m_dot_fuel)
@@ -171,6 +179,22 @@ def run_thrust_curve(inputs):
     
             m_fuel_burned += s1_fuel_tank.m_dot_fuel*r1ox.timestep
             m_ox_burned += r1ox.m_dot_ox*r1ox.timestep
+
+            if (r1cc.instThrust > r1cc.prev_thrust):
+
+                
+                arr1 = r1cc.C.get_Throat_MolWt_gamma(r1cc.P_cc, r1cc.OF, r1cc.expratio, frozen=0)
+                arr2 = r1cc.C.get_Temperatures(r1cc.P_cc, r1cc.OF, r1cc.expratio, frozen=0, frozenAtThroat=0)
+                arr3 = r1cc.C.get_Throat_Transport(r1cc.P_cc, r1cc.OF, r1cc.expratio, frozen=0)
+                
+                y_peak = arr1[1]
+                cp_peak = arr3[0]
+                P_cc_peak = r1cc.P_cc*(2/(y_peak+1))**(y_peak/(y_peak-1))
+                C_star_peak = r1cc.C.get_Cstar(r1cc.P_cc, r1cc.OF)
+                T_flame_peak = arr2[1]
+                viscosity_peak = arr3[1]
+                R_peak = r1cc.R
+
 
             #RECORD DATA
             time_arr.append(r1ox.t)
@@ -184,9 +208,10 @@ def run_thrust_curve(inputs):
 
             #print(r1cc.instThrust,s1_fuel_tank.P_tank)
             
-        print("total propellant burned in simshould match report: ", m_fuel_burned, m_ox_burned)
+        #print("total propellant burned in simshould match report: ", m_fuel_burned, m_ox_burned)
             
-
+    total_impulse = np.trapz(thrust_arr, time_arr)
+    print(f"Total Engine Impulse: {total_impulse:.3f} (N s)")
 
     ###WRITE CSV FOR FLIGHT SIM, VALIDATION AND OTHER EXTERNAL ANALYSIS
     to_csv(time_arr,m_dot_arr, "m_dot_ox")
@@ -214,6 +239,8 @@ def run_thrust_curve(inputs):
         plt.title('System Pressures Over Time')
         plt.grid(True)
         plt.legend()
+
+        print(f"\nThroat Properties at Peak Thrust for Heat Transfer\n------------\nRatio of specific heats: {y_peak} (-)\nSpec. Heat Const. Pres. {cp_peak} (J/(kg K))\nThroat Pressure {P_cc_peak} (Pa)\nCharacteristic Velocity {C_star_peak} (m/s)\nThroat Flame Temp {T_flame_peak} (K)\nViscosity {viscosity_peak} (Pa s)\nGas Constant {R_peak} (J/(kg K))")
 
         plt.show()
 

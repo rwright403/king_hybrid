@@ -15,6 +15,8 @@ def bar_to_psi(x):
 
 def magic(inputs):
 
+    print("\nBefore we begin... Compliments from the chef:\nhttps://open.spotify.com/playlist/3cPxQYAYeNGvGk50DC2Edd?si=a4789e8167e44244\n")
+
     ### Setup
     apogee_height = 3048 #m
     optimal_height = (2/3)*apogee_height #m above launch pad - #NOTE: this uses a rule of thumb, works rlly well for small change in alt sounding rocket flight
@@ -263,11 +265,16 @@ def magic(inputs):
 
     v_exit = np.sqrt(((2 * y) / (y - 1)) * R * T_cc * (1 - (P_exit / selected_Pcc)**((y - 1) / y)))
 
-    #TODO: solve mass flow rate #do we need this???? --> steady state performance at an instant is nice
     m_dot_cc = thrust / v_exit
 
     m_dot_fuel = m_dot_cc/(selected_OF +1)
     m_dot_ox = m_dot_cc - m_dot_fuel
+
+    m_propellant = rocket_dry_mass * inputs.mass_fraction_estimate
+
+    m_fuel = m_propellant/(selected_OF +1)
+    m_ox = m_propellant - m_fuel
+
 
     #pick tank pressures:
     selected_P_ox_tank = 0
@@ -292,14 +299,21 @@ def magic(inputs):
     
     ### Finally, print a summary of the results
 
-    print(f"\n\n\n------------\nPreliminary Design Summary:\n------------\nCombustion Chamber:\nP_cc: {selected_Pcc} (Pa)\nO/F Ratio: {selected_OF}")
+    isp = C.get_Isp(Pc=selected_Pcc, MR=selected_OF, eps=expratio, frozen=0, frozenAtThroat=0)
+    c_star = C.get_Cstar(Pc=selected_Pcc, MR=selected_OF)
+
+    print(f"\n\n\n------------\nPreliminary Design Summary:\n------------\nPerformance:\n------------\nSpecific Impulse: {isp} (s)\nCharacteristic Velocity: {c_star}(m/s)")
+    print(f"Combustion Chamber:\n------------\nP_cc: {selected_Pcc} (Pa)\nO/F Ratio: {selected_OF}")
     print(f"Flame Temperature: {T_cc}\nRatio of Specific Heats: {y}\nReactant Gas Const. {R} (J/(kg K))")
-    print(f"Total Impulse: {It_est} (N s)\nAverage Thrust {thrust} (N)\nMass Flow Rate {m_dot_cc} (kg/s)\nExit Velocity: {v_exit} (m/s)\nBurn Time (s)")
-    print(f"Expansion Ratio: {expratio}\nThroat Diameter {throat_diam} (in)")
-    print(f"Feed System Pressures:\nOxidizer Tank Pressure: {selected_P_ox_tank} (Pa)\nFuel Tank Pressure: {selected_P_fuel_tank} (Pa)")
+    print(f"Total Impulse: {It_est} (N s)\nAverage Thrust {thrust} (N)\nMass Flow Rate {m_dot_cc} (kg/s)\nExit Velocity: {v_exit} (m/s)\nBurn Time {selected_tburn} (s)")
+    print(f"Expansion Ratio: {expratio}\nThroat Diameter {throat_diam} (in)\n")
+    print(f'Feed System:\n------------\nEstimated Mass Fraction: {inputs.mass_fraction_estimate}\nFuel Mass: {m_fuel} (kg)\nOxidizer Mass: {m_ox} (kg)')
+    print(f"Oxidizer Tank Pressure: {selected_P_ox_tank} (Pa)\nFuel Tank Pressure: {selected_P_fuel_tank} (Pa)")
     print(f"Preliminary Injector Solved by Assuming Fuel and Oxidizer Orifices Follow SPI Model and a Cd guess of {inputs.Cd_est}")
     print(f"Oxidizer Injector Discharge Area: {A_ox_inj} (m^2), Fuel Injector Discharge Area {A_fuel_inj} (m^2)")
     print("------------\n")
+    
+    """
     confirm = 0
     while(confirm == 0):
         confirm = float(input("Copy Results into input file? (Confirm -->'Y' /Any Other Char to Exit)"))
@@ -311,8 +325,8 @@ def magic(inputs):
             #TODO: Implement
             print("NOT IMPLEMENTED YET L MY BAD GUYS JUST COPY PASTE FOR NOW")
 
-            """ 2 --> adiabatic_lre_cc"""
-            #
+            #2 --> adiabatic_lre_cc
+            
 
             oxidizer_name = oxidizer_name
             fuel_name = fuel_name
@@ -320,8 +334,8 @@ def magic(inputs):
             A_exit = 0.00527334324 #m^2
             P_atm = P_atm
             TIMESTEP = timestep
-
-            """ 1 --> bens_ox_tank"""
+            
+            # 1 --> bens_ox_tank
             #
 
             oxName = oxidizer_name
@@ -334,9 +348,8 @@ def magic(inputs):
             P_atm = P_atm 
             all_error = 0.01
 
-            """simpleAdiabaticPressurizedTank"""
+            #simpleAdiabaticPressurizedTank
             #
-
             pressurant_name = pressurant_name
             m_pressurant  = 0.12 #NOTE: estimated for now based on volume they gave in report, should i change inputs to this model?
             fuel_name = fuel_name #NOTE: This might not work, assuming 100% when they used 95% as well
@@ -347,7 +360,7 @@ def magic(inputs):
             C_inj_2 = 0.6*0.0000136284 #m^2
             T_amb = T_amb
             TIMESTEP = timestep
-
+    """
 
     #update variables in input file!!!!
 
