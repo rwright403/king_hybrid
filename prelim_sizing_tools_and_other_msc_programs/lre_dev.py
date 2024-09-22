@@ -12,15 +12,16 @@ def bar_to_psi(x):
     return x * 14.5038
 
 ###START USER INPUT
+fuel_name = 'Propane'
 
-fuel_name = 'paraffin'
-#C32H66 from RPA Paraffin Wax Composition
-fuel_properties = f"""
-fuel paraffin  C 32   H 66    wt%=100.00
-h,KJ/Kgmol=-1860600     t(k)=298.15   rho,kg/m3={900}
-"""
+#fuel_name = 'paraffin'
+##C32H66 from RPA Paraffin Wax Composition
+#fuel_properties = f"""
+#fuel paraffin  C 32   H 66    wt%=100.00
+#h,KJ/Kgmol=-1860600     t(k)=298.15   rho,kg/m3={900}
+#"""
 
-add_new_fuel(fuel_name, fuel_properties)
+#add_new_fuel(fuel_name, fuel_properties)
 
 
 ox_name = 'N2O'
@@ -61,6 +62,7 @@ for j in OF_ratio:
     flame_temp_arr = []
     p_cc_arr = []
 
+    #NOTE: bad var name!
     for k in chamber_pressures:
 
         ###solve expansion ratio for each chamber pressure using y guess
