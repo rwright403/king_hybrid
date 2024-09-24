@@ -71,7 +71,7 @@ def run_thrust_curve(inputs):
     if inputs.analysis_mode[0] == 1:
         r1cc = cc_model_class(inputs.oxName, inputs.fuelName, inputs.CEA_fuel_str, inputs.m_fuel_i, 
                 inputs.rho_fuel, inputs.a, inputs.n, inputs.L, inputs.A_port_i, 
-                inputs.P_atm, inputs.A_throat, inputs.A_exit, inputs.timestep,)
+                inputs.P_atm, inputs.A_throat, inputs.A_exit, inputs.TIMESTEP,)
         
     if inputs.analysis_mode[0] == 2:
         r1cc = cc_model_class(inputs.oxidizer_name, inputs.fuel_name, inputs.A_throat, inputs.A_exit, inputs.P_atm, inputs.TIMESTEP)
@@ -81,7 +81,7 @@ def run_thrust_curve(inputs):
     OxTank_model_class = get_model(inputs.analysis_mode[1], 'T')
 
     if inputs.analysis_mode[1] == 1:
-        r1ox = OxTank_model_class(inputs.oxName, inputs.timestep, inputs.m_ox, inputs.C_inj_1,
+        r1ox = OxTank_model_class(inputs.oxName, inputs.TIMESTEP, inputs.m_ox, inputs.C_inj_1,
                 inputs.V_tank, inputs.P_tank, inputs.P_atm, inputs.all_error, inputs.inj_model)
     
     if inputs.analysis_mode[1] == 2:
@@ -100,7 +100,7 @@ def run_thrust_curve(inputs):
 
         r1ox.inst(P_cc)
         #TODO: FIX with sim time? not sure its not working w OF now
-        while (r1ox.t < 20):
+        while (r1ox.t < 1):
             #print(r1cc.OF)
             r1cc.inst(r1ox.m_dot_ox)
             r1ox.inst(r1cc.P_cc)
@@ -111,7 +111,7 @@ def run_thrust_curve(inputs):
             thrust_arr.append(r1cc.instThrust)
             p_cc_arr.append(r1cc.P_cc) #NOTE: convert to atmospheric depending on data
             p_ox_tank_arr.append(r1ox.P_tank)
-            total_propellant = r1cc.total_propellant
+            #total_propellant = r1cc.total_propellant
 
 
             #print(r1ox.P_tank, r1cc.P_cc,r1ox.P_tank- r1cc.P_cc,  )
@@ -167,7 +167,7 @@ def run_thrust_curve(inputs):
         m_fuel_burned = 0
         m_ox_burned = 0
         #TODO: FIX with sim time? not sure its not working w OF now
-        while (r1ox.t < 7):
+        while (r1ox.t < inputs.sim_time):
             #print(r1cc.OF)
             #BUG: cant handle 2 inputs to r1cc????
             #print("initial mass flow rates: ",r1ox.m_dot_ox, s1_fuel_tank.m_dot_fuel)
@@ -211,7 +211,7 @@ def run_thrust_curve(inputs):
         #print("total propellant burned in simshould match report: ", m_fuel_burned, m_ox_burned)
             
     total_impulse = np.trapz(thrust_arr, time_arr)
-    print(f"Total Engine Impulse: {total_impulse:.3f} (N s)")
+    print(f"Total Engine Impulse: {total_impulse:.6f} (N s)")
 
     ###WRITE CSV FOR FLIGHT SIM, VALIDATION AND OTHER EXTERNAL ANALYSIS
     to_csv(time_arr,m_dot_arr, "m_dot_ox")

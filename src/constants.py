@@ -71,7 +71,7 @@ inj_model = 1
 ### Sim Variables
 timestep = 0.05 #s
 all_error = 0.01 
-sim_time = 8.5#s (time engine will be simulated over)
+sim_time = 8.5 #s (time engine will be simulated over)
 #NOTE: if this is too big and you are simulating over a range the script will break
 #is it really a leading edge simulation software if the ux is poor?
 

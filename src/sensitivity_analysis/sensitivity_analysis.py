@@ -162,7 +162,7 @@ def sensitivityAnalysis(inputs):
         m_fuel_burned = 0
         m_ox_burned = 0
         #TODO: FIX with sim time? not sure its not working w OF now
-        while (r1ox.t < 4):
+        while (r1ox.t < inputs.sim_time):
             #print(r1cc.OF)
             #BUG: cant handle 2 inputs to r1cc????
             #print("initial mass flow rates: ",r1ox.m_dot_ox, s1_fuel_tank.m_dot_fuel)
@@ -205,7 +205,7 @@ def sensitivityAnalysis(inputs):
     
     
 
-def produce_graphs(big_data,i_arr):
+def produce_graphs(big_data,i_arr,It_arr):
     j=1
     while(j<6):
 
@@ -213,7 +213,7 @@ def produce_graphs(big_data,i_arr):
             k=0
             for s in big_data:
                 plt.subplot(1,5,j)
-                plt.plot(s.time_arr_,s.m_dot_arr_, label= f'{i_arr[k]}')
+                plt.plot(s.time_arr_,s.m_dot_arr_, label= f'{i_arr[k]:.5}')
                 k+=1
             plt.legend()
             plt.xlabel('Time (s)')
@@ -225,7 +225,7 @@ def produce_graphs(big_data,i_arr):
             k=0
             for s in big_data:
                 plt.subplot(1,5,j)
-                plt.plot(s.time_arr_,s.thrust_arr_, label= f'{i_arr[k]}')
+                plt.plot(s.time_arr_,s.thrust_arr_, label= f"Total Impulse: {It_arr[k]:.6}")
                 k+=1
             plt.legend()
             plt.xlabel('Time (s)')
@@ -237,9 +237,8 @@ def produce_graphs(big_data,i_arr):
             k=0
             for s in big_data:
                 plt.subplot(1,5,j)
-                plt.plot(s.time_arr_,s.p_cc_arr_, label= f'{i_arr[k]}')
+                plt.plot(s.time_arr_,s.p_cc_arr_)
                 k+=1
-            plt.legend()
             plt.xlabel('Time (s)')
             plt.ylabel('Chamber Pressure (Pa)')
             plt.title('Chamber Pressure Over Time')
@@ -249,12 +248,11 @@ def produce_graphs(big_data,i_arr):
             k=0
             for s in big_data:
                 plt.subplot(1,5,j)
-                plt.plot(s.time_arr_,s.p_ox_tank_arr_, label= f'{i_arr[k]}')
+                plt.plot(s.time_arr_,s.p_ox_tank_arr_)
                 k+=1
-            plt.legend()
             plt.xlabel('Time (s)')
-            plt.ylabel('Tank Pressure (Pa)')
-            plt.title('Tank Pressure Over Time')
+            plt.ylabel('Oxidizer Tank Pressure (Pa)')
+            plt.title('Oxidizer Tank Pressure Over Time')
             plt.grid(True)
 
         ###TODO: add logic so this only appears if simulating a lre
@@ -262,12 +260,11 @@ def produce_graphs(big_data,i_arr):
             k=0
             for s in big_data:
                 plt.subplot(1,5,j)
-                plt.plot(s.time_arr_,s.p_fuel_tank_arr_, label= f'{i_arr[k]}')
+                plt.plot(s.time_arr_,s.p_fuel_tank_arr_)
                 k+=1
-            plt.legend()
             plt.xlabel('Time (s)')
-            plt.ylabel('Tank Pressure (Pa)')
-            plt.title('Tank Pressure Over Time')
+            plt.ylabel('Fuel Tank Pressure (Pa)')
+            plt.title('Fuel Tank Pressure Over Time')
             plt.grid(True)
             
 
@@ -283,6 +280,7 @@ def run_sensitivity_analysis(inputs):
 
     big_data = []
     i_arr = []
+    It_arr = []
 
     if hasattr(inputs, inputs.test_var_name):
 
@@ -291,7 +289,11 @@ def run_sensitivity_analysis(inputs):
 
         while(getattr(inputs,inputs.test_var_name)<=inputs.max_bound):
             
-            big_data.append( sensitivityAnalysis(inputs) )
+            results = sensitivityAnalysis(inputs)
+            big_data.append( results )
+
+            total_impulse = np.trapz(results.thrust_arr_, results.time_arr_)
+            It_arr.append(total_impulse)
 
             i_arr.append(getattr(inputs,inputs.test_var_name) + (inputs.max_bound-inputs.min_bound)/(inputs.num_iterations -1) )
             
@@ -301,7 +303,7 @@ def run_sensitivity_analysis(inputs):
 
         #print(f"\n{len(big_data)}\n")
             
-        produce_graphs(big_data,i_arr)
+        produce_graphs(big_data,i_arr,It_arr)
 
         #NOTE: what is i_arr used for again?    
     
@@ -323,73 +325,6 @@ def run_sensitivity_analysis(inputs):
 
     #malding if statements, you hate to see it for each inputs, then call function with sensitivity analysis inside
 """
-    if inputs.test_var=="m_ox":
-        while(i<=inputs.max_bound):
-            big_data.append( sensitivityAnalysis(i,inputs.C_inj,inputs.V_tank,inputs.P_tank,inputs.m_fuel_i,inputs.a,inputs.n,inputs.L,inputs.A_port_i, inputs.A_throat, inputs.A_exit) )
-            i = update_i(i)
-        produce_graphs(big_data,i_arr)
-
-    if inputs.test_var=="C_inj":
-        while(i<=inputs.max_bound):
-            big_data.append( sensitivityAnalysis(inputs.m_ox,i,inputs.V_tank,inputs.P_tank,inputs.m_fuel_i,inputs.a,inputs.n,inputs.L,inputs.A_port_i, inputs.A_throat, inputs.A_exit) )
-            i = update_i(i)
-        produce_graphs(big_data,i_arr)
-
-    if inputs.test_var=="V_tank":
-        while(i<=inputs.max_bound):
-            big_data.append( sensitivityAnalysis(inputs.m_ox,inputs.C_inj,i,inputs.P_tank,inputs.m_fuel_i,inputs.a,inputs.n,inputs.L,inputs.A_port_i, inputs.A_throat, inputs.A_exit) )
-            i = update_i(i)
-        produce_graphs(big_data,i_arr)
-
-    if inputs.test_var=="P_tank":
-        while(i<=inputs.max_bound):
-            big_data.append( sensitivityAnalysis(inputs.m_ox,inputs.C_inj,inputs.V_tank,i,inputs.m_fuel_i,inputs.a,inputs.n,inputs.L,inputs.A_port_i, inputs.A_throat, inputs.A_exit) )
-            i = update_i(i)
-        produce_graphs(big_data,i_arr)
-
-    if inputs.test_var=="m_fuel_i":
-        while(i<=inputs.max_bound):
-            big_data.append( sensitivityAnalysis(inputs.m_ox,inputs.C_inj,inputs.V_tank,inputs.P_tank,i,inputs.a,inputs.n,inputs.L,inputs.A_port_i, inputs.A_throat, inputs.A_exit) )
-            i = update_i(i)
-        produce_graphs(big_data,i_arr)
-
-    if inputs.test_var=="a":
-        while(i<=inputs.max_bound):
-            big_data.append( sensitivityAnalysis(inputs.m_ox,inputs.C_inj,inputs.V_tank,inputs.P_tank,inputs.m_fuel_i,i,inputs.n,inputs.L,inputs.A_port_i, inputs.A_throat, inputs.A_exit) )
-            i = update_i(i)
-        produce_graphs(big_data,i_arr)
-
-    if inputs.test_var=="n":
-        while(i<=inputs.max_bound):
-            big_data.append( sensitivityAnalysis(inputs.m_ox,inputs.C_inj,inputs.V_tank,inputs.P_tank,inputs.m_fuel_i,inputs.a,i,inputs.L,inputs.A_port_i, inputs.A_throat, inputs.A_exit) )
-            i = update_i(i)
-        produce_graphs(big_data,i_arr)
-
-    if inputs.test_var=="L":
-        while(i<=inputs.max_bound):
-            big_data.append( sensitivityAnalysis(inputs.m_ox,inputs.C_inj,inputs.V_tank,inputs.P_tank,inputs.m_fuel_i,inputs.a,inputs.n,i,inputs.A_port_i, inputs.A_throat, inputs.A_exit) )
-            i = update_i(i)
-        produce_graphs(big_data,i_arr)
-
-    if inputs.test_var=="A_port_i":
-        while(i<=inputs.max_bound):
-            big_data.append( sensitivityAnalysis(inputs.m_ox,inputs.C_inj,inputs.V_tank,inputs.P_tank,inputs.m_fuel_i,inputs.a,inputs.n,inputs.L,i, inputs.A_throat, inputs.A_exit) )
-            i = update_i(i)
-        produce_graphs(big_data,i_arr)
-
-    if inputs.test_var=="A_throat":
-        while(i<=inputs.max_bound):
-            big_data.append( sensitivityAnalysis(inputs.m_ox,inputs.C_inj,inputs.V_tank,inputs.P_tank,inputs.m_fuel_i,inputs.a,inputs.n,inputs.L,inputs.A_port_i, i, inputs.A_exit) )
-            i = update_i(i)
-        produce_graphs(big_data,i_arr)
-
-    if inputs.test_var=="A_exit":
-        while(i<=inputs.max_bound):
-            big_data.append( sensitivityAnalysis(inputs.m_ox,inputs.C_inj,inputs.V_tank,inputs.P_tank,inputs.m_fuel_i,inputs.a,inputs.n,inputs.L,inputs.A_port_i, inputs.A_throat, i) )
-            i = update_i(i)
-        produce_graphs(big_data,i_arr)
-
-
     #TODO: PROBABLY NICE TO PRINT OUT CONSTANTS
         
     print("\nSensitivity Analysis Summary:\n")

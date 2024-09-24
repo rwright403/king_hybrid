@@ -10,6 +10,9 @@
 analysis_mode = [2,1,3]
 
 timestep = 0.05 #s
+sim_time = 8.5 #s (time engine will be simulated over)
+#NOTE: if this is too big and you are simulating over a range the script will break
+#is it really a leading edge simulation software if the ux is poor?
 
 ### PROGRAM OUTPUT:
 thrust_curve_graphs = True
@@ -86,7 +89,7 @@ oxName = oxidizer_name
 timestep = timestep 
 m_ox = 7.650873122104811 #kg 
 #NOTE: GUESSING Cd
-C_inj_1 =  0.6 * 03.090605599220321e-5 #Note: guessing Cd of 0.6
+C_inj_1 =  0.6 * 3.090605599220321e-5 #Note: guessing Cd of 0.6
 V_tank = 0.01177057403 #m^3
 P_tank = 5.2e6 #Pa
 P_atm = P_atm 
