@@ -854,10 +854,9 @@ while(pressurantTank.P_prestank > pressurantTank.P_proptank):
     s_tank_arr.append(pressurantTank.s_prestank)
 
     #RUN THROUGH EACH CV AT EACH INSTANT
-    """
     pressurantTank.inst(oxidizerTank.P_proptank)
     oxidizerTank.inst(pressurantTank.m_dot_pres, pressurantTank.h_pres, t)
-    """
+
     #TODO: ADD FUEL TANK MODEL -->
     fuelTank.inst(P_atm)
     #TODO: ADD COMBUSTION CHAMBER MODEL -->

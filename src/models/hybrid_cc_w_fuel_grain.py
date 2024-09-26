@@ -128,7 +128,7 @@ class model():
 
         # solve fluid properties
         fluid_prop = self.C.get_Chamber_MolWt_gamma(self.P_cc, self.OF, self.expratio)
-        self.R = 8314 / fluid_prop[0] # J/(kg K)
+        self.R = 8314 / fluid_prop[0] # J/(kg K) #NOTE: IS THIS TOO BIG? UNIT ERROR RN?
         self.y = fluid_prop[1] # (-)
 
         #print(self.R, self.y)
@@ -138,11 +138,12 @@ class model():
         T_cc = temperatures[0]
         
         # Use secant method to find chamber pressure
-        #this only helps the first timestep fucking useless
+        #this only helps the first timestep otherwise useless
         #initial_enthalpy = self.C.get_Chamber_H(self.P_cc, self.OF, self.expratio)
         self.P_cc = (self.m_dot_cc_t /  self.A_throat ) * np.sqrt( self.R*T_cc )  / ( np.sqrt( self.y * (2 / (self.y+1))**( (self.y+1)/(self.y-1) ) ) )
+        print(self.P_cc,self.m_dot_cc_t,self.A_throat,self.R,T_cc,self.y)
         #while np.abs(merror(self.C, self.P_cc, self.OF, self.expratio, self.A_exit, self.m_dot_cc_t)) > 0.005:
-         #   self.P_cc = secant(lambda P: merror(self.C, P, self.OF, self.expratio, self.A_exit, self.m_dot_cc_t), self.P_cc)
+        #   self.P_cc = secant(lambda P: merror(self.C, P, self.OF, self.expratio, self.A_exit, self.m_dot_cc_t), self.P_cc)
         #print(self.P_cc,self.m_dot_cc_t)
         #final_enthalpy = self.C.get_Chamber_H(self.P_cc, self.OF, self.expratio)
 
