@@ -154,7 +154,6 @@ class model():
 
         """
         while np.abs(verror(self.T_pres,self.m_pres,self.cv_pres,self.P_tank,v_pres_prev,Q_transfer,self.v_pres,self.R_pres) ) > self.v_tank_err:
-            print("looping", self.T_pres)
             self.T_pres = secant((lambda T: verror(T, self.m_pres,self.cv_pres,self.P_tank,v_pres_prev,Q_transfer,self.v_pres,self.R_pres)), self.T_pres)
         
         #now use new T_pres to solve P_tank

@@ -9,7 +9,10 @@
 #                            cc model
 analysis_mode = [1,1]
 
-timestep = 0.05 #s
+TIMESTEP = 0.05 #s
+sim_time = 8.5#s (time engine will be simulated over)
+#NOTE: if this is too big and you are simulating over a range the script will break
+#is it really a leading edge simulation software if the ux is poor?
 all_error = 0.01
 
 ### PROGRAM OUTPUT:
@@ -39,7 +42,7 @@ hour = 13
 #
 oxName = 'N2O'
 fuelName = 'paraffin'
-timestep  = timestep
+TIMESTEP  = TIMESTEP
 m_fuel_i = 5.44311 #kg
 rho_fuel = 900
 
@@ -67,7 +70,7 @@ fuel_name = None
 A_throat = None
 A_exit = None 
 P_atm = P_atm
-TIMESTEP = timestep
+TIMESTEP = TIMESTEP
 """
 
 
@@ -77,11 +80,11 @@ TIMESTEP = timestep
 #
 
 oxName = 'N2O'
-timestep = timestep
+TIMESTEP = TIMESTEP
 m_ox = 14.61751413 #kg
-C_inj = 0.00002364094414 #m^2
+C_inj_1 = 0.00002364094414 #m^2
 V_tank = 0.024956005 #m^3
-P_tank = 4933902
+P_tank = 4933902 #Pa
 P_atm = P_atm 
 all_error = all_error
 
@@ -101,7 +104,7 @@ id_PROPTANK = None
 P_proptank = None
 m_prop = None 
 V_PROPTANK = None 
-TIMESTEP = timestep
+TIMESTEP = TIMESTEP
 pressurant_name = None 
 P_prestank = None 
 m_pres = None 
@@ -119,7 +122,7 @@ fuel_name = None
 m_fuel = None 
 P_fueltank = None 
 ID_PROPTANK = None 
-TIMESTEP = timestep
+TIMESTEP = TIMESTEP
 """
 
 
