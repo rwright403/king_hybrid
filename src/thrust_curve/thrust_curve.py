@@ -214,7 +214,7 @@ def run_thrust_curve(inputs):
     print(f"Total Engine Impulse: {total_impulse:.6f} (N s)")
 
     ###WRITE CSV FOR FLIGHT SIM, VALIDATION AND OTHER EXTERNAL ANALYSIS
-    to_csv(time_arr,m_dot_arr, "m_dot_ox")
+    to_csv(time_arr,m_dot_arr, "m_dot_cc_t")
     to_csv(time_arr,thrust_arr, "thrust")
     to_csv(time_arr,p_cc_arr, "p_cc")
     to_csv(time_arr,p_ox_tank_arr, "p_ox_tank")
