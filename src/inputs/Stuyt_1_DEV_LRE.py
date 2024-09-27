@@ -10,7 +10,7 @@
 analysis_mode = [2,1,3]
 
 timestep = 0.05 #s
-sim_time = 8 #s (time engine will be simulated over)
+sim_time = 7 #s (time engine will be simulated over)
 #NOTE: if this is too big and you are simulating over a range the script will break
 #is it really a leading edge simulation software if the ux isnt poor?
 
@@ -87,7 +87,7 @@ TIMESTEP = timestep
 
 oxName = oxidizer_name
 timestep = timestep 
-m_ox = 7.650873122104811 #kg 
+m_ox = 5.73815484158 #kg 
 #NOTE: GUESSING Cd
 C_inj_1 =  0.6 * 3.090605599220321e-5 #Note: guessing Cd of 0.6
 V_tank = 0.01177057403 #m^3
@@ -126,7 +126,7 @@ OUTLET_DIAM = None
 pressurant_name = pressurant_name
 m_pressurant  = 0.12 #NOTE: estimated for now based on amount of pressurant used by MASA's Laika
 fuel_name = fuel_name
-m_fuel = 1.5301746244209624 #kg 
+m_fuel = 1.14763096832 #kg 
 P_fueltank = 5.2e6 #Pa
 ID_PROPTANK = 0.0254*5 #m 
 V_tank_2 = 0.0037961342 #m^3 
