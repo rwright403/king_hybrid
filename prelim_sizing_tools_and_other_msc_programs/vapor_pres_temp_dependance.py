@@ -9,7 +9,7 @@ from rocketprops.valve_supt import cv_valve_dp
 
 
 # Define temperature range (input in celsius, program converts to kelvin)
-T_min = 17  # Minimum operating temperature
+T_min = 16  # Minimum operating temperature
 T_max = 27  # Maximum operating temperature
 T_crit = 36 # Critical temperature of nitrous
 num_points = 100  # Number of points for the plot
@@ -48,11 +48,11 @@ for i, T in enumerate(temperatures):
   vapor_pressures[i] = P / 100000.0  # Convert from Pa to bar
 
 # Plot vapor pressure for the current quality
-plt.plot(temperatures_celsius, vapor_pressures, label='N2O Saturated Liquid Line')
+plt.plot(temperatures_celsius, vapor_pressures, color='k', label='N2O Saturated Liquid Line')
 
 # THESE TEMPERATURES ARE MAX AND MIN VALUES FOR HOTFIRING
-plt.axvline(x=T_min-273.15, color='g', linestyle='--', label=f'{T_min-273.15} °C')
-plt.axvline(x=T_max-273.15, color='y', linestyle='--', label=f'{T_max-273.15} °C')
+plt.axvline(x=T_min-273.15, color='b', linestyle='--', label=f'{T_min-273.15} °C')
+plt.axvline(x=T_max-273.15, color='c', linestyle='--', label=f'{T_max-273.15} °C')
 plt.axhline(y=72.5, color='r', linestyle='--', label="N2O Critical Pressure")
 
 plt.xlabel('Temperature (°C)')

@@ -90,10 +90,25 @@ class model():
     def inst(self, P_downstream):
 
         #solve mass flow out of tank
+        #print(self.P_tank, P_downstream)
+        Cp = CP.PropsSI('Cpmass', 'T', self.T_prop, 'P', P_downstream, self.fuel)
+        Cv = CP.PropsSI('Cvmass', 'T', self.T_prop, 'P', P_downstream, self.fuel)
+
+        y = Cp/Cv
+
+        K = CP.PropsSI('ISOTHERMAL_COMPRESSIBILITY', 'T', self.T_prop, 'P', P_downstream, self.fuel)
+        bulk_modulus = 1 / K  # Inverse of compressibility gives the bulk modulus
+
+        # Calculate speed of sound in the liquid ethanol
+        a = (bulk_modulus / self.rho_prop) ** 0.5
         
         self.m_dot_fuel = self.C_inj * np.sqrt( 2* self.rho_prop* (self.P_tank-P_downstream) )
+        if a <= (self.m_dot_fuel/(0.00007471705*self.rho_prop)): #NOTE: NEED TO ADD AREA TO CONSTANTS AND SPLIT UP CINJ JUST KEEP BUT CALC IN THE INPUT FILE
+                print("spi model predicting choked flow")
+                P_crit = self.P_tank*((2/(y+1))**(y/(y-1)))
+                self.m_dot_fuel = self.C_inj * np.sqrt( 2 * self.rho_prop * (self.P_tank - P_crit)  )
 
-        #print(self.m_dot_fuel,self.C_inj,self.P_tank,P_downstream,self.rho_prop )
+        print(self.m_dot_fuel, a, self.m_dot_fuel/(0.00007471705*self.rho_prop))
         
         #update mass using consv of mass
         self.m_fuel -= self.m_dot_fuel * self.TIMESTEP
