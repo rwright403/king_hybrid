@@ -86,7 +86,6 @@ m_ox = 4.48 #kg
 #NOTE: GUESSING Cd
 Cd_1 = 0.65
 A_inj_1 = 0.00007471705 #m^2
-C_inj_1 =  Cd_1*A_inj_1
 V_tank = 6.4e-3 # - from report: "5.8L of nos in a 6.4L tank"
 P_tank = 5.171e6 #Pa
 P_atm = P_atm 
@@ -129,7 +128,6 @@ ID_PROPTANK = 0.0254*5 #m
 V_tank_2 = 2.16e-3 #m^3
 Cd_2 = 0.62
 A_inj_2 = 0.0000136284 #m^2
-C_inj_2 = Cd_2*A_inj_2 #m^2
 T_amb = T_amb
 TIMESTEP = timestep
 

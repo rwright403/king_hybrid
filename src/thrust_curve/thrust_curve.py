@@ -81,7 +81,7 @@ def run_thrust_curve(inputs):
     OxTank_model_class = get_model(inputs.analysis_mode[1], 'T')
 
     if inputs.analysis_mode[1] == 1:
-        r1ox = OxTank_model_class(inputs.oxName, inputs.TIMESTEP, inputs.m_ox, inputs.C_inj_1,
+        r1ox = OxTank_model_class(inputs.oxName, inputs.TIMESTEP, inputs.m_ox, inputs.Cd_1, inputs.A_inj_1,
                 inputs.V_tank, inputs.P_tank, inputs.P_atm, inputs.all_error, inputs.inj_model)
     
     if inputs.analysis_mode[1] == 2:
@@ -139,7 +139,7 @@ def run_thrust_curve(inputs):
             print("todo: implement")
             
         if inputs.analysis_mode[2] == 3:
-            s1_fuel_tank = fuel_tank_model_class(inputs.pressurant_name, inputs.m_pressurant, inputs.fuel_name, inputs.m_fuel, inputs.P_fueltank, inputs.ID_PROPTANK, inputs.V_tank_2, inputs.C_inj_2, inputs.T_amb, inputs.TIMESTEP)
+            s1_fuel_tank = fuel_tank_model_class(inputs.pressurant_name, inputs.m_pressurant, inputs.fuel_name, inputs.m_fuel, inputs.P_fueltank, inputs.ID_PROPTANK, inputs.V_tank_2, inputs.Cd_2, inputs.A_inj_2, inputs.T_amb, inputs.TIMESTEP)
         
         ### LIQUID THRUST CURVE
         

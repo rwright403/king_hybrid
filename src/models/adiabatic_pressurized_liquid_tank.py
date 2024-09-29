@@ -42,7 +42,7 @@ def verror(T_pres,m_pres,cv_pres,P_tank_prev,v_pres_prev,Q_transfer,v_pres,R_pre
 #TODO: FINISH!!!!!!
   
 class model():
-    def __init__(self, pres_name, m_pres, fuel_name, m_fuel, P_tank, id_PROPTANK, V_tank_2, C_inj_2, T_amb, TIMESTEP):
+    def __init__(self, pres_name, m_pres, fuel_name, m_fuel, P_tank, id_PROPTANK, V_tank_2, Cd_2, A_inj_2, T_amb, TIMESTEP):
         self.pres = pres_name
         self.m_fuel = m_fuel
         self.fuel = fuel_name
@@ -57,7 +57,8 @@ class model():
         self.V_tank = V_tank_2
         self.T_amb = T_amb
 
-        self.C_inj = C_inj_2
+        self.Cd_2 = Cd_2
+        self.A_inj_2 = A_inj_2
 
         #setup!!!
         #NOTE: assuming fuel density at ambient temp!
@@ -102,11 +103,11 @@ class model():
         # Calculate speed of sound in the liquid ethanol
         a = (bulk_modulus / self.rho_prop) ** 0.5
         
-        self.m_dot_fuel = self.C_inj * np.sqrt( 2* self.rho_prop* (self.P_tank-P_downstream) )
-        if a <= (self.m_dot_fuel/(0.00007471705*self.rho_prop)): #NOTE: NEED TO ADD AREA TO CONSTANTS AND SPLIT UP CINJ JUST KEEP BUT CALC IN THE INPUT FILE
+        self.m_dot_fuel = self.Cd_2 * self.A_inj_2 * np.sqrt( 2 * self.rho_prop * (self.P_tank-P_downstream) )
+        if a <= (self.m_dot_fuel/(self.A_inj_2*self.rho_prop)): #NOTE: NEED TO ADD AREA TO CONSTANTS AND SPLIT UP CINJ JUST KEEP BUT CALC IN THE INPUT FILE
                 print("spi model predicting choked flow")
                 P_crit = self.P_tank*((2/(y+1))**(y/(y-1)))
-                self.m_dot_fuel = self.C_inj * np.sqrt( 2 * self.rho_prop * (self.P_tank - P_crit)  )
+                self.m_dot_fuel = self.Cd_2 * self.A_inj_2 * np.sqrt( 2 * self.rho_prop * (self.P_tank - P_crit)  )
 
         #print(self.m_dot_fuel, a, self.m_dot_fuel/(0.00007471705*self.rho_prop))
         

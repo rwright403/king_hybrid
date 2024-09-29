@@ -100,11 +100,12 @@ def thermo_span_wagner(rho, T, param):
     return out
 
 class model():
-    def __init__(self, oxidizer, timestep, m_ox, C_inj_2, V_tank, P_tank, P_cc, all_error, inj_model):
+    def __init__(self, oxidizer, timestep, m_ox, Cd_1, A_inj_1, V_tank, P_tank, P_cc, all_error, inj_model):
         self.oxidizer = oxidizer
         self.timestep = timestep
         self.m_ox =  m_ox
-        self.C_inj = C_inj_2
+        self.Cd_1 = Cd_1
+        self.A_inj_1 = A_inj_1
         self.m_dot_ox = 0
         self.V_tank = V_tank
         self.P_tank = P_tank
@@ -141,7 +142,7 @@ class model():
         R_UNIV = 8.314 #J/mol
         self.R = R_UNIV / CP.PropsSI('M', 'T', 300, 'P', 101325, 'N2O') #kg/mol - propsi requires dummy inputs (T, P)
 
-        print("\n------------\nsummary of bens ox tank inputs: \nOxidizer: ", oxidizer ,"\nTimestep: ", timestep,"\nm_ox: ", m_ox ,"(kg)\nC_inj: ", C_inj_2, "(m^2)\nV_tank: ", V_tank, "(m^3)\nP_tank: ", P_tank, "(Pa)\nP_cc: ", P_cc, "(Pa)\n------------\n\n\n")
+        print("\n------------\nsummary of bens ox tank inputs: \nOxidizer: ", oxidizer ,"\nTimestep: ", timestep,"\nm_ox: ", m_ox ,"(kg)\nCd: ", Cd_1, "\n", A_inj_1, "(m^2)\nV_tank: ", V_tank, "(m^3)\nP_tank: ", P_tank, "(Pa)\nP_cc: ", P_cc, "(Pa)\n------------\n\n\n")
 
 
 
@@ -265,13 +266,13 @@ class model():
         ### SPI MODEL ###
         if(self.inj_model == 1):
             rho_exit_spi = CP.PropsSI('D', 'H', h_tank_exit, 'P', self.P_cc, 'N2O')
-            m_dot_spi = self.C_inj * np.sqrt( 2 * rho_exit_spi * (self.P_tank - self.P_cc)  )
+            m_dot_spi = self.Cd_1 *self.A_inj_1 * np.sqrt( 2 * rho_exit_spi * (self.P_tank - self.P_cc)  )
 
             #check if choked flow in injector!
             if a <= (m_dot_spi/(0.00007471705*self.rho_exit)): #NOTE: NEED TO ADD AREA TO CONSTANTS AND SPLIT UP CINJ JUST KEEP BUT CALC IN THE INPUT FILE
                 print("spi model predicting choked flow")
                 P_crit = self.P_tank*((2/(y+1))**(y/(y-1)))
-                m_dot_spi = self.C_inj * np.sqrt( 2 * rho_vap_exit * (self.P_tank - P_crit)  ) #if choked flow, m_dot_hem = critical mass flow
+                m_dot_spi = self.Cd_1 * self.A_inj_1 * np.sqrt( 2 * rho_vap_exit * (self.P_tank - P_crit)  ) #if choked flow, m_dot_hem = critical mass flow
 
             self.m_dot_ox = m_dot_spi
             print(m_dot_spi)
@@ -288,16 +289,12 @@ class model():
 
                 rho_exit_hem = CP.PropsSI('D', 'S', s_inj, 'P', self.P_cc, 'N2O')
 
-                """
-                phase = CP.PhaseSI('S', s_inj, 'P', self.P_cc, 'N2O')
-                print(f"Phase of N2O: {phase}")
-                """
-                m_dot_hem = self.C_inj * rho_exit_hem * np.sqrt( 2 * (h_tank_exit -  h_inj_exit) )
-                #print(m_dot_hem, rho_exit_hem*a*0.00007471705)
+
+                m_dot_hem = self.Cd_1 * self.A_inj_1 * rho_exit_hem * np.sqrt( 2 * (h_tank_exit -  h_inj_exit) )
                 
                 #check if choked flow in injector!
-                if a <= (m_dot_hem/(0.00007471705*rho_exit_hem)): #NOTE: NEED TO ADD AREA TO CONSTANTS AND SPLIT UP CINJ JUST KEEP BUT CALC IN THE INPUT FILE
-                    m_dot_hem = rho_exit_hem*a*0.00007471705 #if choked flow, m_dot_hem = critical mass flow
+                if a <= (m_dot_hem/(self.A_inj_1*rho_exit_hem)): #NOTE: NEED TO ADD AREA TO CONSTANTS AND SPLIT UP CINJ JUST KEEP BUT CALC IN THE INPUT FILE
+                    m_dot_hem = rho_exit_hem*a*self.A_inj_1 #if choked flow, m_dot_hem = critical mass flow
                     #print("hem flowrate is choked")
 
                 print(a, CP.PropsSI('SPEED_OF_SOUND', 'T', self.T_tank, 'P', P_cc, 'N2O'))
