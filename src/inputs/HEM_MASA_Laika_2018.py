@@ -10,7 +10,7 @@
 analysis_mode = [2,1,3]
 
 timestep = 0.05 #s
-sim_time = 2 #s (time engine will be simulated over)
+sim_time = 4 #s (time engine will be simulated over)
 #NOTE: if this is too big and you are simulating over a range the script will break
 #is it really a leading edge simulation software if the ux is poor?
 
@@ -84,7 +84,9 @@ oxName = 'N2O'
 timestep = timestep 
 m_ox = 4.48 #kg 
 #NOTE: GUESSING Cd
-C_inj_1 =  0.35 * 0.00007471705 #1* 0.00001735222#(num_orifices * Cd * orifice_diam) Note: guessing Cd of 0.6, NOTE: when it doesnt work this is why :)
+Cd_1 = 0.65
+A_inj_1 = 0.00007471705 #m^2
+C_inj_1 =  Cd_1*A_inj_1
 V_tank = 6.4e-3 # - from report: "5.8L of nos in a 6.4L tank"
 P_tank = 5.171e6 #Pa
 P_atm = P_atm 
@@ -94,7 +96,7 @@ all_error = 0.01
 # 1 --> SPI 
 # 2 --> HEM
 # 3 --> Dyer
-inj_model = 1
+inj_model = 2
 
 
 """awful liquid"""
@@ -125,7 +127,9 @@ m_fuel = 1.12 #kg
 P_fueltank = 4.82633e6 #Pa
 ID_PROPTANK = 0.0254*5 #m 
 V_tank_2 = 2.16e-3 #m^3
-C_inj_2 = 0.6*0.0000136284 #m^2
+Cd_2 = 0.62
+A_inj_2 = 0.0000136284 #m^2
+C_inj_2 = Cd_2*A_inj_2 #m^2
 T_amb = T_amb
 TIMESTEP = timestep
 
