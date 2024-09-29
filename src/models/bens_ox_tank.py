@@ -269,7 +269,7 @@ class model():
             m_dot_spi = self.Cd_1 *self.A_inj_1 * np.sqrt( 2 * rho_exit_spi * (self.P_tank - self.P_cc)  )
 
             #check if choked flow in injector!
-            if a <= (m_dot_spi/(0.00007471705*self.rho_exit)): #NOTE: NEED TO ADD AREA TO CONSTANTS AND SPLIT UP CINJ JUST KEEP BUT CALC IN THE INPUT FILE
+            if a <= (m_dot_spi/(self.A_inj_1*self.rho_exit)): #NOTE: NEED TO ADD AREA TO CONSTANTS AND SPLIT UP CINJ JUST KEEP BUT CALC IN THE INPUT FILE
                 print("spi model predicting choked flow")
                 P_crit = self.P_tank*((2/(y+1))**(y/(y-1)))
                 m_dot_spi = self.Cd_1 * self.A_inj_1 * np.sqrt( 2 * rho_vap_exit * (self.P_tank - P_crit)  ) #if choked flow, m_dot_hem = critical mass flow
@@ -321,13 +321,10 @@ class model():
             Cv = CP.PropsSI('Cvmass', 'T', self.T_tank, 'P', self.P_cc, 'N2O')
 
             y = Cp/Cv
-            """
-            phase = CP.PhaseSI('S', s_inj, 'P', self.P_cc, 'N2O')
-            print(f"Phase of N2O: {phase}")
-            """
+
             #check if choked!
             a = np.sqrt(y*self.R*self.T_tank)
-            m_dot_hem = self.C_inj * rho_exit_hem * np.sqrt( 2 * (h_tank_exit -  rho_exit_hem) )
+            m_dot_hem = self.Cd_1 * self.A_inj_1 * rho_exit_hem * np.sqrt( 2 * (h_tank_exit -  rho_exit_hem) )
             #check if not choked
             if a <= (m_dot_hem/(0.00007471705*rho_exit_hem)): #NOTE: NEED TO ADD AREA TO CONSTANTS AND SPLIT UP CINJ JUST KEEP BUT CALC IN THE INPUT FILE
                 m_dot_hem = 1.4
