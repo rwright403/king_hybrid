@@ -221,9 +221,11 @@ class model():
             #assume only liquid draining from tank #NOTE: challenge this?
             self.rho_exit = self.rho_liq
 
+            """
             if(self.inj_model == 1):
                 h_tank_exit = h_liq
                 #SPI Model --> single phase so using liquid enthalpy
+            """
 
             
 
@@ -255,13 +257,15 @@ class model():
 
         y = Cp/Cv
 
+        ###careful here
         a = np.sqrt(y*self.R*self.T_tank)
 
         ### Use Chosen Injector Model:
 
         ### SPI MODEL ###
         if(self.inj_model == 1):
-            m_dot_spi = self.C_inj * np.sqrt( 2 * rho_vap_exit * (self.P_tank - self.P_cc)  )
+            rho_exit_spi = CP.PropsSI('D', 'H', h_tank_exit, 'P', self.P_cc, 'N2O')
+            m_dot_spi = self.C_inj * np.sqrt( 2 * rho_exit_spi * (self.P_tank - self.P_cc)  )
 
             #check if choked flow in injector!
             if a <= (m_dot_spi/(0.00007471705*self.rho_exit)): #NOTE: NEED TO ADD AREA TO CONSTANTS AND SPLIT UP CINJ JUST KEEP BUT CALC IN THE INPUT FILE
@@ -282,7 +286,6 @@ class model():
 
                 h_inj_exit = CP.PropsSI('H', 'S', s_inj, 'P', self.P_cc, 'N2O')
 
-                #NOTE: NOT RHO VAP EXIT FOR HEM
                 rho_exit_hem = CP.PropsSI('D', 'S', s_inj, 'P', self.P_cc, 'N2O')
 
                 """
@@ -297,6 +300,7 @@ class model():
                     m_dot_hem = rho_exit_hem*a*0.00007471705 #if choked flow, m_dot_hem = critical mass flow
                     #print("hem flowrate is choked")
 
+                print(a, CP.PropsSI('SPEED_OF_SOUND', 'T', self.T_tank, 'P', P_cc, 'N2O'))
                 #print(y, Cp, Cv,m_dot_hem)
                 #print((self.P_tank/P_cc) , (((y+1)/2)**(y/(y-1))), m_dot_hem)
                 self.m_dot_ox = m_dot_hem
