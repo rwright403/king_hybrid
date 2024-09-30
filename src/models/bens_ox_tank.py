@@ -100,11 +100,12 @@ def thermo_span_wagner(rho, T, param):
     return out
 
 class model():
-    def __init__(self, oxidizer, timestep, m_ox, C_inj_2, V_tank, P_tank, P_cc, all_error, inj_model):
+    def __init__(self, oxidizer, timestep, m_ox, Cd_1, A_inj_1, V_tank, P_tank, P_cc, all_error, inj_model):
         self.oxidizer = oxidizer
         self.timestep = timestep
         self.m_ox =  m_ox
-        self.C_inj = C_inj_2
+        self.Cd_1 = Cd_1
+        self.A_inj_1 = A_inj_1
         self.m_dot_ox = 0
         self.V_tank = V_tank
         self.P_tank = P_tank
@@ -140,8 +141,11 @@ class model():
 
         R_UNIV = 8.314 #J/mol
         self.R = R_UNIV / CP.PropsSI('M', 'T', 300, 'P', 101325, 'N2O') #kg/mol - propsi requires dummy inputs (T, P)
+        
+        self.y_ox = 0
+        self.kinematic_vis_ox = 0
 
-        print("\n------------\nsummary of bens ox tank inputs: \nOxidizer: ", oxidizer ,"\nTimestep: ", timestep,"\nm_ox: ", m_ox ,"(kg)\nC_inj: ", C_inj_2, "(m^2)\nV_tank: ", V_tank, "(m^3)\nP_tank: ", P_tank, "(Pa)\nP_cc: ", P_cc, "(Pa)\n------------\n\n\n")
+        print("\n------------\nsummary of bens ox tank inputs: \nOxidizer: ", oxidizer ,"\nTimestep: ", timestep,"\nm_ox: ", m_ox ,"(kg)\nCd: ", Cd_1, "(-)\nA_inj_1: ", A_inj_1, "(m^2)\nV_tank: ", V_tank, "(m^3)\nP_tank: ", P_tank, "(Pa)\nP_cc: ", P_cc, "(Pa)\n------------\n\n\n")
 
 
 
@@ -255,52 +259,44 @@ class model():
         Cp = CP.PropsSI('Cpmass', 'T', self.T_tank, 'P', self.P_cc, 'N2O')
         Cv = CP.PropsSI('Cvmass', 'T', self.T_tank, 'P', self.P_cc, 'N2O')
 
-        y = Cp/Cv
+        self.y_ox = Cp/Cv
 
         ###careful here
-        a = np.sqrt(y*self.R*self.T_tank)
+        a = CP.PropsSI('SPEED_OF_SOUND', 'T', self.T_tank, 'P', P_cc, 'N2O') #np.sqrt(y*self.R*self.T_tank)
 
         ### Use Chosen Injector Model:
 
         ### SPI MODEL ###
         if(self.inj_model == 1):
             rho_exit_spi = CP.PropsSI('D', 'H', h_tank_exit, 'P', self.P_cc, 'N2O')
-            m_dot_spi = self.C_inj * np.sqrt( 2 * rho_exit_spi * (self.P_tank - self.P_cc)  )
+            m_dot_spi = self.Cd_1 *self.A_inj_1 * np.sqrt( 2 * rho_exit_spi * (self.P_tank - self.P_cc)  )
 
             #check if choked flow in injector!
-            if a <= (m_dot_spi/(0.00007471705*self.rho_exit)): #NOTE: NEED TO ADD AREA TO CONSTANTS AND SPLIT UP CINJ JUST KEEP BUT CALC IN THE INPUT FILE
-                print("spi model predicting choked flow")
+            if a <= (m_dot_spi/(self.A_inj_1*self.rho_exit)): 
+                #print("spi model predicting choked flow")
                 P_crit = self.P_tank*((2/(y+1))**(y/(y-1)))
-                m_dot_spi = self.C_inj * np.sqrt( 2 * rho_vap_exit * (self.P_tank - P_crit)  ) #if choked flow, m_dot_hem = critical mass flow
+                m_dot_spi = self.Cd_1 * self.A_inj_1 * np.sqrt( 2 * rho_vap_exit * (self.P_tank - P_crit)  ) #if choked flow, m_dot_hem = critical mass flow
 
             self.m_dot_ox = m_dot_spi
-            print(m_dot_spi)
+            #print(m_dot_spi)
 
-            #NOTE: also not checking if choking!!!!
 
         ### HEM MODEL ###
         elif(self.inj_model == 2):
             if self.x_tank < 1:
                 #assuming isentropic, upstream entropy equals downstream entropy
                 s_inj = CP.PropsSI('S', 'H', h_tank_exit, 'P', self.P_tank, 'N2O')
-
                 h_inj_exit = CP.PropsSI('H', 'S', s_inj, 'P', self.P_cc, 'N2O')
-
                 rho_exit_hem = CP.PropsSI('D', 'S', s_inj, 'P', self.P_cc, 'N2O')
 
-                """
-                phase = CP.PhaseSI('S', s_inj, 'P', self.P_cc, 'N2O')
-                print(f"Phase of N2O: {phase}")
-                """
-                m_dot_hem = self.C_inj * rho_exit_hem * np.sqrt( 2 * (h_tank_exit -  h_inj_exit) )
-                #print(m_dot_hem, rho_exit_hem*a*0.00007471705)
+                m_dot_hem = self.Cd_1 * self.A_inj_1 * rho_exit_hem * np.sqrt( 2 * (h_tank_exit -  h_inj_exit) )
                 
                 #check if choked flow in injector!
-                if a <= (m_dot_hem/(0.00007471705*rho_exit_hem)): #NOTE: NEED TO ADD AREA TO CONSTANTS AND SPLIT UP CINJ JUST KEEP BUT CALC IN THE INPUT FILE
-                    m_dot_hem = rho_exit_hem*a*0.00007471705 #if choked flow, m_dot_hem = critical mass flow
+                if a <= (m_dot_hem/(self.A_inj_1*rho_exit_hem)): #NOTE: NEED TO ADD AREA TO CONSTANTS AND SPLIT UP CINJ JUST KEEP BUT CALC IN THE INPUT FILE
+                    m_dot_hem = rho_exit_hem*a*self.A_inj_1 #if choked flow, m_dot_hem = critical mass flow
                     #print("hem flowrate is choked")
 
-                print(a, CP.PropsSI('SPEED_OF_SOUND', 'T', self.T_tank, 'P', P_cc, 'N2O'))
+                #print(a, CP.PropsSI('SPEED_OF_SOUND', 'T', self.T_tank, 'P', P_cc, 'N2O'))
                 #print(y, Cp, Cv,m_dot_hem)
                 #print((self.P_tank/P_cc) , (((y+1)/2)**(y/(y-1))), m_dot_hem)
                 self.m_dot_ox = m_dot_hem
@@ -308,33 +304,35 @@ class model():
                 print("no longer two phase")
 
         ### DYER MODEL ###
-        #BUG: UPDATE WITH CORRECT HEM MODEL
         elif(self.inj_model == 3):
-            m_dot_spi = self.C_inj * np.sqrt( 2 * self.rho_exit * (self.P_tank - self.P_cc)  )
+            
+            ### SPI MODEL ###
+            rho_exit_spi = CP.PropsSI('D', 'H', h_tank_exit, 'P', self.P_cc, 'N2O')
+            m_dot_spi = self.Cd_1 *self.A_inj_1 * np.sqrt( 2 * rho_exit_spi * (self.P_tank - self.P_cc)  )
 
-            s_inj = CP.PropsSI('S', 'H', h_tank_exit, 'P', self.P_tank, 'N2O')
+            #check if choked flow in injector!
+            if a <= (m_dot_spi/(self.A_inj_1*self.rho_exit)): 
+                print("spi model predicting choked flow")
+                P_crit = self.P_tank*((2/(self.y_ox+1))**(self.y_ox/(self.y_ox-1)))
+                m_dot_spi = self.Cd_1 * self.A_inj_1 * np.sqrt( 2 * rho_vap_exit * (self.P_tank - P_crit)  ) #if choked flow, m_dot_hem = critical mass flow
 
-            h_vap_exit = CP.PropsSI('H', 'S', s_inj, 'P', self.P_cc, 'N2O')
+            ### HEM MODEL ###
+            if self.x_tank < 1:
+                #assuming isentropic, upstream entropy equals downstream entropy
+                s_inj = CP.PropsSI('S', 'H', h_tank_exit, 'P', self.P_tank, 'N2O')
+                h_inj_exit = CP.PropsSI('H', 'S', s_inj, 'P', self.P_cc, 'N2O')
+                rho_exit_hem = CP.PropsSI('D', 'S', s_inj, 'P', self.P_cc, 'N2O')
 
-            #NOTE: NOT RHO VAP EXIT FOR HEM
-            rho_exit_hem = CP.PropsSI('D', 'S', s_inj, 'P', self.P_cc, 'N2O')
+                m_dot_hem = self.Cd_1 * self.A_inj_1 * rho_exit_hem * np.sqrt( 2 * (h_tank_exit -  h_inj_exit) )
+                
+                #check if choked flow in injector!
+                if a <= (m_dot_hem/(self.A_inj_1*rho_exit_hem)): #NOTE: NEED TO ADD AREA TO CONSTANTS AND SPLIT UP CINJ JUST KEEP BUT CALC IN THE INPUT FILE
+                    m_dot_hem = rho_exit_hem*a*self.A_inj_1 #if choked flow, m_dot_hem = critical mass flow
 
-            #choked flow
-            Cp = CP.PropsSI('Cpmass', 'T', self.T_tank, 'P', self.P_cc, 'N2O')
-            Cv = CP.PropsSI('Cvmass', 'T', self.T_tank, 'P', self.P_cc, 'N2O')
-
-            y = Cp/Cv
-            """
-            phase = CP.PhaseSI('S', s_inj, 'P', self.P_cc, 'N2O')
-            print(f"Phase of N2O: {phase}")
-            """
-            #check if choked!
-            a = np.sqrt(y*self.R*self.T_tank)
-            m_dot_hem = self.C_inj * rho_exit_hem * np.sqrt( 2 * (h_tank_exit -  rho_exit_hem) )
-            #check if not choked
-            if a <= (m_dot_hem/(0.00007471705*rho_exit_hem)): #NOTE: NEED TO ADD AREA TO CONSTANTS AND SPLIT UP CINJ JUST KEEP BUT CALC IN THE INPUT FILE
-                m_dot_hem = 1.4
-
+                self.m_dot_ox = m_dot_hem
+            else:
+                print("no longer two phase")
+            
             #dyer solve k to verify using correct model
             dyer_k = np.sqrt( (self.P_tank - self.P_cc) / ( CP.PropsSI('P', 'Q', 1, 'T', self.T_tank, 'N2O') - self.P_cc) ) #call coolprop to get vapor pressure
             
