@@ -95,7 +95,7 @@ all_error = 0.01
 # 1 --> SPI 
 # 2 --> HEM
 # 3 --> Dyer
-inj_model = 1
+inj_model = 3
 
 
 """awful liquid"""
