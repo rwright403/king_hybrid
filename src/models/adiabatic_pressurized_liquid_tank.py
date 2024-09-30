@@ -42,7 +42,7 @@ def verror(T_pres,m_pres,cv_pres,P_tank_prev,v_pres_prev,Q_transfer,v_pres,R_pre
 #TODO: FINISH!!!!!!
   
 class model():
-    def __init__(self, pres_name, m_pres, fuel_name, m_fuel, P_tank, id_PROPTANK, V_tank_2, C_inj_2, T_amb, TIMESTEP):
+    def __init__(self, pres_name, m_pres, fuel_name, m_fuel, P_tank, id_PROPTANK, V_tank_2, Cd_2, A_inj_2, T_amb, TIMESTEP):
         self.pres = pres_name
         self.m_fuel = m_fuel
         self.fuel = fuel_name
@@ -57,7 +57,8 @@ class model():
         self.V_tank = V_tank_2
         self.T_amb = T_amb
 
-        self.C_inj = C_inj_2
+        self.Cd_2 = Cd_2
+        self.A_inj_2 = A_inj_2
 
         #setup!!!
         #NOTE: assuming fuel density at ambient temp!
@@ -83,8 +84,12 @@ class model():
         
         self.v_tank_err = 0.000005 #NOTE: DOUBLE CHECK MAGNITUDE IF SECANT METHOD WITH VERROR FAILS WITH A SECANT ERROR
 
+        #saving for parsing:
+        self.kinematic_visc_fuel = 0
+        self.y_fuel = 0
+
         #pres_name, m_pres, fuel_name, m_fuel, P_tank, id_PROPTANK, TIMESTEP):
-        print("\n------------\nsummary of adiabatic_fuel_tank inputs: \nPressurant: ", pres_name ,"\nm_pres: ", m_pres ,"(kg)\nFuel: ", fuel_name,"\nm_fuel: ", m_fuel ,"(kg)\nP_tank: ", P_tank, "(Pa)\nid_PROPTANK: ", id_PROPTANK, "(m)\nTimestep: ", TIMESTEP,"\n------------\n\n\n")
+        print("\n------------\nsummary of adiabatic_fuel_tank inputs: \nPressurant: ", pres_name ,"\nm_pres: ", m_pres ,"(kg)\nFuel: ", fuel_name,"\nm_fuel: ", m_fuel ,"(kg)\nP_tank: ", P_tank, "(Pa)\nid_PROPTANK: ", id_PROPTANK, "(m)\nV_tank_2: ", V_tank_2, "(m^3)\nCd_2: ", Cd_2,"(-)\nA_inj_2: ", A_inj_2, "(m^2)\nTimestep: ", TIMESTEP,"\n------------\n\n\n")
 
 
     def inst(self, P_downstream):
@@ -102,11 +107,11 @@ class model():
         # Calculate speed of sound in the liquid ethanol
         a = (bulk_modulus / self.rho_prop) ** 0.5
         
-        self.m_dot_fuel = self.C_inj * np.sqrt( 2* self.rho_prop* (self.P_tank-P_downstream) )
-        if a <= (self.m_dot_fuel/(0.00007471705*self.rho_prop)): #NOTE: NEED TO ADD AREA TO CONSTANTS AND SPLIT UP CINJ JUST KEEP BUT CALC IN THE INPUT FILE
+        self.m_dot_fuel = self.Cd_2 * self.A_inj_2 * np.sqrt( 2 * self.rho_prop * (self.P_tank-P_downstream) )
+        if a <= (self.m_dot_fuel/(self.A_inj_2*self.rho_prop)): #NOTE: NEED TO ADD AREA TO CONSTANTS AND SPLIT UP CINJ JUST KEEP BUT CALC IN THE INPUT FILE
                 print("spi model predicting choked flow")
                 P_crit = self.P_tank*((2/(y+1))**(y/(y-1)))
-                self.m_dot_fuel = self.C_inj * np.sqrt( 2 * self.rho_prop * (self.P_tank - P_crit)  )
+                self.m_dot_fuel = self.Cd_2 * self.A_inj_2 * np.sqrt( 2 * self.rho_prop * (self.P_tank - P_crit)  )
 
         #print(self.m_dot_fuel, a, self.m_dot_fuel/(0.00007471705*self.rho_prop))
         
@@ -178,6 +183,14 @@ class model():
 
         #print("Ptank is still wrong:", self.P_tank, self.T_pres, self.m_pres, self.cv_pres, v_pres_prev, self.v_pres, self.R_pres)
         #print(self.P_tank, self.m_fuel, self.v_pres, (self.V_tank - V_fuel), "m^3")
+
+        #solve for parsing
+        mu = CP.PropsSI('V', 'T', self.T_prop, 'P', self.P_tank, self.fuel)  # dynamic viscosity in Pa·s
+        self.kinematic_visc_fuel = mu / self.rho_prop
+
+        Cp = CP.PropsSI('Cpmass', 'T', self.T_prop, 'P', P_downstream, self.fuel)
+        Cv = CP.PropsSI('Cvmass', 'T', self.T_prop, 'P', P_downstream, self.fuel)
+        self.y_fuel = Cp / Cv
 
 
         
