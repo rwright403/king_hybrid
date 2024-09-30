@@ -152,13 +152,37 @@ def run_thrust_curve(inputs):
         pressure_data = [p_cc_arr, p_ox_tank_arr, p_fuel_tank_arr]
         P_cc = inputs.P_atm
 
-        #SAVE VALUES TO PRINT OUTPUTS FOR HEAT TRANSFER HAND CALC:
+        ### Setup For Parsing ###
+
+        ## Heat Transfer Parsing
+
         y_peak = 0
         cp_peak = 0
         P_cc_peak = 0
         C_star_peak = 0
         T_flame_peak = 0
         viscosity_peak = 0
+
+        ## Injector Design Sheet Parsing
+
+        # Oxidizer Inj
+        smallest_ox_inj_pressure_drop = r1ox.P_tank
+        m_dot_ox_min_dp = 0
+        rho_ox_min_dp = 0
+        kinematic_visc_ox_min_dp = 0
+        y_ox_min_dp = 0
+        t_ox_min_dp = 0
+        #will also print: inputs.Cd_1
+
+        # Fuel Inj
+        smallest_fuel_inj_pressure_drop = s1_fuel_tank.P_tank
+        m_dot_fuel_min_dp = 0
+        rho_fuel_min_dp = 0
+        kinematic_visc_fuel_min_dp = 0
+        y_fuel_min_dp = 0
+        t_fuel_min_dp = 0
+        #will also print: inputs.Cd_2
+
 
         r1ox.inst(P_cc)
         s1_fuel_tank.inst(P_cc)
@@ -180,6 +204,7 @@ def run_thrust_curve(inputs):
             m_fuel_burned += s1_fuel_tank.m_dot_fuel*r1ox.timestep
             m_ox_burned += r1ox.m_dot_ox*r1ox.timestep
 
+            ### Parsing for detail design sheets ###NOTE: not super general if using other models, if it breaks in future read this and comment v out
             if (r1cc.instThrust > r1cc.prev_thrust):
 
                 
@@ -194,6 +219,30 @@ def run_thrust_curve(inputs):
                 T_flame_peak = arr2[1]
                 viscosity_peak = arr3[1]
                 R_peak = r1cc.R
+
+            inst_ox_inj_pressure_drop = r1ox.P_tank - r1cc.P_cc
+            if (inst_ox_inj_pressure_drop < smallest_ox_inj_pressure_drop):
+
+                smallest_ox_inj_pressure_drop = inst_ox_inj_pressure_drop
+                
+                m_dot_ox_min_dp = r1ox.m_dot_ox
+                rho_ox_min_dp = r1ox.kinematic_vis_ox
+                kinematic_visc_ox_min_dp = 0
+                y_ox_min_dp = r1ox.y_ox
+                #will also print: inputs.Cd_1
+
+
+
+            inst_fuel_inj_pressure_drop = s1_fuel_tank.P_tank - r1cc.P_cc
+            if (inst_fuel_inj_pressure_drop < smallest_fuel_inj_pressure_drop):
+
+                smallest_fuel_inj_pressure_drop = inst_fuel_inj_pressure_drop
+
+                m_dot_fuel_min_dp = s1_fuel_tank.m_dot_fuel
+                rho_fuel_min_dp = s1_fuel_tank.rho_prop
+                kinematic_visc_fuel_min_dp = s1_fuel_tank.kinematic_visc_fuel
+                y_fuel_min_dp = s1_fuel_tank.y_fuel
+
 
 
             #RECORD DATA
@@ -241,6 +290,9 @@ def run_thrust_curve(inputs):
         plt.legend()
 
         print(f"\nThroat Properties at Peak Thrust for Heat Transfer\n------------\nRatio of specific heats: {y_peak} (-)\nSpec. Heat Const. Pres. {cp_peak} (J/(kg K))\nThroat Pressure {P_cc_peak} (Pa)\nCharacteristic Velocity {C_star_peak} (m/s)\nThroat Flame Temp {T_flame_peak} (K)\nViscosity {viscosity_peak} (Pa s)\nGas Constant {R_peak} (J/(kg K))")
+
+        print(f"\nMinimum Pressure Drop Fuel Inj Properties for Sizing\n------------\nTotal Fuel Mass Flow rate of all elements: {m_dot_fuel_min_dp} (kg/s)\nFuel Density at Orifice Outlet {rho_fuel_min_dp} (kg/m^3)\nFuel Kinematic Viscosity {kinematic_visc_fuel_min_dp} (Pa s)\nFuel Ratio of specific heats: {y_fuel_min_dp} (-)\nFuel Orifice Discharge Coeff: {inputs.Cd_2} (-)\nAt t = {r1ox.t} (s)")
+        print(f"\nMinimum Pressure Drop Ox Inj Properties for Sizing\n------------\nTotal Ox Mass Flow rate of all elements: {m_dot_ox_min_dp} (kg/s)\nOx Density at Orifice Outlet {rho_ox_min_dp} (kg/m^3)\nOx Kinematic Viscosity {kinematic_visc_ox_min_dp} (Pa s)\nOx Ratio of specific heats: {y_ox_min_dp} (-)\nOx Orifice Discharge Coeff: {inputs.Cd_1} (-)\nAt t = {r1ox.t} (s)")
 
         plt.show()
 

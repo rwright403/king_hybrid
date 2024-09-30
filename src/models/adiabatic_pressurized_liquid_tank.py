@@ -84,8 +84,12 @@ class model():
         
         self.v_tank_err = 0.000005 #NOTE: DOUBLE CHECK MAGNITUDE IF SECANT METHOD WITH VERROR FAILS WITH A SECANT ERROR
 
+        #saving for parsing:
+        self.kinematic_visc_fuel = 0
+        self.y_fuel = 0
+
         #pres_name, m_pres, fuel_name, m_fuel, P_tank, id_PROPTANK, TIMESTEP):
-        print("\n------------\nsummary of adiabatic_fuel_tank inputs: \nPressurant: ", pres_name ,"\nm_pres: ", m_pres ,"(kg)\nFuel: ", fuel_name,"\nm_fuel: ", m_fuel ,"(kg)\nP_tank: ", P_tank, "(Pa)\nid_PROPTANK: ", id_PROPTANK, "(m)\nTimestep: ", TIMESTEP,"\n------------\n\n\n")
+        print("\n------------\nsummary of adiabatic_fuel_tank inputs: \nPressurant: ", pres_name ,"\nm_pres: ", m_pres ,"(kg)\nFuel: ", fuel_name,"\nm_fuel: ", m_fuel ,"(kg)\nP_tank: ", P_tank, "(Pa)\nid_PROPTANK: ", id_PROPTANK, "(m)\nV_tank_2: ", V_tank_2, "(m^3)\nCd_2: ", Cd_2,"(-)\nA_inj_2: ", A_inj_2, "(m^2)\nTimestep: ", TIMESTEP,"\n------------\n\n\n")
 
 
     def inst(self, P_downstream):
@@ -179,6 +183,14 @@ class model():
 
         #print("Ptank is still wrong:", self.P_tank, self.T_pres, self.m_pres, self.cv_pres, v_pres_prev, self.v_pres, self.R_pres)
         #print(self.P_tank, self.m_fuel, self.v_pres, (self.V_tank - V_fuel), "m^3")
+
+        #solve for parsing
+        mu = CP.PropsSI('V', 'T', self.T_prop, 'P', self.P_tank, self.fuel)  # dynamic viscosity in Pa·s
+        self.kinematic_visc_fuel = mu / self.rho_prop
+
+        Cp = CP.PropsSI('Cpmass', 'T', self.T_prop, 'P', P_downstream, self.fuel)
+        Cv = CP.PropsSI('Cvmass', 'T', self.T_prop, 'P', P_downstream, self.fuel)
+        self.y_fuel = Cp / Cv
 
 
         
