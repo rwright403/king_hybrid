@@ -172,6 +172,8 @@ def run_thrust_curve(inputs):
         kinematic_visc_ox_min_dp = 0
         y_ox_min_dp = 0
         t_ox_min_dp = 0
+        p_ox_up_min_dp = 0
+        p_ox_down_min_dp = 0
         #will also print: inputs.Cd_1
 
         # Fuel Inj
@@ -181,6 +183,8 @@ def run_thrust_curve(inputs):
         kinematic_visc_fuel_min_dp = 0
         y_fuel_min_dp = 0
         t_fuel_min_dp = 0
+        p_fuel_up_min_dp = 0
+        p_fuel_down_min_dp = 0
         #will also print: inputs.Cd_2
 
 
@@ -224,12 +228,16 @@ def run_thrust_curve(inputs):
             if (inst_ox_inj_pressure_drop < smallest_ox_inj_pressure_drop):
 
                 smallest_ox_inj_pressure_drop = inst_ox_inj_pressure_drop
+
+                p_ox_up_min_dp = r1ox.P_tank
+                p_ox_down_min_dp = r1cc.P_cc
                 
                 m_dot_ox_min_dp = r1ox.m_dot_ox
                 rho_ox_min_dp = r1ox.kinematic_vis_ox
                 kinematic_visc_ox_min_dp = 0
                 y_ox_min_dp = r1ox.y_ox
-                #will also print: inputs.Cd_1
+                
+                t_ox_min_dp = r1ox.t
 
 
 
@@ -238,10 +246,15 @@ def run_thrust_curve(inputs):
 
                 smallest_fuel_inj_pressure_drop = inst_fuel_inj_pressure_drop
 
+                p_fuel_up_min_dp = s1_fuel_tank.P_tank
+                p_fuel_down_min_dp = r1cc.P_cc
+
                 m_dot_fuel_min_dp = s1_fuel_tank.m_dot_fuel
                 rho_fuel_min_dp = s1_fuel_tank.rho_prop
                 kinematic_visc_fuel_min_dp = s1_fuel_tank.kinematic_visc_fuel
                 y_fuel_min_dp = s1_fuel_tank.y_fuel
+
+                t_fuel_min_dp = r1ox.t
 
 
 
@@ -291,8 +304,8 @@ def run_thrust_curve(inputs):
 
         print(f"\nThroat Properties at Peak Thrust for Heat Transfer\n------------\nRatio of specific heats: {y_peak} (-)\nSpec. Heat Const. Pres. {cp_peak} (J/(kg K))\nThroat Pressure {P_cc_peak} (Pa)\nCharacteristic Velocity {C_star_peak} (m/s)\nThroat Flame Temp {T_flame_peak} (K)\nViscosity {viscosity_peak} (Pa s)\nGas Constant {R_peak} (J/(kg K))")
 
-        print(f"\nMinimum Pressure Drop Fuel Inj Properties for Sizing\n------------\nTotal Fuel Mass Flow rate of all elements: {m_dot_fuel_min_dp} (kg/s)\nFuel Density at Orifice Outlet {rho_fuel_min_dp} (kg/m^3)\nFuel Kinematic Viscosity {kinematic_visc_fuel_min_dp} (Pa s)\nFuel Ratio of specific heats: {y_fuel_min_dp} (-)\nFuel Orifice Discharge Coeff: {inputs.Cd_2} (-)\nAt t = {r1ox.t} (s)")
-        print(f"\nMinimum Pressure Drop Ox Inj Properties for Sizing\n------------\nTotal Ox Mass Flow rate of all elements: {m_dot_ox_min_dp} (kg/s)\nOx Density at Orifice Outlet {rho_ox_min_dp} (kg/m^3)\nOx Kinematic Viscosity {kinematic_visc_ox_min_dp} (Pa s)\nOx Ratio of specific heats: {y_ox_min_dp} (-)\nOx Orifice Discharge Coeff: {inputs.Cd_1} (-)\nAt t = {r1ox.t} (s)")
+        print(f"\nMinimum Pressure Drop Fuel Inj Properties for Sizing\n------------\nTotal Fuel Mass Flow rate of all elements: {m_dot_fuel_min_dp} (kg/s)\nUpstream Pressure at inst: {p_fuel_up_min_dp} (Pa)\nDownstream Pressure at inst: {p_fuel_down_min_dp} (Pa)\nFuel Density at Orifice Outlet {rho_fuel_min_dp} (kg/m^3)\nFuel Kinematic Viscosity {kinematic_visc_fuel_min_dp} (Pa s)\nFuel Ratio of specific heats: {y_fuel_min_dp} (-)\nFuel Orifice Discharge Coeff: {inputs.Cd_2} (-)\nAt t = {t_fuel_min_dp} (s)")
+        print(f"\nMinimum Pressure Drop Ox Inj Properties for Sizing\n------------\nTotal Ox Mass Flow rate of all elements: {m_dot_ox_min_dp} (kg/s)\nUpstream Pressure at inst: {p_ox_up_min_dp} (Pa)\nDownstream Pressure at inst: {p_ox_down_min_dp} (Pa)\nOx Density at Orifice Outlet {rho_ox_min_dp} (kg/m^3)\nOx Kinematic Viscosity {kinematic_visc_ox_min_dp} (Pa s)\nOx Ratio of specific heats: {y_ox_min_dp} (-)\nOx Orifice Discharge Coeff: {inputs.Cd_1} (-)\nAt t = {t_ox_min_dp} (s)")
 
         plt.show()
 

@@ -138,4 +138,8 @@ exp_p_cc_file_path = r'./src/inputs/liquid_validation_data/MASA_Laika/MASA_Laika
 exp_p_ox_tank_file_path = r'./src/inputs/liquid_validation_data/MASA_Laika/MASA_Laika_Ox_Tank_Pressure.csv'
 exp_p_fuel_tank_file_path = r'./src/inputs/liquid_validation_data/MASA_Laika/MASA_Laika_Fuel_Tank_Pressure.csv'
 
-### TODO: Add rocket definition
+### Sensitivity Analysis:
+test_var_name = "Cd_2"
+min_bound = 0.4
+max_bound = 0.7
+num_iterations = 5
