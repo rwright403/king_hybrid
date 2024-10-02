@@ -35,6 +35,10 @@ month = 10
 date = 24
 hour = 13
 
+### Propellant and Pressurants 
+oxidizer_name = 'N2O'
+fuel_name = 'Ethanol'
+pressurant_name = 'N2' 
 
 ### CC models ###
 
@@ -66,8 +70,8 @@ A_exit = None
 """ 2 --> adiabatic_lre_cc"""
 #
 
-oxidizer_name = 'N2O'
-fuel_name = 'Ethanol'
+oxidizer_name = oxidizer_name
+fuel_name = fuel_name
 A_throat = 0.00102028641 #m^2
 A_exit = 0.00527334324 #m^2
 P_atm = P_atm
@@ -80,7 +84,7 @@ TIMESTEP = timestep
 """ 1 --> bens_ox_tank"""
 #
 
-oxName = 'N2O'
+oxName = oxidizer_name
 timestep = timestep 
 m_ox = 4.48 #kg 
 #NOTE: GUESSING Cd
@@ -95,7 +99,7 @@ all_error = 0.01
 # 1 --> SPI 
 # 2 --> HEM
 # 3 --> Dyer
-inj_model = 3
+inj_model = 1
 
 
 """awful liquid"""
@@ -119,9 +123,9 @@ OUTLET_DIAM = None
 """simpleAdiabaticPressurizedTank"""
 #
 
-pressurant_name = 'N2' 
+pressurant_name = pressurant_name 
 m_pressurant  = 0.12 #NOTE: estimated for now based on volume they gave in report, should i change inputs to this model?
-fuel_name = 'Ethanol' #NOTE: This might not work, assuming 100% when they used 95% as well
+fuel_name = fuel_name #NOTE: This might not work, assuming 100% when they used 95% as well
 m_fuel = 1.12 #kg 
 P_fueltank = 4.82633e6 #Pa
 ID_PROPTANK = 0.0254*5 #m 
@@ -139,7 +143,7 @@ exp_p_ox_tank_file_path = r'./src/inputs/liquid_validation_data/MASA_Laika/MASA_
 exp_p_fuel_tank_file_path = r'./src/inputs/liquid_validation_data/MASA_Laika/MASA_Laika_Fuel_Tank_Pressure.csv'
 
 ### Sensitivity Analysis:
-test_var_name = "Cd_2"
-min_bound = 0.4
-max_bound = 0.7
-num_iterations = 5
+test_var_name = "P_tank"
+min_bound = 45e5
+max_bound = 60e5
+num_iterations = 4
