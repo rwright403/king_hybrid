@@ -40,7 +40,6 @@ oxidizer_name = 'N2O'
 fuel_name = 'Ethanol'
 pressurant_name = 'N2' 
 
-
 ### CC models ###
 
 """ 1 --> hybrid_cc_w_fuel_grain"""
@@ -89,7 +88,8 @@ oxName = oxidizer_name
 timestep = timestep 
 m_ox = 5.73815484158 #kg 
 #NOTE: GUESSING Cd
-C_inj_1 =  0.6 * 3.090605599220321e-5 #Note: guessing Cd of 0.6
+Cd_1 =  0.6
+A_inj_1 = 3.090605599220321e-5 #m^2
 V_tank = 0.01177057403 #m^3
 P_tank = 5.2e6 #Pa
 P_atm = P_atm 
@@ -130,7 +130,8 @@ m_fuel = 1.14763096832 #kg
 P_fueltank = 5.2e6 #Pa
 ID_PROPTANK = 0.0254*5 #m 
 V_tank_2 = 0.0037961342 #m^3 
-C_inj_2 = 0.6*6.566075013100621e-6 #m^2
+Cd_2 = 0.6
+A_inj_2 = 6.566075013100621e-6 #m^2
 T_amb = T_amb
 TIMESTEP = timestep
 
@@ -143,9 +144,9 @@ exp_p_fuel_tank_file_path = None
 
 
 ### Sensitivity Analysis:
-test_var_name = "C_inj_2"
-min_bound = 0.5*6.566075013100621e-6 #m^2
-max_bound = 0.7*6.566075013100621e-6 #m^2
+test_var_name = "Cd_2"
+min_bound = 0.5
+max_bound = 0.7
 num_iterations = 3
 
 
