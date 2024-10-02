@@ -99,21 +99,23 @@ class model():
         Cp = CP.PropsSI('Cpmass', 'T', self.T_prop, 'P', P_downstream, self.fuel)
         Cv = CP.PropsSI('Cvmass', 'T', self.T_prop, 'P', P_downstream, self.fuel)
 
-        y = Cp/Cv
+        self.y_fuel = Cp/Cv
 
         K = CP.PropsSI('ISOTHERMAL_COMPRESSIBILITY', 'T', self.T_prop, 'P', P_downstream, self.fuel)
         bulk_modulus = 1 / K  # Inverse of compressibility gives the bulk modulus
 
         # Calculate speed of sound in the liquid ethanol
         a = (bulk_modulus / self.rho_prop) ** 0.5
+
+        rho_exit = self.rho_prop
         
         self.m_dot_fuel = self.Cd_2 * self.A_inj_2 * np.sqrt( 2 * self.rho_prop * (self.P_tank-P_downstream) )
-        if a <= (self.m_dot_fuel/(self.A_inj_2*self.rho_prop)): #NOTE: NEED TO ADD AREA TO CONSTANTS AND SPLIT UP CINJ JUST KEEP BUT CALC IN THE INPUT FILE
-                print("spi model predicting choked flow")
-                P_crit = self.P_tank*((2/(y+1))**(y/(y-1)))
-                self.m_dot_fuel = self.Cd_2 * self.A_inj_2 * np.sqrt( 2 * self.rho_prop * (self.P_tank - P_crit)  )
+        if a <= (self.m_dot_fuel/(self.A_inj_2*self.rho_prop)):
+            #print("spi model predicting choked flow for FUEL!")
+            P_crit = self.P_tank*((2/(self.y_fuel+1))**(self.y_fuel/(self.y_fuel-1)))
+            rho_exit = CP.PropsSI('D', 'T', self.T_prop, 'P', P_crit, self.fuel)
 
-        #print(self.m_dot_fuel, a, self.m_dot_fuel/(0.00007471705*self.rho_prop))
+            self.m_dot_fuel = self.Cd_2 * self.A_inj_2 * np.sqrt( 2 * rho_exit* (self.P_tank - P_crit)  )
         
         #update mass using consv of mass
         self.m_fuel -= self.m_dot_fuel * self.TIMESTEP
@@ -121,14 +123,12 @@ class model():
         #update volume, assuming incompressible liquid fuel
         V_fuel = self.m_fuel/self.rho_prop
 
-        v_pres_prev = self.v_pres #TODO: DELETE IF NOT USED
-
+        v_pres_prev = self.v_pres 
 
         self.v_pres = (self.V_tank - V_fuel)/self.m_pres
 
         #solve heat transfer for conservation of energy calculation
         #https://www.nasa.gov/wp-content/uploads/2024/04/gfssp-tankpressurization-jpp2001.pdf?emrc=66201987b6c8c
-        #TODO: set this up:
 
         ###call coolprop to get fluid conductivity --> heat transfering from fuel to pressurant so... this should be conductivity of pressurant
         k_f = CP.PropsSI('L', 'T', self.T_pres, 'P', self.P_tank, self.pres)
@@ -153,7 +153,7 @@ class model():
 
         hc = self.K_H * self.C * (k_f/self.id_proptank) * (Gr/Pr)**self.n
         Q_dot = hc*self.A_proptank * (self.T_prop - self.T_pres)
-        Q_transfer= Q_dot * self.TIMESTEP
+        Q_transfer = Q_dot * self.TIMESTEP
 
 
         """
@@ -187,10 +187,6 @@ class model():
         #solve for parsing
         mu = CP.PropsSI('V', 'T', self.T_prop, 'P', self.P_tank, self.fuel)  # dynamic viscosity in Pa·s
         self.kinematic_visc_fuel = mu / self.rho_prop
-
-        Cp = CP.PropsSI('Cpmass', 'T', self.T_prop, 'P', P_downstream, self.fuel)
-        Cv = CP.PropsSI('Cvmass', 'T', self.T_prop, 'P', P_downstream, self.fuel)
-        self.y_fuel = Cp / Cv
 
 
         
