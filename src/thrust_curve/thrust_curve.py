@@ -233,8 +233,8 @@ def run_thrust_curve(inputs):
                 p_ox_down_min_dp = r1cc.P_cc
                 
                 m_dot_ox_min_dp = r1ox.m_dot_ox
-                rho_ox_min_dp = r1ox.kinematic_vis_ox
-                kinematic_visc_ox_min_dp = 0
+                rho_ox_min_dp = r1ox.rho_exit
+                kinematic_visc_ox_min_dp = r1ox.kinematic_visc_ox
                 y_ox_min_dp = r1ox.y_ox
                 
                 t_ox_min_dp = r1ox.t
