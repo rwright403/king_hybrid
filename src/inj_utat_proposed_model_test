@@ -16,132 +16,219 @@ def secant(func, x1):
     kk = 1  # Set up counter
     kk_max = 1000
 
+
     while np.abs(x2 - x1) >= (x_eps) and kk < kk_max:  # While error is too large and counter is less than max
         x3 = x2 - (F2 * (x2 - x1) / (F2 - F1)) 
         x1 = x2  # Move everything forward
         x2 = x3
         F1 = F2
-        F2 = func(x2) 
+        F2 = func(x2)
         kk = kk + 1
     x = x2
     return x
 
 def HIGHSUBCOOLEDerror(eta_crit, omega):
-    print(eta_crit)
-    function_diff = 0 - (eta_crit**2) + ((omega**2)-2*omega)*(1-eta_crit)**2 + 2*(omega**2)*np.log(eta_crit) + 2*(omega**2)*(1-eta_crit)
+    function_diff = (eta_crit**2) + ((omega**2)-2*omega)*((1-eta_crit)**2) + 2*(omega**2)*np.log(eta_crit) + 2*(omega**2)*(1-eta_crit)
     return function_diff
 
-def LOWSUBCOOLEDerror(eta_crit, eta_sat, omega):
-    function_diff = 0 - (((omega+(1/omega)-2)/(2*eta_sat))*eta_crit**2) - (2*(omega - 1)*eta_crit) + (omega*eta_sat*np.log(eta_crit/eta_sat)) + ((3/2)*omega*eta_sat) - 1
+def LOWSUBCOOLEDerror(eta_crit, eta_sat, omega_sat):
+    function_diff = (((omega_sat+(1/omega_sat)-2)/(2*eta_sat))*eta_crit**2) - (2*(omega_sat-1)*eta_crit) + (omega_sat*eta_sat*np.log(eta_crit/eta_sat)) + ((3/2)*omega_sat*eta_sat) - 1
     return function_diff
 
-#constants:
-all_err = 0.01
+def proposed_model_inst(P_1, P_2, T_1):
+    #constants and var declaration:
+    all_err = 0.01
 
-m_ox = 5.73815484158 #kg 
-#NOTE: GUESSING Cd
-Cd_ox =  0.6
-A_inj_ox = 3.090605599220321e-5 #m^2
-V_tank = 0.01177057403 #m^3
+    #NOTE: GUESSING Cd
+    Cd_ox =  0.6
+    A_inj_ox = 0.25*np.pi*((1.5e-3)**2) #m^2
 
-#start (using SI units)
-
-#evaluate upstream stagnation inlet conditions
-P_1 = 52e5 #Pa
-P_2 = 101325 #Pa
-T_1 = 275 #K
-rho_1 = m_ox/V_tank
-v_1 = 1/rho_1
-
-#solve quality:
-v_1_g = 1/CP.PropsSI('D', 'Q', 1, 'P', P_1, 'N2O')
-v_1_l = 1/CP.PropsSI('D', 'Q', 0, 'P', P_1, 'N2O')
-v_1_lg = v_1_g - v_1_l
-
-x_1 = (v_1 - v_1_g ) / v_1_lg
-
-h_1_g = CP.PropsSI('H', 'Q', 1, 'P', P_1, 'N2O')
-h_1_l = CP.PropsSI('H', 'Q', 0, 'P', P_1, 'N2O')
-h_1_lg = h_1_g - h_1_l
-
-h_1 = h_1_g + x_1 * h_1_lg
-
-c_1_l = CP.PropsSI('CVMASS', 'Q', 0, 'P', P_1, 'N2O') #BUG: ? assuming specific heat capacity at constant volume, thesis wasnt clear, might be a mistake
-
-#check saturated vs subcooled?
-#if x >= 1 #subcooled
-#solve physical parameters and void fraction
+    rho_1 = None
+    h_1 = None
+    x_1 = None
+    omega_sat = None
+    eta_sat = None
 
 
+    # Start --> solve for two phase case at inlet
 
-# Step 1, solve omega model's eta_sat:
-
-omega_sat = x_1*v_1_lg/v_1 + (c_1_l*T_1*P_1/v_1)*(v_1_lg/h_1_lg)**2
-
-eta_sat =  2 * omega_sat / ( 1 + 2* omega_sat)
-
-#Step 2, Determine inlet state:
-
-#NOTE: is this just coolprop for sat vs subcooled:
-
-#if saturated ???
-
-#solve saturation pressure (check tomorrow, this might be wrong)
-
-P_sat = P_2 / eta_sat
-
-P_crit = None 
-m_dot = None
-
-eta_crit = P_2/P_1 #initial guess
-
-# High subcooled
-if P_sat < eta_sat * P_1:
-
-    omega_high = (c_1_l*T_1*P_1/v_1)*(v_1_lg/h_1_lg)**2
-
-    #implicitly solve eta_crit
-    while np.abs(HIGHSUBCOOLEDerror(eta_crit, omega_high) ) > all_err:
-        eta_crit = secant((lambda T: HIGHSUBCOOLEDerror(T, omega_high)), eta_crit)
-
-    # Choked:
-    m_dot = A_inj_ox * np.sqrt( P_1 * (1/v_1_l) ) * eta_crit / np.sqrt(omega_high)
-
-# Low subcooled
-if P_sat > eta_sat * P_1:
-
-    #implicitly solve eta_crit
-    while np.abs(LOWSUBCOOLEDerror(eta_crit, eta_sat, omega_sat) ) > all_err:
-        eta_crit = secant((lambda T: LOWSUBCOOLEDerror(T, eta_sat, omega_sat)), eta_crit)
-
-    # Choked:
-    m_dot = (1/np.sqrt(P_1/v_1_l)) * np.sqrt( (2*(1-eta_sat)) + 2*(omega_sat*eta_sat*np.log(eta_sat/eta_crit) - (omega_sat-1)*(eta_sat-eta_crit)) ) / ( ((omega_sat*eta_sat)/(eta_crit-1)) + 1)
+    #1) --> check inlet fluid state (sat liq. or subcooled)
+    phase = CP.PropsSI('Phase', 'P', P_1, 'T', T_1, 'N2O')
+    #print("phase: ", phase)
 
 
-P_crit = eta_crit * P_1
+    if phase == 0: #subcooled fluid 
 
-# Choked:
-m_dot = A_inj_ox * np.sqrt( P_1 * (1/v_1_l) ) * eta_crit / np.sqrt(omega_high)
+        P_sat = CP.PropsSI('P', 'T', T_1, 'Q', 0, 'N2O')
+
+        v_1_g = 1/CP.PropsSI('D', 'Q', 1, 'P', P_sat, 'N2O')
+        v_1_l = 1/CP.PropsSI('D', 'Q', 0, 'P', P_sat, 'N2O')
+        v_1_lg = v_1_g - v_1_l
+
+        h_1_g = CP.PropsSI('H', 'Q', 1, 'P', P_sat, 'N2O')
+        h_1_l = CP.PropsSI('H', 'Q', 0, 'P', P_sat, 'N2O')
+        h_1_lg = h_1_g - h_1_l
+
+        c_1_l = CP.PropsSI('CVMASS', 'Q', 0, 'P', P_sat, 'N2O') #BUG: ? assuming specific heat capacity at constant volume, thesis wasnt clear, might be a mistake
+
+        rho_1 = CP.PropsSI('D', 'P', P_1, 'T', T_1, 'N2O')
+        v_1 = 1/rho_1
+        h_1 = CP.PropsSI('H', 'P', P_1, 'T', T_1, 'N2O')
+
+        omega_sat = (c_1_l*T_1*P_sat/v_1)*((v_1_lg/h_1_lg)**2)
+        eta_sat =  2 * omega_sat / ( 1 + 2*omega_sat)
 
 
-# Check if choked, if not use Dyer model
-if P_crit < P_2:
+        #Testing 
+        """
+        P_sat = CP.PropsSI('P', 'T', T_1, 'Q', 0, 'N2O')
 
-    # SPI MODEL
-    rho_2_spi = CP.PropsSI('D', 'H', h_1, 'P', P_1, 'N2O') #is isentropic valid for this model?
-    m_dot_spi = Cd_ox * A_inj_ox * np.sqrt( 2 * rho_2_spi * (P_1 - P_2)  )
+        v_1_g = 1/CP.PropsSI('D', 'Q', 1, 'T', T_1, 'N2O')
+        v_1_l = 1/CP.PropsSI('D', 'Q', 0, 'T', T_1,'N2O')
+        v_1_lg = v_1_g - v_1_l
 
-    # HEM MODEL
-    s_2 = CP.PropsSI('S', 'H', h_1, 'P', P_1, 'N2O') #assuming isentropic, upstream entropy equals downstream entropy
-    h_2_hem = CP.PropsSI('H', 'S', s_2, 'P', P_1, 'N2O')
-    rho_2_hem = CP.PropsSI('D', 'S', s_2, 'P', P_1, 'N2O')
+        h_1_g = CP.PropsSI('H', 'Q', 1, 'T', T_1, 'N2O')
+        h_1_l = CP.PropsSI('H', 'Q', 0, 'T', T_1, 'N2O')
+        h_1_lg = h_1_g - h_1_l
 
-    m_dot_hem = Cd_ox * A_inj_ox * rho_2_hem * np.sqrt( 2 * (h_1 -  h_2_hem) )
-                    
-    # Dyer MODEL 
-    dyer_k = np.sqrt( (P_1 - P_2) / ( CP.PropsSI('P', 'Q', 1, 'T', T_1, 'N2O') - P_2) ) #call coolprop to get vapor pressure          
-    m_dot = ((dyer_k/(1+dyer_k)) * m_dot_spi) + ((1/(1+dyer_k)) * m_dot_hem)
+        c_1_l = CP.PropsSI('CVMASS', 'Q', 0, 'T', T_1, 'N2O') #BUG: ? assuming specific heat capacity at constant volume, thesis wasnt clear, might be a mistake
 
-    #smoothing function?? (wouldnt be structured in separate scopes if so)
+        rho_1 = CP.PropsSI('D', 'P', P_1, 'T', T_1, 'N2O')
+        v_1 = 1/rho_1
+        h_1 = CP.PropsSI('H', 'P', P_1, 'T', T_1, 'N2O')
+        """
 
-print(m_dot)
+        omega_sat = (c_1_l*T_1*P_sat/v_1)*((v_1_lg/h_1_lg)**2)
+        eta_sat =  2 * omega_sat / ( 1 + 2*omega_sat)
+        
+
+    if phase == 5: #sat liquid #TODO: IMPLEMENT BUT I DONT THINK TEST CASE IS THIS SO FORGET IT FOR NOW
+        print("ur wrong test case inlet is sat liq vap")
+        x_1 = 0
+        #this is for a saturated liquid or two phase flow
+        #omega_sat = x_1*v_1_lg/v_1 + (c_1_l*T_1*P_1/v_1)*((v_1_lg/h_1_lg)**2)
+
+        # Choked for saturated!
+        #m_dot = Cd_ox * A_inj_ox * np.sqrt( P_1 * (1/v_1_l) ) * eta_crit / np.sqrt(omega_sat)
+
+
+    P_crit = None 
+    m_dot = None
+
+    eta_crit = P_2/P_1 #initial guess for critical pressure ratio
+    
+
+    #print(P_sat , (eta_sat * P_1))
+
+    # High subcooled
+    if P_sat < (eta_sat * P_1):
+
+        #NOTE: SHOULD P_1 BE P_SAT?
+
+        #implicitly solve eta_crit
+        while np.abs(HIGHSUBCOOLEDerror(eta_crit, omega_sat) ) > all_err:
+            eta_crit = secant((lambda T: HIGHSUBCOOLEDerror(T, omega_sat)), eta_crit)
+
+        # Choked:
+        #m_dot = Cd_ox * A_inj_ox * np.sqrt( P_1 * (1/v_1_l) ) * eta_crit / np.sqrt(omega_sat)
+        #m_dot = Cd_ox*A_inj_ox * rho_1*np.sqrt(2*P_1*(P_1-P_sat)) #is this wrong??>??
+        #this is assuming choked flow!
+        m_dot = Cd_ox*A_inj_ox * np.sqrt( 2*(1-eta_sat)*P_1*rho_1)
+
+
+
+
+        P_sat = P_1 * eta_sat
+        test_1 = Cd_ox*A_inj_ox * np.sqrt( 2*(1-eta_sat)*P_1*rho_1)
+
+        test_2 = Cd_ox*A_inj_ox * rho_1*np.sqrt(2*P_1*(P_1-P_sat))
+
+
+
+
+        print("inside here", m_dot, test_1, test_2)
+        #print(Cd_ox*A_inj_ox, rho_1*np.sqrt(2*P_1*(P_1-P_sat)), rho_1, np.sqrt(2*P_1*(P_1-P_sat)), P_1, P_sat)
+
+        print("high supercharge m_dot_ox: ", m_dot)
+        P_crit = P_sat
+        eta_crit = P_sat / P_1
+
+    # Low subcooled
+    if P_sat > (eta_sat * P_1):
+        P_sat = P_1 * eta_sat
+        print("Low Subcooled")
+
+        #implicitly solve eta_crit
+        while np.abs(LOWSUBCOOLEDerror(eta_crit, eta_sat, omega_sat) ) > all_err:
+            eta_crit = secant((lambda T: LOWSUBCOOLEDerror(T, eta_sat, omega_sat)), eta_crit)
+
+        #NOTE: IS THIS CORRECT?
+        P_crit_low = eta_crit * P_1
+        P_crit_sat = eta_crit * P_sat
+        # Choked:
+        G_low = (np.sqrt(P_1/v_1_l)) * np.sqrt( (2*(1-eta_sat)) + 2*(omega_sat*eta_sat*np.log(eta_sat/eta_crit) - (omega_sat-1)*(eta_sat-eta_crit)) ) / ( ((omega_sat*eta_sat)/(eta_crit-1)) + 1)
+        G_sat = np.sqrt( P_sat * (1/v_1_l) ) * eta_crit / np.sqrt(omega_sat) #NOTE:: THIS IS WRONG SOLVE W SATURATED INLET CONDITIOSN!!!!
+        
+        m_dot = Cd_ox * A_inj_ox * ( (P_sat/P_1)*G_sat + (1-(P_sat/P_1))*G_low )
+        
+        #print( (P_sat/P_1)*G_sat,  (1-(P_sat/P_1))*G_low )
+        #print("pressures: ",P_sat, P_1)
+        
+        #print("low supercharge m_dot_ox: ", m_dot)
+
+        P_crit = (P_sat/P_1)*P_crit_sat + (1-(P_sat/P_1))*P_crit_low
+        #print("checking crt pressures: ",P_crit, P_crit_sat, P_crit_low)
+
+    #check if choked
+    #P_crit = eta_crit * P_1
+
+    #print(P_1, P_crit, P_2)
+
+    # Check if choked, if not use Dyer model
+    
+    if P_crit < P_2:
+        #print("not choked: ", P_1, P_crit, P_2) #NOTE:
+
+        # SPI MODEL
+        rho_2_spi = CP.PropsSI('D', 'H', h_1, 'P', P_1, 'N2O') #is isentropic valid for this model?
+        m_dot_spi = Cd_ox * A_inj_ox * np.sqrt( 2 * rho_2_spi * (P_1 - P_2)  )
+
+        # HEM MODEL
+        s_2 = CP.PropsSI('S', 'H', h_1, 'P', P_1, 'N2O') #assuming isentropic, upstream entropy equals downstream entropy
+        h_2_hem = CP.PropsSI('H', 'S', s_2, 'P', P_2, 'N2O')
+        rho_2_hem = CP.PropsSI('D', 'S', s_2, 'P', P_2, 'N2O')
+
+        m_dot_hem = Cd_ox * A_inj_ox * rho_2_hem * np.sqrt( 2 * (h_1 -  h_2_hem) )
+                        
+        # Dyer MODEL 
+        dyer_k = 0.5 #np.sqrt( (P_1 - P_2) / ( CP.PropsSI('P', 'Q', 1, 'T', T_1, 'N2O') - P_2) ) #call coolprop to get vapor pressure          
+        #print("top: ", (P_1 - P_2), "bottom: ", ( CP.PropsSI('P', 'Q', 0, 'T', T_1, 'N2O') - P_2) )
+        m_dot = ((dyer_k/(1+dyer_k)) * m_dot_spi) + ((1/(1+dyer_k)) * m_dot_hem)
+
+    
+    print(m_dot)
+    return(m_dot)
+
+
+P_arr = np.linspace(4.36e6, 6.93e6, 100)
+m_dot_arr = []
+
+for i in P_arr:
+    if i != 4.36e6:
+        x = proposed_model_inst(i, 4.36e6, 282)
+        #print(x)
+        m_dot_arr.append(x)
+    else:
+        m_dot_arr.append(0)
+
+
+delta_P_arr = []
+for i in P_arr:
+    delta_P_arr.append(i-4.36e6)
+
+plt.plot(delta_P_arr,m_dot_arr)
+plt.xlabel('delta P (MPa)')
+plt.ylabel('Mass Flow Rate (kg/s)')
+plt.title('delta P (MPa) vs Mass Flow Rate (kg/s)')
+plt.grid(True)
+plt.show()
