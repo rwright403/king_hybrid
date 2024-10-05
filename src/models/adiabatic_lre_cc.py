@@ -112,7 +112,7 @@ class model():
         #solve thrust
         self.prev_thrust = self.instThrust
         self.instThrust = (self.m_dot_cc_t * self.v_exit) + self.A_exit * (P_exit - self.P_atm)
-        #print(self.m_dot_cc_t,self.v_exit, T_cc)
+        #print(self.m_dot_cc_t,self.v_exit, T_cc, self.OF)
 
         #print(self.instThrust, self.OF)
         #print(self.instThrust, self.m_dot_cc_t, self.OF,m_dot_fuel, m_dot_ox,)
