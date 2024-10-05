@@ -29,13 +29,10 @@ def secant(func, x1):
 
 def TWOPHASEerror(eta_crit, omega):
     function_diff = (eta_crit**2) + ((omega**2)-2*omega)*((1-eta_crit)**2) + 2*(omega**2)*np.log(eta_crit) + 2*(omega**2)*(1-eta_crit)
+    
+    #print("function diff: ", function_diff, eta_crit)
+    
     return function_diff
-
-""" #TODO: Delete
-def HIGHSUBCOOLEDerror(eta_crit, omega):
-    function_diff = (eta_crit**2) + ((omega**2)-2*omega)*((1-eta_crit)**2) + 2*(omega**2)*np.log(eta_crit) + 2*(omega**2)*(1-eta_crit)
-    return function_diff
-"""
 
 def LOWSUBCOOLEDerror(eta_crit, eta_sat, omega_sat):
     function_diff = (((omega_sat+(1/omega_sat)-2)/(2*eta_sat))*eta_crit**2) - (2*(omega_sat-1)*eta_crit) + (omega_sat*eta_sat*np.log(eta_crit/eta_sat)) + ((3/2)*omega_sat*eta_sat) - 1
@@ -141,22 +138,34 @@ def proposed_model_inst(P_1, P_2, T_1):
 
             #at high subcooling conditions, no vapor formed during flow through nozzle:
             # crit pressure ratio = P_sat / P_inlet
+            #P_crit_high = P_sat
             eta_crit = P_sat / P_1
-            P_crit_high = P_sat
 
+            #i think for modified omega if its high supercharged we can assume its choking according to Emerson's thesis
+            m_dot = (Cd_ox*A_inj_ox) * np.sqrt( 2*(1-eta_crit)*P_1*rho_1)
+
+            """
             #check for choking
-            if P_crit_high < P_2: #choked flow
-                m_dot = (Cd_ox*A_inj_ox) * np.sqrt( 2*(1-eta_crit)*P_1*rho_1) 
+            print(P_2, P_crit_high)
+            if P_2 <= P_crit_high: #choked flow
+                #m_dot = (Cd_ox*A_inj_ox) * np.sqrt( 2*(1-eta_crit)*P_1*rho_1)
+                m_dot = (Cd_ox*A_inj_ox) * rho_1 * np.sqrt(2*P_1 * (P_1 - P_crit_high))
             else:
                 eta = P_2 / P_1
-                m_dot = (Cd_ox*A_inj_ox) * np.sqrt( 2*(1-eta_sat) + 2*(omega_sat*eta_sat*np.log(eta_sat/eta) - (omega_sat-1)*(eta_sat-eta))) / (omega_sat*((eta_sat/eta) - 1) + 1)
+                #NOTE: PROBLEM WITH UNCHOKED HIGH SUBCOOLED FORMULA
+                #m_dot = (Cd_ox*A_inj_ox) * np.sqrt( 2*(1-eta_sat) + 2*(omega_sat*eta_sat*np.log(eta_sat/eta) - (omega_sat-1)*(eta_sat-eta))) / (omega_sat*((eta_sat/eta) - 1) + 1)
+                #testing someth
 
+                #for chamber pressures above the choking pressure, the dyer model is used and connected to the choked regime using a blending function
 
+                #solving "modified omega crit pressure" then using that to solve choked flow
+            """
             print("high supercharge m_dot_ox: ", m_dot)
 
 
         # Low subcooled
         if P_sat > (eta_transition * P_1):
+            #print("low subcooled: ", P_1)
 
             #NOTE: using modified omega model to predict choking pressure and mass flow rate
             #for all p_cc below choking (for all choked flow) use
@@ -170,16 +179,29 @@ def proposed_model_inst(P_1, P_2, T_1):
 
             #NOTE: This is smoothed
             P_crit_low = eta_crit_low * P_1
-            P_crit = eta_sat*P_crit_sat + (1-eta_sat)*P_crit_low
 
+            #this is the modified omega model
+            P_crit = eta_sat*P_crit_sat + (1-eta_sat)*P_crit_low
+            #print(P_2, P_crit, P_crit_low, P_crit_sat)
+
+        
             #check for choking
-            if P_crit_low > P_2: #choked flow
-                G_low = np.sqrt( 2*(1-eta_sat) + 2*(omega_sat*eta_sat*np.log(eta_sat/eta_crit_low) - (omega_sat-1)*(eta_sat-eta_crit_low))) / (omega_sat*((eta_sat/eta_crit_low) - 1) + 1)
-                m_dot = (Cd_ox*A_inj_ox) * (eta_sat * G_sat + (1-eta_sat)*G_low)
-            else: 
-                #G_low = np.sqrt( 2*(1-eta_sat) + 2*(omega_sat*eta_sat*np.log(eta_sat/eta) - (omega_sat-1)*(eta_sat-eta))) / (omega_sat*((eta_sat/eta) - 1) + 1)
+            if P_2 <= P_crit: #choked flow
+
+
+
+                G_low =  np.sqrt(rho_1 *P_1) * np.sqrt( 2*(1-eta_sat) + 2*(omega_sat*eta_sat*np.log(eta_sat/eta_crit_low) - (omega_sat-1)*(eta_sat-eta_crit_low))) / (omega_sat*((eta_sat/eta_crit_low) - 1) + 1)
+                
+                m_dot = (Cd_ox*A_inj_ox) * G_low
+                
+                
+                print("low subcooled choked: ", m_dot)#P_sat, P_1, P_2)
+
+            else: #solve dyer model and connect with blending function
+                G_low = np.sqrt( 2*(1-eta_sat) + 2*(omega_sat*eta_sat*np.log(eta_sat/eta) - (omega_sat-1)*(eta_sat-eta))) / (omega_sat*((eta_sat/eta) - 1) + 1)
                 #using dyer model here?
-                                #DYER MODEL
+
+                #DYER MODEL
                 # SPI MODEL
                 rho_2_spi = CP.PropsSI('D', 'H', h_1, 'P', P_1, 'N2O') #is isentropic valid for this model?
                 m_dot_spi = Cd_ox * A_inj_ox * np.sqrt( 2 * rho_2_spi * (P_1 - P_2)  )
@@ -192,20 +214,45 @@ def proposed_model_inst(P_1, P_2, T_1):
                 m_dot_hem = Cd_ox * A_inj_ox * rho_2_hem * np.sqrt( 2 * (h_1 -  h_2_hem) )
                                 
                 # Dyer MODEL 
-                dyer_k = np.sqrt( (P_1 - P_2) / (P_sat - P_2) ) #why error here, if P_2 > P_sat...     
-                m_dot = ((dyer_k/(1+dyer_k)) * m_dot_spi) + ((1/(1+dyer_k)) * m_dot_hem)
+                #print("low subcooled not choked: dyer k denom: ", (P_sat - P_2) )
+                if((P_sat - P_2) >=0):
+                    dyer_k = np.sqrt( (P_1 - P_2) / (P_sat - P_2) ) #negative denomenator
+                else:
+                    dyer_k = 0
+                #if P_2 > P_sat... then it would be exiting as a subcooled liquid  
+                # doesnt this violate when hem would be used?  
+                 
+                m_dot_dyer = ((dyer_k/(1+dyer_k)) * m_dot_spi) + ((1/(1+dyer_k)) * m_dot_hem)
+                #print(m_dot, P_sat ,(eta_transition * P_1))
 
-        print("low subcooled: ", m_dot)
-    #print(m_dot)
+                m_dot = (1-(P_sat/P_1))*((Cd_ox*A_inj_ox)*G_low)+ (P_sat/P_1)*m_dot_dyer #THIS IS WRONG?
+                
+                print("low subcooled ***NOT*** choked: ", m_dot)
+                ##print("low subcooled: ", m_dot)
+
+    #print(P_sat, P_1, P_2)
     return(m_dot)
 
 
-P_arr = np.linspace(4.36e6, 6.93e6, 100)
+
+P_arr = np.linspace(2.3e6, 5.2e6, 100)
+m_dot_arr = []
+delta_P_arr = []
+
+for i in P_arr:
+    x = proposed_model_inst(5.2e6, i,  282)
+    m_dot_arr.append(x)
+    delta_P_arr.append(5.2e6-i)
+
+
+"""
+P_arr = np.linspace( 6.8e6, 4.36e6, 100)
 m_dot_arr = []
 
 for i in P_arr:
     if i != 4.36e6:
-        x = proposed_model_inst(i, 4.36e6, 282)
+        print ("delta p: ", 6.8e6-i)
+        x = proposed_model_inst(6.93e6, i, 282)
         #print(x)
         m_dot_arr.append(x)
     else:
@@ -215,6 +262,7 @@ for i in P_arr:
 delta_P_arr = []
 for i in P_arr:
     delta_P_arr.append(i-4.36e6)
+"""
 
 plt.plot(delta_P_arr,m_dot_arr)
 plt.xlabel('delta P (MPa)')
