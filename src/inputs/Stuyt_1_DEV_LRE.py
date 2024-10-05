@@ -10,7 +10,7 @@
 analysis_mode = [2,1,3]
 
 timestep = 0.05 #s
-sim_time = 7 #s (time engine will be simulated over)
+sim_time = 2 #s (time engine will be simulated over)
 #NOTE: if this is too big and you are simulating over a range the script will break
 #is it really a leading edge simulation software if the ux isnt poor?
 
