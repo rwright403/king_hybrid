@@ -125,7 +125,7 @@ def proposed_model_inst(P_1, P_2, T_1):
         eta_transition =  2 * omega_sat / ( 1 + 2*omega_sat)
 
 
-        #eta_sat = P_sat / P_1 NOTE: ^ AND THIS DONT CORRELATE
+        eta_sat = P_sat / P_1 
         #print("checking someth: ", eta_sat,  2 * omega_sat / ( 1 + 2*omega_sat))
         
 
@@ -192,10 +192,12 @@ def proposed_model_inst(P_1, P_2, T_1):
 
                 G_low =  np.sqrt(rho_1 *P_1) * np.sqrt( 2*(1-eta_sat) + 2*(omega_sat*eta_sat*np.log(eta_sat/eta_crit_low) - (omega_sat-1)*(eta_sat-eta_crit_low))) / (omega_sat*((eta_sat/eta_crit_low) - 1) + 1)
                 
+                print(rho_1, P_1, eta_sat, omega_sat, eta_crit_low)
+
                 m_dot = (Cd_ox*A_inj_ox) * G_low
                 
                 
-                print("low subcooled choked: ", m_dot)#P_sat, P_1, P_2)
+                #print("low subcooled choked: ", m_dot)#P_sat, P_1, P_2)
 
             else: #solve dyer model and connect with blending function
                 G_low = np.sqrt( 2*(1-eta_sat) + 2*(omega_sat*eta_sat*np.log(eta_sat/eta) - (omega_sat-1)*(eta_sat-eta))) / (omega_sat*((eta_sat/eta) - 1) + 1)
