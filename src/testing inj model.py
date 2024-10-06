@@ -178,15 +178,38 @@ def proposed_model_inst(P_1, P_2, T_1):
 
                 #DYER MODEL
                 # SPI MODEL
-                rho_2_spi = CP.PropsSI('D', 'H', h_1, 'P', P_1, 'N2O') #is isentropic valid for this model?
+                rho_2_spi = CP.PropsSI('D', 'H', h_1, 'P', P_2, 'N2O') #is isentropic valid for this model?
+                #NOTE: changing this to P1 makes it match up with expected but does not match theory?
                 m_dot_spi = Cd_ox * A_inj_ox * np.sqrt( 2 * rho_2_spi * (P_1 - P_2)  )
 
                 # HEM MODEL
                 s_2 = CP.PropsSI('S', 'H', h_1, 'P', P_1, 'N2O') #assuming isentropic, upstream entropy equals downstream entropy
                 h_2_hem = CP.PropsSI('H', 'S', s_2, 'P', P_2, 'N2O')
-                rho_2_hem = CP.PropsSI('D', 'S', s_2, 'P', P_2, 'N2O')
+                #rho_2_hem = CP.PropsSI('D', 'S', s_2, 'P', P_2, 'N2O')
 
-                m_dot_hem = Cd_ox * A_inj_ox * rho_2_hem * np.sqrt( 2 * (h_1 -  h_2_hem) )
+                #m_dot_hem = Cd_ox * A_inj_ox * rho_2_hem * np.sqrt( 2 * (h_1 -  h_2_hem) )
+
+                m_dot_hem = None
+
+                downstream_pres_arr = np.linspace(1e5, P_1, 100)
+                m_dot_HEM_arr = []
+
+                for pres in downstream_pres_arr:
+                    rho_2_hem = CP.PropsSI('D', 'S', s_2, 'P', pres, 'N2O')
+                    m_dot_HEM = Cd_ox * A_inj_ox * rho_2_hem * np.sqrt( 2 * (h_1 -  h_2_hem) )
+                    m_dot_HEM_arr.append(m_dot_HEM)
+
+                m_dot_HEM_crit = np.max(m_dot_HEM_arr)
+                P_crit = downstream_pres_arr[np.argmax(m_dot_HEM_arr)]
+
+                if P_2 < P_crit:
+                    print("choked flow")
+                    m_dot_hem = m_dot_HEM_crit
+
+                else:
+                    print("unchoked")
+                    rho_2_hem = CP.PropsSI('D', 'S', s_2, 'P', P_2, 'N2O')
+                    m_dot_hem = Cd_ox * A_inj_ox * rho_2_hem * np.sqrt( 2 * (h_1 -  h_2_hem) )
                                 
                 # Dyer MODEL 
                 #print("low subcooled not choked: dyer k denom: ", (P_sat - P_2) )
