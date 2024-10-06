@@ -17,7 +17,7 @@ import importlib
 import inspect
 
 def get_variable_name(var):
-    """Get the name of the variable as a string."""
+    #Get the name of the variable as a string.
     callers_local_vars = inspect.currentframe().f_back.f_locals.items()
     name = [var_name for var_name, var_val in callers_local_vars if var_val is var]
     return name[0] if name else "Unknown"
@@ -204,6 +204,8 @@ def run_thrust_curve(inputs):
             #print("thrust curve: ",r1ox.t, r1cc.P_cc)
             r1ox.inst(r1cc.P_cc)
             s1_fuel_tank.inst(r1cc.P_cc)
+
+            print("looking at m_dot_f, m_dot_ox: ", s1_fuel_tank.m_dot_fuel, r1ox.m_dot_ox, r1cc.OF)
     
             m_fuel_burned += s1_fuel_tank.m_dot_fuel*r1ox.timestep
             m_ox_burned += r1ox.m_dot_ox*r1ox.timestep
@@ -234,8 +236,8 @@ def run_thrust_curve(inputs):
                 
                 m_dot_ox_min_dp = r1ox.m_dot_ox
                 rho_ox_min_dp = r1ox.rho_exit
-                kinematic_visc_ox_min_dp = r1ox.kinematic_visc_ox
-                y_ox_min_dp = r1ox.y_ox
+                #kinematic_visc_ox_min_dp = r1ox.kinematic_visc_ox
+                #y_ox_min_dp = r1ox.y_ox
                 
                 t_ox_min_dp = r1ox.t
 
@@ -308,4 +310,3 @@ def run_thrust_curve(inputs):
         print(f"\nMinimum Pressure Drop Ox Inj Properties for Sizing\n------------\nTotal Ox Mass Flow rate of all elements: {m_dot_ox_min_dp} (kg/s)\nUpstream Pressure at inst: {p_ox_up_min_dp} (Pa)\nDownstream Pressure at inst: {p_ox_down_min_dp} (Pa)\nOx Density at Orifice Outlet {rho_ox_min_dp} (kg/m^3)\nOx Kinematic Viscosity {kinematic_visc_ox_min_dp} (Pa s)\nOx Ratio of specific heats: {y_ox_min_dp} (-)\nOx Orifice Discharge Coeff: {inputs.Cd_1} (-)\nAt t = {t_ox_min_dp} (s)")
 
         plt.show()
-

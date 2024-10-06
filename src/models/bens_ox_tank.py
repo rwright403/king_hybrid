@@ -222,15 +222,17 @@ class model():
             #assume only liquid draining from tank #NOTE: challenge this?
             self.rho_exit = self.rho_liq
 
-            """
+            
+            
             if(self.inj_model == 1):
                 h_tank_exit = h_liq
                 #SPI Model --> single phase so using liquid enthalpy
-            """
+            
+            
 
             
 
-        ###NOTE: not sure if i messed this part up, i think so
+        ###NOTE: not sure if i messed this part up, i think so --> yes
         else:
             #print("VAPOR PHASE")
             #solve variables
@@ -252,10 +254,10 @@ class model():
 
 
         #is this used?
-        Cp = CP.PropsSI('Cpmass', 'H', h_tank_exit, 'P', self.P_cc, 'N2O')
-        Cv = CP.PropsSI('Cvmass', 'H', h_tank_exit, 'P', self.P_cc, 'N2O')
+        #Cp = CP.PropsSI('Cpmass', 'H', h_tank_exit, 'P', self.P_cc, 'N2O')
+        #Cv = CP.PropsSI('Cvmass', 'H', h_tank_exit, 'P', self.P_cc, 'N2O')
 
-        self.y_ox = Cp/Cv
+        #self.y_ox = Cp/Cv
 
         ### Use Chosen Injector Model:
         #BUG: exceeding critical flow with S1 and exit density is too low which is ruining the thrust curve
@@ -263,8 +265,8 @@ class model():
         ### SPI MODEL ###
         if(self.inj_model == 1):
             self.rho_exit = CP.PropsSI('D', 'H', h_tank_exit, 'P', self.P_cc, 'N2O')
-            #print(self.rho_exit, self.rho_liq)
             self.m_dot_ox = self.Cd_1 *self.A_inj_1 * np.sqrt( 2 * self.rho_exit * (self.P_tank - self.P_cc)  )
+            print(self.rho_exit, self.rho_liq, self.x_tank, h_tank_exit, self.P_tank, self.P_cc)
 
 
         ### HEM MODEL ###
@@ -300,13 +302,13 @@ class model():
             m_dot_dyer = ((dyer_k/(1+dyer_k)) * m_dot_spi) + ((1/(1+dyer_k)) * m_dot_hem)
             self.m_dot_ox = m_dot_dyer
 
-            """
+            
             #NOTE: not sure if this works/makes sense but couldnt think of a better way to get outlet density
-            self.rho_exit = ((dyer_k/(1+dyer_k)) * rho_exit_spi) + ((1/(1+dyer_k)) * rho_exit_hem)
+            #self.rho_exit = ((dyer_k/(1+dyer_k)) * rho_exit_spi) + ((1/(1+dyer_k)) * rho_exit_hem)
 
-            mu = CP.PropsSI('V', 'T', self.T_tank, 'P', self.P_cc, 'N2O')  # dynamic viscosity in Pa·s
-            self.kinematic_visc_ox = mu / self.rho_exit
-            """
+            #mu = CP.PropsSI('V', 'T', self.T_tank, 'P', self.P_cc, 'N2O')  # dynamic viscosity in Pa·s
+            #self.kinematic_visc_ox = mu / self.rho_exit
+            
 
         ### Emerson's Modified Omega Model ###
         elif(self.inj_model == 4):
