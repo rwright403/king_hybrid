@@ -205,7 +205,7 @@ def run_thrust_curve(inputs):
             r1ox.inst(r1cc.P_cc)
             s1_fuel_tank.inst(r1cc.P_cc)
 
-            print("looking at m_dot_f, m_dot_ox: ", s1_fuel_tank.m_dot_fuel, r1ox.m_dot_ox, r1cc.OF)
+            #print("looking at m_dot_f, m_dot_ox: ", s1_fuel_tank.m_dot_fuel, r1ox.m_dot_ox, r1cc.OF)
     
             m_fuel_burned += s1_fuel_tank.m_dot_fuel*r1ox.timestep
             m_ox_burned += r1ox.m_dot_ox*r1ox.timestep
@@ -303,6 +303,7 @@ def run_thrust_curve(inputs):
         plt.title('System Pressures Over Time')
         plt.grid(True)
         plt.legend()
+
 
         print(f"\nThroat Properties at Peak Thrust for Heat Transfer\n------------\nRatio of specific heats: {y_peak} (-)\nSpec. Heat Const. Pres. {cp_peak} (J/(kg K))\nThroat Pressure {P_cc_peak} (Pa)\nCharacteristic Velocity {C_star_peak} (m/s)\nThroat Flame Temp {T_flame_peak} (K)\nViscosity {viscosity_peak} (Pa s)\nGas Constant {R_peak} (J/(kg K))")
 
