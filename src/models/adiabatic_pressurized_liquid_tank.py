@@ -110,13 +110,14 @@ class model():
         rho_exit = self.rho_prop
         
         self.m_dot_fuel = self.Cd_2 * self.A_inj_2 * np.sqrt( 2 * self.rho_prop * (self.P_tank-P_downstream) )
+        """
         if a <= (self.m_dot_fuel/(self.A_inj_2*self.rho_prop)):
             #print("spi model predicting choked flow for FUEL!")
             P_crit = self.P_tank*((2/(self.y_fuel+1))**(self.y_fuel/(self.y_fuel-1)))
             rho_exit = CP.PropsSI('D', 'T', self.T_prop, 'P', P_crit, self.fuel)
 
             self.m_dot_fuel = self.Cd_2 * self.A_inj_2 * np.sqrt( 2 * rho_exit* (self.P_tank - P_crit)  )
-        
+        """
         #update mass using consv of mass
         self.m_fuel -= self.m_dot_fuel * self.TIMESTEP
 

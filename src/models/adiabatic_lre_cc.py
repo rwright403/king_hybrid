@@ -11,7 +11,7 @@ class model():
     def __init__(self, oxidizer_name, fuel_name, A_throat, A_exit, P_atm, TIMESTEP):
 
         #use SI UNITS
-        self.C = CEA_Obj(oxName=oxidizer_name, fuelName=fuel_name, pressure_units='Pa', isp_units='sec', cstar_units='m/s', temperature_units='K', sonic_velocity_units='m/s', enthalpy_units='J/kg', density_units='kg/m^3', specific_heat_units='J/kg-K')
+        self.C = CEA_Obj(oxName=oxidizer_name, fuelName=fuel_name, pressure_units='Pa', isp_units='sec', cstar_units='m/s', temperature_units='K', sonic_velocity_units='m/s', enthalpy_units='kJ/kg', density_units='kg/m^3', specific_heat_units='kJ/kg-K')
         #NOTE: SEEMS TO BREAK ABOVE
 
         self.P_cc = 0
@@ -102,6 +102,7 @@ class model():
                 self.v_exit = np.sqrt((2*cp)*(T_cc-T_exit))
 
             else:
+                #print("proper exit conditions")
                 exit_mach = self.C.get_MachNumber(self.P_cc, self.OF, self.expratio, 0, 1)
 
                 P_exit = self.P_cc / (1 + ((self.y - 1) / 2) * (exit_mach**2) )**(self.y / (self.y - 1))
