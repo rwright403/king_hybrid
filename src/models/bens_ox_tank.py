@@ -336,7 +336,7 @@ class model():
 
             if P_cc < P_crit:
                 #print("choked flow")
-                m_dot_hem = m_dot_hem_crit
+                m_dot_hem = m_dot_hem_crit#*self.Cd_1 #NOTE: MIGHT HAVE MISSED Cd_1 here
 
             else:
                 #print("unchoked")
