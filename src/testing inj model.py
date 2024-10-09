@@ -141,11 +141,15 @@ def proposed_model_inst(P_1, P_2, T_1):
         
 
         # High subcooled
+        #NOTE: CURRENTLY UNTESTED!!!!!
         if P_sat < (eta_transition * P_1):
 
             eta_crit = P_sat / P_1
 
             Cd_high_supercharge = 0.368 + 0.361*np.sqrt(1) #cavitation_num)#0.266 + 0.497*np.sqrt(1) #0.368 + 0.361*np.sqrt(1) #cavitation number = 1
+
+            #print(0.368 + 0.361*np.sqrt((P_1-P_sat)/(P_1-P_2)) , Cd_high_supercharge, 0.266 + 0.497*np.sqrt(1), 0.266 + 0.497*np.sqrt((P_1-P_sat)/(P_1-P_2)))
+
 
             #i think for modified omega if its high supercharged we can assume its choking according to Emerson's thesis
             print("HIGH SUBCOOLED, choked")
@@ -181,7 +185,7 @@ def proposed_model_inst(P_1, P_2, T_1):
                 G_low =  np.sqrt(rho_1_l * P_1) * np.sqrt(2*(1-eta_sat) + 2*(omega_sat*eta_sat*np.log(eta_sat/eta_crit_low) - (omega_sat-1)*(eta_sat-eta_crit_low))) / (omega_sat*((eta_sat/eta_crit_low) - 1) + 1)
                 
                 #if choking resolve G_low
-                G_sat = eta_crit_sat * np.sqrt(P_1*rho_1/omega_sat)
+                G_sat = eta_crit_sat * np.sqrt(P_1*rho_1_l/omega_sat) #NOTE: SHOULD THIS BE rho_1_l
 
 
                 #this is smoothing
@@ -237,8 +241,8 @@ def proposed_model_inst(P_1, P_2, T_1):
                     
                 m_dot_dyer = ((dyer_k/(1+dyer_k)) * m_dot_spi) + ((1/(1+dyer_k)) * m_dot_hem)
 
-                #NOTE: WHEN BELOW = 1.05 IT WORKS!!! (for single case tested)
-                m_dot = (1-(P_sat/P_1))*(A_inj_ox*G_low) + ((P_sat/P_1))*m_dot_dyer #I don't think low supercharged has a Cd #NOTE: gas Cd here?
+                #NOTE: WHEN BELOW = 1.015 IT WORKS!!! (for single case tested)
+                m_dot = (1.015-(P_sat/P_1))*(A_inj_ox*G_low) + ((P_sat/P_1))*m_dot_dyer #I don't think low supercharged has a Cd #NOTE: gas Cd here?
                 #print("dyer modeled: ", m_dot_dyer, m_dot)
 
                 #smoothing function
