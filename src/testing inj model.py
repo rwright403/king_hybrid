@@ -1,3 +1,4 @@
+
 #thank you for the incredible thesis: https://emersonvn.com/project/two_phase_injector/
 
 #I love coolprop! ~ units: http://www.coolprop.org/v4/apidoc/CoolProp.html
@@ -91,9 +92,15 @@ def proposed_model_inst(P_1, P_2, T_1):
     
     P_crit_sat = eta_crit_sat * P_sat
 
-    if P_crit_sat < P_2:
+    if P_crit_sat > P_2: #I had this equality mixed up for like a week fml... you remember when you are in elementary school, and they are teaching you about this
+        #in terms of crocodile mouths going right or left, yea i clearly dont either send me back bruh
+        print("SATURATED INLET CHOKED: ")
+        
         G_sat = eta_crit_sat * np.sqrt(P_1*rho_1/omega_sat)
+        #G_sat_2 = np.sqrt( -2*(omega_sat * np.log(eta_crit_sat) + (omega_sat -1)*(1 - eta_crit_sat)) ) / (omega_sat*((1/eta_crit_sat) - 1) + 1)
+        #print("SATURATED INLET ***not*** choked", G_sat, G_sat_2)
     else:
+        print("SATURATED INLET ***NOT*** CHOKED: ")
         G_sat = np.sqrt( -2*(omega_sat * np.log(eta_sat) + (omega_sat -1)*(1 - eta_sat)) ) / (omega_sat*((1/eta_sat) - 1) + 1)
     
 
@@ -138,10 +145,10 @@ def proposed_model_inst(P_1, P_2, T_1):
 
             eta_crit = P_sat / P_1
 
-            Cd_high_supercharge = 0.266 + 0.497*0.361*np.sqrt(1) #0.368 + 0.361*np.sqrt(1) #Kavitation number = 1
+            Cd_high_supercharge = 0.368 + 0.361*np.sqrt(1) #cavitation_num)#0.266 + 0.497*np.sqrt(1) #0.368 + 0.361*np.sqrt(1) #cavitation number = 1
 
             #i think for modified omega if its high supercharged we can assume its choking according to Emerson's thesis
-            print("HIGH SUBCOOLED")
+            #print("HIGH SUBCOOLED")
             m_dot = (Cd_high_supercharge*A_inj_ox) * np.sqrt( 2*(1-eta_crit)*P_1*rho_1)
 
             print("high supercharge m_dot_ox: ", m_dot)
@@ -164,100 +171,79 @@ def proposed_model_inst(P_1, P_2, T_1):
             #NOTE: This is smoothed
             P_crit_low = eta_crit_low * P_1
 
-            print("checkign herre: ", P_crit_low, eta_crit_low, P_1)
-
             #this is the modified omega model
             P_crit = eta_sat*P_crit_sat + (1-eta_sat)*P_crit_low
-            #print(P_2, P_crit, P_crit_low, P_crit_sat)
 
         
             #check for choking
             if P_2 <= P_crit: #choked flow
-                #G_low = np.sqrt(rho_1_l * P_1) *( np.sqrt( 2*(1-eta_sat) + 2*(omega_sat*eta_sat*np.log(eta_sat/eta_crit_low) - (omega_sat-1)*(eta_sat-eta_crit_low))) / (omega_sat*((eta_sat/eta_crit_low) - 1) + 1) )
-
-                G_low =  np.sqrt(rho_1_l * P_1) * ( np.sqrt(2*(1-eta_sat) + 2*(omega_sat*eta_sat*np.log(eta_sat/eta_crit_low) - (omega_sat-1)*(eta_sat-eta_crit_low))) / (omega_sat*((eta_sat/eta_crit_low) - 1) + 1) )
+                G_low =  np.sqrt(rho_1_l * P_1) * np.sqrt(2*(1-eta_sat) + 2*(omega_sat*eta_sat*np.log(eta_sat/eta_crit_low) - (omega_sat-1)*(eta_sat-eta_crit_low))) / (omega_sat*((eta_sat/eta_crit_low) - 1) + 1)
                 
-                #NOTE: rho_1 liquid!!!!
-                #TODO: CHECK THIS FORMULA AND COMB THROUGH IT
-                #m_dot_ = (A_inj_ox) * G_low 
+                #if choking resolve G_low
+                G_sat = eta_crit_sat * np.sqrt(P_1*rho_1/omega_sat)
 
-                #print("someth here: ", "starting factor: ", np.sqrt(rho_1_l * P_1), "numerator: ",np.sqrt(2*(1-eta_sat) + 2*(omega_sat*eta_sat*np.log(eta_sat/eta_crit_low) - (omega_sat-1)*(eta_sat-eta_crit_low))) ,"denom: ", (omega_sat*((eta_sat/eta_crit_low) - 1) + 1))
-                #print("someth here: ", G_low, "rho_1_l: ", rho_1_l, "eta_sat: ", eta_sat, "omega_sat: ", omega_sat, "eta_crit_low: ", eta_crit_low )
-                
-    
-                print("low subcooled choked: ")#, rho_1_l, rho_1 )#P_sat, P_1, P_2)
+
+                m_dot =  A_inj_ox*( (P_sat/P_1)*G_sat + (1-(P_sat/P_1))*(G_low) )
+                print("low subcooled choked: ", m_dot, G_low, G_sat)
 
 
 
             else: #solve dyer model and connect with blending function
-                G_low = np.sqrt(rho_1_l * P_1) *(np.sqrt( 2*(1-eta_sat) + 2*(omega_sat*eta_sat*np.log(eta_sat/eta) - (omega_sat-1)*(eta_sat-eta))) / (omega_sat*((eta_sat/eta) - 1) + 1))
-                #using dyer model here?
+                G_low = np.sqrt(rho_1_l * P_1) * np.sqrt( 2*(1-eta_sat) + 2*(omega_sat*eta_sat*np.log(eta_sat/eta) - (omega_sat-1)*(eta_sat-eta))) / (omega_sat*((eta_sat/eta) - 1) + 1)
+
+                #### DYER MODEL ###
+
+                # SPI MODEL
+                rho_2_spi = CP.PropsSI('D', 'H', h_1, 'P', P_2, 'N2O') #is isentropic valid for this model?
+                #NOTE: changing this to P1 makes it match up with expected but does not match theory?
+                m_dot_spi = Cd_hem_spi_dyer * A_inj_ox * np.sqrt( 2 * rho_2_spi * (P_1 - P_2)  )
+
+                # HEM MODEL
+                s_2 = CP.PropsSI('S', 'H', h_1, 'P', P_1, 'N2O') #assuming isentropic, upstream entropy equals downstream entropy
+                h_2_hem = CP.PropsSI('H', 'S', s_2, 'P', P_2, 'N2O')
+
+                m_dot_hem = None
+
+                downstream_pres_arr = np.linspace(1e5, P_1, 100)
+                m_dot_hem_arr = []
+
+                for pres in downstream_pres_arr:
+                    rho_2_hem = CP.PropsSI('D', 'S', s_2, 'P', pres, 'N2O')
+                    m_dot_hem = Cd_hem_spi_dyer * A_inj_ox * rho_2_hem * np.sqrt( 2 * (h_1 -  h_2_hem) )
+                    m_dot_hem_arr.append(m_dot_hem)
+
+                m_dot_hem_crit = np.max(m_dot_hem_arr) #should there be a discharge coeff here?
+                P_crit = downstream_pres_arr[np.argmax(m_dot_hem_arr)]
+
+                if P_2 < P_crit:
+                    #print("HEM predict choked flow")
+                    m_dot_hem = m_dot_hem_crit 
+
+                else:
+                    #print("HEM predict unchoked flow")
+                    rho_2_hem = CP.PropsSI('D', 'S', s_2, 'P', P_2, 'N2O')
+                    m_dot_hem = Cd_hem_spi_dyer * A_inj_ox * rho_2_hem * np.sqrt( 2 * (h_1 -  h_2_hem) )
+                                    
+
+                # Dyer model 
+                if((P_sat - P_2) >=0):
+                    dyer_k = np.sqrt( (P_1 - P_2) / (P_sat - P_2) ) #negative denomenator
+                else:
+                    dyer_k = 1 #0.368 + 0.361*np.sqrt(((P_1-P_sat)/(P_1-P_2))) #SHOULD THIS BE 1?
+
+                    
+                m_dot_dyer = ((dyer_k/(1+dyer_k)) * m_dot_spi) + ((1/(1+dyer_k)) * m_dot_hem)
+
+                m_dot = (1-(P_sat/P_1))*(A_inj_ox*G_low) + (P_sat/P_1)*m_dot_dyer #I don't think low supercharged has a Cd #NOTE: gas Cd here?
+                print("dyer modeled: ", m_dot)
 
 
-            #### DYER MODEL ###
-            # SPI MODEL
-            rho_2_spi = CP.PropsSI('D', 'H', h_1, 'P', P_2, 'N2O') #is isentropic valid for this model?
-            #NOTE: changing this to P1 makes it match up with expected but does not match theory?
-            m_dot_spi = Cd_hem_spi_dyer * A_inj_ox * np.sqrt( 2 * rho_2_spi * (P_1 - P_2)  )
-
-            # HEM MODEL
-            s_2 = CP.PropsSI('S', 'H', h_1, 'P', P_1, 'N2O') #assuming isentropic, upstream entropy equals downstream entropy
-            h_2_hem = CP.PropsSI('H', 'S', s_2, 'P', P_2, 'N2O')
-            #rho_2_hem = CP.PropsSI('D', 'S', s_2, 'P', P_2, 'N2O')
-
-            #m_dot_hem = Cd_ox * A_inj_ox * rho_2_hem * np.sqrt( 2 * (h_1 -  h_2_hem) )
-            m_dot_hem = None
-
-            downstream_pres_arr = np.linspace(1e5, P_1, 100)
-            m_dot_hem_arr = []
-
-            for pres in downstream_pres_arr:
-                rho_2_hem = CP.PropsSI('D', 'S', s_2, 'P', pres, 'N2O')
-                m_dot_hem = Cd_hem_spi_dyer * A_inj_ox * rho_2_hem * np.sqrt( 2 * (h_1 -  h_2_hem) )
-                m_dot_hem_arr.append(m_dot_hem)
-
-            m_dot_hem_crit = np.max(m_dot_hem_arr) #should there be a discharge coeff here?
-            P_crit = downstream_pres_arr[np.argmax(m_dot_hem_arr)]
-
-            if P_2 < P_crit:
-                print("choked flow")
-                m_dot_hem = m_dot_hem_crit 
-
-            else:
-                print("unchoked")
-                rho_2_hem = CP.PropsSI('D', 'S', s_2, 'P', P_2, 'N2O')
-                m_dot_hem = Cd_hem_spi_dyer * A_inj_ox * rho_2_hem * np.sqrt( 2 * (h_1 -  h_2_hem) )
-
-                #print("HERE: ", m_dot_hem)
-                                
-                # Dyer MODEL 
-                #print("low subcooled not choked: dyer k denom: ", (P_sat - P_2) )
-            if((P_sat - P_2) >=0):
-                dyer_k = np.sqrt( (P_1 - P_2) / (P_sat - P_2) ) #negative denomenator
-            else:
-                dyer_k = 1 #0.368 + 0.361*np.sqrt(((P_1-P_sat)/(P_1-P_2))) #SHOULD THIS BE 1?
-
-                #print("DYER K CHECK: ", dyer_k)
-                #if P_2 > P_sat... then it would be exiting as a subcooled liquid  
-                # doesnt this violate when hem would be used?  
-                #dyer_k = np.sqrt( (P_1 - P_2) / (P_sat - P_2) )
-                 
-            m_dot_dyer = ((dyer_k/(1+dyer_k)) * m_dot_spi) + ((1/(1+dyer_k)) * m_dot_hem)
-                #print(m_dot, P_sat ,(eta_transition * P_1))
-
-            #todo: gas Cd here?
-            m_dot = (1-(P_sat/P_1))*(A_inj_ox*G_low) + (P_sat/P_1)*m_dot_dyer #I don't think low supercharged has a Cd
-                
-            print("final dyer: ", m_dot, G_low)
-                #print("low subcooled ***NOT*** choked: ", m_dot)
-                ##print("low subcooled: ", m_dot)
-
-    print(m_dot)
+    #print(m_dot)
     return(m_dot)
 
 
 
-P_arr = np.linspace(2.3e6, 5.2e6, 100)
+P_arr = np.linspace(1e6, 5.2e6, 100)
 m_dot_arr = []
 delta_P_arr = []
 
@@ -274,3 +260,18 @@ plt.ylabel('Mass Flow Rate (kg/s)')
 plt.title('delta P (MPa) vs Mass Flow Rate (kg/s)')
 plt.grid(True)
 plt.show()
+
+"""
+
+import CoolProp.CoolProp as CP
+
+# Given temperature in K and fluid name
+temperature = 282  # K
+fluid = 'NitrousOxide'
+
+# Get vapor pressure at the given temperature using CoolProp
+vapor_pressure = CP.PropsSI('P', 'T', temperature, 'Q', 0, fluid)  # Q=0 for saturated liquid
+
+supercharge_pres = 5.26e6 - vapor_pressure
+print(supercharge_pres)
+"""
