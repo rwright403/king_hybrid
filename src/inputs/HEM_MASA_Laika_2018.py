@@ -10,7 +10,8 @@
 analysis_mode = [2,1,3]
 
 timestep = 0.05 #s
-sim_time = 4 #s (time engine will be simulated over)
+sim_time = timestep * 4 #s (time engine will be simulated over)
+print("PURPOSELY BROKE SCRIPT FOR DEBUGGING**** VALUES ARE NOT REAL, CHANGED SOMETH IN ADIABATIC PRES LIQ TANK")
 #NOTE: if this is too big and you are simulating over a range the script will break
 #is it really a leading edge simulation software if the ux is poor?
 

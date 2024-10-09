@@ -110,7 +110,12 @@ class model():
         rho_exit = self.rho_prop
         
         print(self.P_tank, P_downstream)
-        self.m_dot_fuel = self.Cd_2 * self.A_inj_2 * np.sqrt( 2 * self.rho_prop * (self.P_tank-P_downstream) )
+
+        testing = self.P_tank-P_downstream
+        if testing < 0:
+            testing = 1
+
+        self.m_dot_fuel = self.Cd_2 * self.A_inj_2 * np.sqrt( 2 * self.rho_prop * (testing) )
         
         """
         if a <= (self.m_dot_fuel/(self.A_inj_2*self.rho_prop)):
