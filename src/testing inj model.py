@@ -5,6 +5,7 @@
 
 #NOTE: NEED TO DO SOMETHING PROPER ABOUT THIS DISCHARGE COEFF ON LINE 172 ISH
 
+
 import CoolProp.CoolProp as CP
 from rocketprops.rocket_prop import get_prop #NOTE: just using because CP doesn't have nitrous viscosity
 from rocketprops.rocket_prop import Propellant
@@ -35,7 +36,7 @@ def TWOPHASEerror(eta_crit, omega):
     return function_diff
 
 def LOWSUBCOOLEDerror(eta_crit, eta_sat, omega_sat):
-    function_diff = (((omega_sat+(1/omega_sat)-2)/(2*eta_sat))*eta_crit**2) - (2*(omega_sat-1)*eta_crit) + (omega_sat*eta_sat*np.log(eta_crit/eta_sat)) + ((3/2)*omega_sat*eta_sat) - 1
+    function_diff = (((omega_sat+(1/omega_sat)-2)/(2*eta_sat))*(eta_crit**2)) - (2*(omega_sat-1)*eta_crit) + (omega_sat*eta_sat*np.log(eta_crit/eta_sat)) + ((3/2)*omega_sat*eta_sat) - 1
     return function_diff
 
 def proposed_model_inst(P_1, P_2, T_1):
@@ -66,14 +67,14 @@ def proposed_model_inst(P_1, P_2, T_1):
     # need to solve this for low subcooled state
     P_sat = CP.PropsSI('P', 'T', T_1, 'Q', 0, 'N2O')
 
-    v_1_g = 1/CP.PropsSI('D', 'Q', 1, 'P', P_sat, 'N2O')
-    v_1_l = 1/CP.PropsSI('D', 'Q', 0, 'P', P_sat, 'N2O')
+    v_1_g = 1/CP.PropsSI('D', 'Q', 1, 'P', P_1, 'N2O')
+    v_1_l = 1/CP.PropsSI('D', 'Q', 0, 'P', P_1, 'N2O')
     v_1_lg = v_1_g - v_1_l
-    h_1_g = CP.PropsSI('H', 'Q', 1, 'P', P_sat, 'N2O')
-    h_1_l = CP.PropsSI('H', 'Q', 0, 'P', P_sat, 'N2O')
+    h_1_g = CP.PropsSI('H', 'Q', 1, 'P', P_1, 'N2O')
+    h_1_l = CP.PropsSI('H', 'Q', 0, 'P', P_1, 'N2O')
     h_1_lg = h_1_g - h_1_l
 
-    c_1_l = CP.PropsSI('CVMASS', 'Q', 0, 'P', P_sat, 'N2O') #BUG: ? assuming specific heat capacity at constant volume, thesis wasnt clear, might be a mistake
+    c_1_l = CP.PropsSI('CPMASS', 'Q', 0, 'P', P_1, 'N2O') #BUG: ? assuming specific heat capacity at constant volume, thesis wasnt clear, might be a mistake
 
     x_1 = 0 #ASSUMPTION, TESTING THIS, MIGHT NOT WORK, THATS OK
 
@@ -81,16 +82,32 @@ def proposed_model_inst(P_1, P_2, T_1):
     v_1 = 1/rho_1
     h_1 = CP.PropsSI('H', 'Q', x_1, 'T', T_1, 'N2O')
 
-    omega_sat = (x_1*v_1_lg/v_1) + (c_1_l*T_1*P_sat/v_1)*((v_1_lg/h_1_lg)**2)
+    #print("********999999: ", P_1, P_sat, (x_1*v_1_lg/v_1) + (c_1_l*T_1*P_1/v_1)*((v_1_lg/h_1_lg)**2), (x_1*v_1_lg/v_1) + (c_1_l*T_1*P_sat/v_1)*((v_1_lg/h_1_lg)**2))
+
+    omega_sat = (x_1*v_1_lg/v_1) + (c_1_l*T_1*P_1/v_1)*((v_1_lg/h_1_lg)**2)
     eta_sat = P_sat / P_1
+    print("eta sat: ", eta_sat, omega_sat)
 
     #solve critical pressure
     #implicitly solve eta_crit
+    
     eta_crit_sat = eta_sat #initial guess for critical pressure ratio
+    print("\ndebug vals: omega_sat, eta_crit_sat, ", omega_sat, eta_crit_sat,"\n")
     while np.abs(TWOPHASEerror(eta_crit_sat, omega_sat) ) > all_err:
         eta_crit_sat = secant((lambda T: TWOPHASEerror(T, omega_sat)), eta_crit_sat)
     
+    print("eta crit sat: ", eta_crit_sat,)
+
+    #NOTE: same behavior multiplying both???
+    #eta_crit_sat *= 1.5
+    #P_sat *= 1.5
+    #P_2 /= 1.5 --> this did not seem to fix, did drop crit point but also broke dyer, also does not make sense period
+
+    #NOTE: START HERE TMR, SEEMS LIKE p_CRIT SAT IS TOO LOW AND ONE OF THE FACTORS IS THE ISSUE?
     P_crit_sat = eta_crit_sat * P_sat
+    #NOTE: MULTIPLYING THIS BY A FACTOR OF 1.5 SEEMS TO MAKE IT CORRECTLY PREDICT THE CHOKING POINT
+
+
 
     if P_crit_sat > P_2: #I had this equality mixed up for like a week fml... you remember when you are in elementary school, and they are teaching you about this
         #in terms of crocodile mouths going right or left, yea i clearly dont either send me back bruh
@@ -130,13 +147,15 @@ def proposed_model_inst(P_1, P_2, T_1):
         h_1_l = CP.PropsSI('H', 'Q', 0, 'P', P_sat, 'N2O')
         h_1_lg = h_1_g - h_1_l
 
-        c_1_l = CP.PropsSI('CVMASS', 'Q', 0, 'P', P_sat, 'N2O') #BUG: ? assuming specific heat capacity at constant volume, thesis wasnt clear, might be a mistake
+        c_1_l = CP.PropsSI('CPMASS', 'Q', 0, 'P', P_sat, 'N2O') #BUG: ? assuming specific heat capacity at constant volume, thesis wasnt clear, might be a mistake
+        #NOTE: CHANGED TO CPMASS SEEMS TO FIX 0.28 test case, NEED TO CHECK, REALLY NEED TO CHECK AND NOT ASSUME
 
         rho_1 = CP.PropsSI('D', 'P', P_1, 'T', T_1, 'N2O')
         v_1 = 1/rho_1
         h_1 = CP.PropsSI('H', 'P', P_1, 'T', T_1, 'N2O')
 
-        omega_sat = (c_1_l*T_1*P_sat/v_1)*((v_1_lg/h_1_lg)**2)
+        #omega_sat here for an initially subcooled fluid (MISSING VAPOR TERM)
+        omega_sat = (c_1_l*T_1*P_sat/v_1_l)*((v_1_lg/h_1_lg)**2)
         eta_transition =  2 * omega_sat / ( 1 + 2*omega_sat)
         
 
@@ -159,7 +178,8 @@ def proposed_model_inst(P_1, P_2, T_1):
 
 
         # Low subcooled
-        if P_sat > (eta_transition * P_1):
+        if (P_sat)> (eta_transition * P_1):
+
             #print("low subcooled: ")
 
             #NOTE: using modified omega model to predict choking pressure and mass flow rate
@@ -172,6 +192,7 @@ def proposed_model_inst(P_1, P_2, T_1):
             while np.abs(LOWSUBCOOLEDerror(eta_crit_low, eta_sat, omega_sat) ) > all_err:
                 eta_crit_low = secant((lambda T: LOWSUBCOOLEDerror(T, eta_sat, omega_sat)), eta_crit_low)
 
+
             #NOTE: This is smoothed below
             P_crit_low = eta_crit_low * P_1
 
@@ -179,17 +200,22 @@ def proposed_model_inst(P_1, P_2, T_1):
             #this is the modified omega model
             P_crit = eta_sat*P_crit_sat + (1-eta_sat)*P_crit_low
 
-        
+            #print("eta sat: ",eta_sat)
+            if ((P_1-P_2) < 0.6e6) and ((P_1-P_2) > 0.4e6):
+                print("***predicted choking***")
+
+            #print("delta P: ", (P_1-P_2), P_crit, P_crit_sat, P_crit_low, P_2)
+            print("etas aaaaa" ,eta, eta_crit_low)
+            
             #check for choking
             if P_2 <= P_crit: #choked flow
-                G_low =  np.sqrt(rho_1_l * P_1) * np.sqrt(2*(1-eta_sat) + 2*(omega_sat*eta_sat*np.log(eta_sat/eta_crit_low) - (omega_sat-1)*(eta_sat-eta_crit_low))) / (omega_sat*((eta_sat/eta_crit_low) - 1) + 1)
-                
+                G_low = np.sqrt(rho_1_l * P_1) * np.sqrt( 2*(1-eta_sat) + 2*(omega_sat*eta_sat*np.log(eta_sat/eta_crit_low) - (omega_sat-1)*(eta_sat-eta_crit_low))) / (omega_sat*((eta_sat/eta_crit_low) - 1) + 1)
                 #if choking resolve G_low
-                G_sat = eta_crit_sat * np.sqrt(P_1*rho_1_l/omega_sat) #NOTE: SHOULD THIS BE rho_1_l
+                G_sat = eta_crit_sat * np.sqrt(P_sat*rho_1_l/omega_sat) #NOTE: SHOULD THIS BE rho_1_l??????
 
 
                 #this is smoothing
-                m_dot =  A_inj_ox*( (P_sat/P_1)*G_sat + (1-(P_sat/P_1))*G_low )
+                m_dot = A_inj_ox*G_low  #A_inj_ox *( (P_sat/P_1)*G_sat + (1-(P_sat/P_1))*G_low )
                 #print("low subcooled choked: ", m_dot, G_low, G_sat)
                 print("low subcooled choked: ")
 
@@ -242,7 +268,7 @@ def proposed_model_inst(P_1, P_2, T_1):
                 m_dot_dyer = ((dyer_k/(1+dyer_k)) * m_dot_spi) + ((1/(1+dyer_k)) * m_dot_hem)
 
                 #NOTE: WHEN BELOW = 1.015 IT WORKS!!! (for single case tested)
-                m_dot = (1.015-(P_sat/P_1))*(A_inj_ox*G_low) + ((P_sat/P_1))*m_dot_dyer #I don't think low supercharged has a Cd #NOTE: gas Cd here?
+                m_dot = (1.0-(P_sat/P_1))*(A_inj_ox*G_low) + ((P_sat/P_1))*m_dot_dyer #I don't think low supercharged has a Cd #NOTE: gas Cd here?
                 #print("dyer modeled: ", m_dot_dyer, m_dot)
 
                 #smoothing function
@@ -253,10 +279,12 @@ def proposed_model_inst(P_1, P_2, T_1):
     print(m_dot)
     return(m_dot)
 
+T = 281
+vapor_pressure = CP.PropsSI('P', 'T', T, 'Q', 1, 'N2O')  
+total_pres = vapor_pressure + 0.55e6
 
-P_upstream = 5.311805e6
-P_downstream = 1e6
-T = 282
+P_upstream = total_pres
+P_downstream = 2.25e6
 P_arr = np.linspace(P_upstream , P_downstream, 100)
 m_dot_arr = []
 delta_P_arr = []
@@ -285,8 +313,6 @@ fluid = 'NitrousOxide'
 
 # Get vapor pressure at the given temperature using CoolProp
 vapor_pressure = CP.PropsSI('P', 'T', temperature, 'Q', 0, fluid)  # Q=0 for saturated liquid
-
-supercharge_pres = 5.311805e6 - vapor_pressure
-print("SUPERCHARGE PRESSURE IN PASCALS: ", supercharge_pres)
-
+total_pres = vapor_pressure + 1.42e6
+print("TOTAL PRESSURE W SUPERCHARGE IN PASCALS: ", total_pres, vapor_pressure)
 """
