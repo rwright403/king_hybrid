@@ -1,4 +1,4 @@
-###🚀 Rocket Engine Simulation
+### Rocket Engine Simulation 🚀
 
 ## RUNNING THE PROGRAM:
 
