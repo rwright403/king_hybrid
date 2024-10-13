@@ -29,6 +29,9 @@ I got some of the liquid stuff to work and by doing that broke the hybrid models
 
 ###Use at your own risk lol, I am still developing this program 
 
+## Sources and Citations:
+
+| 1 | Emerson Vargas Niño, Mohammad Reza H. Razavi, Design of Two-Phase Injectors Using Analytical and Numerical Methods with Application to Hybrid Rockets https://emersonvn.com/project/two_phase_injector/# |
 
 
 Ryan "king hybrid" Wright, From Calgary, Alberta, Canada --> University of Victoria, BC, Canada, 2023 --> forever (mech lab reference)
