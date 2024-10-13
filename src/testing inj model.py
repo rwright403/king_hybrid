@@ -153,6 +153,7 @@ def proposed_model_inst(P_1, P_2, T_1): #TODO: ADD below constants TO MODEL INPU
         #in terms of crocodile mouths going right or left, yea i clearly dont either send me back bruh
         #print("SATURATED INLET CHOKED: ")
         
+        
         G_sat = eta_crit_sat * np.sqrt(P_1*rho_1/omega_sat)
         #print("saturated inlet choking: ", G_sat)
     else:
@@ -224,15 +225,15 @@ def proposed_model_inst(P_1, P_2, T_1): #TODO: ADD below constants TO MODEL INPU
 
             ###NOTE: this seemed to fix low subcooled choked flow case
             eta = P_2 / P_1
-            eta_crit_sat = eta #initial guess for critical pressure ratio
+            eta_crit_low = eta #initial guess for critical pressure ratio
 
             while np.abs(LOWSUBCOOLEDerror(eta_crit_sat, eta_sat, omega_sat) ) > all_err:
                 eta_crit_sat = secant((lambda T: LOWSUBCOOLEDerror(T, eta_sat, omega_sat)), eta_crit_sat)
 
-            P_crit_sat = eta_crit_sat * P_1
+            P_crit_low = eta_crit_sat * P_1
 
 
-            if P_crit_sat > P_2: #I had this equality mixed up for like a week fml... you remember when you are in elementary school, and they are teaching you about this
+            if P_crit_low > P_2: #I had this equality mixed up for like a week fml... you remember when you are in elementary school, and they are teaching you about this
                 #in terms of crocodile mouths going right or left, yea i clearly dont either send me back bruh
                 #print("SATURATED INLET CHOKED: ")
                 
@@ -264,6 +265,8 @@ def proposed_model_inst(P_1, P_2, T_1): #TODO: ADD below constants TO MODEL INPU
 
                 #m_dot = A_inj_ox*G_low  #A_inj_ox *( (P_sat/P_1)*G_sat + (1-(P_sat/P_1))*G_low )
                 m_dot = A_inj_ox *( (P_sat/P_1)*G_sat + (1-(P_sat/P_1))*G_low )
+
+                print(G_sat, G_low)
                 #print(eta_crit_low, eta_crit_sat)
 
             else: #not choked use dyer model
@@ -278,7 +281,7 @@ def proposed_model_inst(P_1, P_2, T_1): #TODO: ADD below constants TO MODEL INPU
 waxman_data = [ (280, 0.28e6, 'black'), (281, 0.55e6, 'red'), (282, 0.79e6, 'maroon' ), (281, 1.17e6, 'orangered'), (282, 1.42e6, 'pink'), (281, 1.85e6, 'yellow'), (282, 2e6, 'orange'), (283, 2.27e6, 'green'), (283, 2.55e6, 'blue') ]
 
 #waxman_data = [ (282, 0.79e6, 'maroon' ), (282, 2e6, 'orange'), ]
-#waxman_data = [ (280, 0.28e6, 'black'), (281, 0.55e6, 'red')]
+waxman_data = [ (280, 0.28e6, 'black') , (281, 0.55e6, 'red')]
 #waxman_data = [(282, 1.42e6, 'pink') ]
 #waxman_data = [ (283, 2.55e6, 'blue') ]
 
