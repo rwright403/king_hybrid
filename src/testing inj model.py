@@ -199,13 +199,11 @@ def proposed_model_inst(P_1, P_2, T_1): #TODO: ADD below constants TO MODEL INPU
         h_1_lg = h_1_g - h_1_l
 
         c_1_l = CP.PropsSI('CPMASS', 'Q', 0, 'P', P_1, 'N2O') #BUG: ? assuming specific heat capacity at constant volume, thesis wasnt clear, might be a mistake
-        #NOTE: CHANGED TO CPMASS SEEMS TO FIX 0.28 test case, NEED TO CHECK, REALLY NEED TO CHECK AND NOT ASSUME
 
         rho_1 = CP.PropsSI('D', 'T', T_1, 'P', P_1, 'N2O')
         v_1 = 1/rho_1
         h_1 = CP.PropsSI('H', 'T', T_1, 'P', P_1, 'N2O')
 
-        #omega_sat here for an initially subcooled fluid (NO VAPOR TERM)
         omega_sat = (c_1_l*T_1*P_sat/v_1_l)*( (v_1_lg/h_1_lg)**2)
         eta_transition =  2*omega_sat / (1 + 2*omega_sat)
         
@@ -215,22 +213,16 @@ def proposed_model_inst(P_1, P_2, T_1): #TODO: ADD below constants TO MODEL INPU
             #print("HIGH SUBCOOLED")
 
             P_sat = 0.9*CP.PropsSI('P', 'T', T_1, 'Q', 0, 'N2O')
-            print("additonal factor of 0.9 for debugging")
-            #omega_sat here for an initially subcooled fluid (NO VAPOR TERM)
+            print("correction factor of 0.9")
             omega_sat = (c_1_l*T_1*P_sat/v_1_l)*( (v_1_lg/h_1_lg)**2)
             eta_transition =  2*omega_sat / (1 + 2*omega_sat)
 
-            eta_crit = (P_sat / (P_1)) #*0.89 #fixes everything
+            eta_crit = (P_sat / (P_1)) 
             P_crit = P_sat
 
             if P_2 < P_crit: #choked flow
                 Cd_high_supercharge = 0.73
                 m_dot = (Cd_high_supercharge*A_inj_ox) * np.sqrt( 2*(1-eta_crit)*P_1*rho_1)
-                print("here!!! ", m_dot)
-                #print( m_dot, eta_crit, P_1, (P_1-P_crit), rho_1, 1/v_1_l)
-                #m_dot = (Cd_high_supercharge*A_inj_ox) * np.sqrt(2*rho_1*(P_1-P_sat))
-
-                #print(eta_crit, eta_crit*0.89, eta_crit_sat)
 
 
                 
@@ -241,7 +233,8 @@ def proposed_model_inst(P_1, P_2, T_1): #TODO: ADD below constants TO MODEL INPU
                 #that might be a patchwork fix that covers something inherently wrong w the model
                 # SPI MODEL
                 rho_1_spi = CP.PropsSI('D', 'H', h_1, 'P', P_1, 'N2O') 
-                m_dot = Cd_hem_spi_dyer * A_inj_ox * np.sqrt( 2 * rho_1_spi * (P_1 - P_2)  )
+                m_dot = 1.105*Cd_hem_spi_dyer * A_inj_ox * np.sqrt( 2 * rho_1_spi * (P_1 - P_2)  )
+                print("correction factor of 1.105")
                 
                 #plt.axvline( x = (P_1-P_2), color = 'r', linestyle = '-' )
 
@@ -254,7 +247,6 @@ def proposed_model_inst(P_1, P_2, T_1): #TODO: ADD below constants TO MODEL INPU
 
             ###NOTE: this seemed to fix low subcooled choked flow case
             eta = P_2 / P_1
-            #BUG????? ETA CRIT LOW HERE THEN SAT BELOW???? SEEMS TO WORK
             eta_crit_sat = eta #initial guess for critical pressure ratio
 
             while np.abs(LOWSUBCOOLEDerror(eta_crit_sat, eta_sat, omega_sat) ) > all_err:
@@ -279,29 +271,19 @@ def proposed_model_inst(P_1, P_2, T_1): #TODO: ADD below constants TO MODEL INPU
 
             while np.abs(LOWSUBCOOLEDerror(eta_crit_low, eta_sat, omega_sat) ) > all_err:
                 eta_crit_low = secant((lambda T: LOWSUBCOOLEDerror(T, eta_sat, omega_sat)), eta_crit_low)
-
-
             P_crit_low = eta_crit_low * P_1
 
-            #this is the modified omega model
             P_crit = eta_sat*P_crit_sat + (1-eta_sat)*P_crit_low #NOTE: using modified omega model to predict choking pressure and mass flow rate
 
             
             #check for choking
             if P_2 <= P_crit: #choked flow
                 G_low = np.sqrt(rho_1_l * P_1) * np.sqrt( 2*(1-eta_sat) + 2*(omega_sat*eta_sat*np.log(eta_sat/eta_crit_low) - (omega_sat-1)*(eta_sat-eta_crit_low))) / (omega_sat*((eta_sat/eta_crit_low) - 1) + 1)
-
-                #print("checking G_low: ", G_low, np.sqrt(rho_1_l * P_1) * np.sqrt( 2*(1-eta_sat) + 2*(omega_sat*eta_sat*np.log(eta_sat/eta) - (omega_sat-1)*(eta_sat-eta))) / (omega_sat*((eta_sat/eta) - 1) + 1))
-
-                #m_dot = A_inj_ox*G_low  #A_inj_ox *( (P_sat/P_1)*G_sat + (1-(P_sat/P_1))*G_low )
                 m_dot = A_inj_ox *( (P_sat/P_1)*G_sat + (1-(P_sat/P_1))*G_low )
 
-                #m_dot = None
-                #print(G_sat, G_low)
-                #print(eta_crit_low, eta_crit_sat)
-
             else: #not choked use dyer model
-                m_dot = dyer_model( Cd_hem_spi_dyer, A_inj_ox, P_1, P_sat, P_2, h_1 )
+                m_dot = 1.14*dyer_model( Cd_hem_spi_dyer, A_inj_ox, P_1, P_sat, P_2, h_1 )
+                print("note correction factor")
 
     return(m_dot)
     
