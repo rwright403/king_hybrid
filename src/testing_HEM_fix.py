@@ -9,8 +9,8 @@ P_tank = 5147690.721566
 P_cc_arr = np.linspace(296662.0, P_tank, 100)
 h_tank_exit = 244162.19860526677
 h_inj_exit = 199138.2128330915
-Cd_1 = 0.6
-A_inj_1 = 3.090605599220321e-5
+Cd_1 = 0.66
+A_inj_1 = 0.25*np.pi*((1.5e-3)**2)
 
 m_dot_final_arr = []
 delta_p_arr = []
@@ -33,6 +33,8 @@ for P_cc in P_cc_arr:
 
     m_dot_HEM_crit = np.max(m_dot_HEM_arr)
     P_crit = downstream_pres_arr[np.argmax(m_dot_HEM_arr)]
+
+    
 
     if P_cc < P_crit:
         print("choked flow")

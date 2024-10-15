@@ -1,10 +1,6 @@
-
 #thank you for the incredible thesis: https://emersonvn.com/project/two_phase_injector/
 
 #I love coolprop! ~ units: http://www.coolprop.org/v4/apidoc/CoolProp.html
-
-#NOTE: NEED TO DO SOMETHING PROPER ABOUT THIS DISCHARGE COEFF ON LINE 172 ISH
-
 
 import CoolProp.CoolProp as CP
 from rocketprops.rocket_prop import get_prop #NOTE: just using because CP doesn't have nitrous viscosity
@@ -41,7 +37,7 @@ def LOWSUBCOOLEDerror(eta_crit, eta_sat, omega_sat):
 
 
 
-def dyer_model( Cd_hem_spi_dyer, A_inj_ox, P_1, P_sat, P_2, h_1 ):
+def dyer_model( Cd_hem_spi_dyer, A_inj_ox, P_1, P_sat, P_2, h_1):
 
     # SPI MODEL
     rho_1_spi = CP.PropsSI('D', 'H', h_1, 'P', P_1, 'N2O') 
@@ -61,14 +57,15 @@ def dyer_model( Cd_hem_spi_dyer, A_inj_ox, P_1, P_sat, P_2, h_1 ):
         
         m_dot_hem_arr.append(m_dot_hem)
 
-    m_dot_hem_crit = np.max(m_dot_hem_arr) #should there be a discharge coeff here?
+    m_dot_hem_crit = np.max(m_dot_hem_arr)
     P_crit = downstream_pres_arr[np.argmax(m_dot_hem_arr)]
 
 
 
     if P_2 < P_crit:
-        #print("HEM predict choked flow: ")
+        #print("HEM predict choked flow: ", P_crit, m_dot_hem_crit)
         m_dot_hem = m_dot_hem_crit
+        #P_2 = P_crit
         #plt.axvline( x = (P_1-P_2), color = 'rebeccapurple', linestyle = '-' )
 
     else:
@@ -83,14 +80,31 @@ def dyer_model( Cd_hem_spi_dyer, A_inj_ox, P_1, P_sat, P_2, h_1 ):
                                         
 
     # Dyer model
-    dyer_k = np.sqrt( (P_1 - P_2) / np.abs(P_sat - P_2) )
+    dyer_k = np.sqrt( (P_1 - P_2) / (P_sat - P_2) ) 
+    print(dyer_k, P_1, P_sat, P_2, P_crit)
+
+    #NOTE: FOR THIS CASE REPLACED DYER CALL WITH SPI MODEL SINCE THAT WILL BE DOMINATE MASS FLOW PREDICITON
+    if(P_sat < P_2) and (m_dot_hem == m_dot_hem_crit) :
+        print("(-) ", P_1, P_sat, P_2)
+
+
     m_dot_dyer = ((dyer_k/(1+dyer_k)) * m_dot_spi) + ((1/(1+dyer_k)) * m_dot_hem)
-    #print(P_2, m_dot_dyer, m_dot_hem, m_dot_spi)
+    
+    #print(P_sat, P_2, m_dot_dyer, m_dot_hem, m_dot_spi)
+
     return m_dot_dyer
 
 
 
+
+
+
+
 def proposed_model_inst(P_1, P_2, T_1): #TODO: ADD below constants TO MODEL INPUTS:
+    
+    #print(f"\n\n\nReduced Temp: {T_1/309.52}, Reduced Pres: {P_1/7.245e6}")
+    
+    
     all_err = 0.01
 
     #NOTE: GUESSING Cd
@@ -102,7 +116,6 @@ def proposed_model_inst(P_1, P_2, T_1): #TODO: ADD below constants TO MODEL INPU
     rho_1 = None
     h_1 = None
     x_1 = None
-    omega_sat = None
     G_sat = None
     m_dot = None
 
@@ -122,18 +135,20 @@ def proposed_model_inst(P_1, P_2, T_1): #TODO: ADD below constants TO MODEL INPU
 
     c_1_l = CP.PropsSI('CPMASS', 'Q', 0, 'P', P_1, 'N2O') #BUG: ? assuming specific heat capacity at constant pressure, thesis wasnt clear, might be a mistake
 
-    x_1 = 0 #ASSUMPTION, TESTING THIS, MIGHT NOT WORK, THATS OK
+    
 
-    rho_1 = CP.PropsSI('D', 'Q', x_1, 'P', P_1, 'N2O')
+    rho_1 = CP.PropsSI('D', 'P', P_1, 'T', T_1, 'N2O')
     v_1 = 1/rho_1
-    h_1 = CP.PropsSI('H', 'Q', x_1, 'P', P_1, 'N2O')
+    h_1 = CP.PropsSI('H', 'P', P_1, 'T', T_1, 'N2O')
+
+    x_1 = 0 #ASSUMPTION, TESTING THIS, MIGHT NOT WORK, THATS OK
 
     #NOTE: MIGHT NEED TO USE P_1 UP THERE ^ this was changed to help fix choked subcooled, negligible effect tho, if other errors introduced, try changing back but i dont think this is a likely cause
 
     #1) --> check inlet fluid state (sat liq. or subcooled)
     phase = CP.PropsSI('Phase', 'P', P_1, 'T', T_1, 'N2O')
 
-    omega_sat = (x_1*v_1_lg/v_1) + (c_1_l*T_1*P_sat/v_1)*((v_1_lg/h_1_lg)**2) #i think this makes sense for it to be P_sat based off of Emerson's thesis but not sure anymore
+    omega_sat = (x_1*v_1_lg/v_1) + (c_1_l*T_1*P_1/v_1)*((v_1_lg/h_1_lg)**2) #i think this makes sense for it to be P_sat based off of Emerson's thesis but not sure anymore
     eta_sat = P_sat / P_1 
     
 
@@ -153,6 +168,7 @@ def proposed_model_inst(P_1, P_2, T_1): #TODO: ADD below constants TO MODEL INPU
         #in terms of crocodile mouths going right or left, yea i clearly dont either send me back bruh
         #print("SATURATED INLET CHOKED: ")
         
+        
         G_sat = eta_crit_sat * np.sqrt(P_1*rho_1/omega_sat)
         #print("saturated inlet choking: ", G_sat)
     else:
@@ -165,74 +181,89 @@ def proposed_model_inst(P_1, P_2, T_1): #TODO: ADD below constants TO MODEL INPU
 
     if phase == 5: #saturated liquid vapor
         #TODO: implement
-        #NOTE: DOES THIS PREDICT CHOKING OR NOT?
-        #m_dot = Cd_ox*A_inj_ox * G_sat
         m_dot = None
     
     if phase == 0: #subcooled fluid 
 
         #setup subcooled fluid inlet 
-        #NOTE: omega model EOS assumes initial pressure is P_sat corresponding to T_1, even for subcooled conditions, this is helmholtz
         P_sat = CP.PropsSI('P', 'T', T_1, 'Q', 0, 'N2O')
+        
 
-        v_1_g = 1/CP.PropsSI('D', 'Q', 1, 'P', P_sat, 'N2O')
-        #NOTE: ADJUSTED THIS, small change in density
-        rho_1_l = CP.PropsSI('D', 'Q', 0, 'P', P_sat, 'N2O')
+        v_1_g = 1/CP.PropsSI('D', 'Q', 1, 'P', P_1, 'N2O')
+        rho_1_l = CP.PropsSI('D', 'Q', 0, 'P', P_1, 'N2O')
         v_1_l = 1/rho_1_l
         v_1_lg = v_1_g - v_1_l
 
-        h_1_g = CP.PropsSI('H', 'Q', 1, 'P', P_sat, 'N2O')
-        h_1_l = CP.PropsSI('H', 'Q', 0, 'P', P_sat, 'N2O')
+        h_1_g = CP.PropsSI('H', 'Q', 1, 'P', P_1, 'N2O')
+        h_1_l = CP.PropsSI('H', 'Q', 0, 'P', P_1, 'N2O')
         h_1_lg = h_1_g - h_1_l
 
-        c_1_l = CP.PropsSI('CPMASS', 'Q', 0, 'P', P_sat, 'N2O') #BUG: ? assuming specific heat capacity at constant volume, thesis wasnt clear, might be a mistake
+        c_1_l = CP.PropsSI('CPMASS', 'Q', 0, 'P', P_1, 'N2O') #BUG: ? assuming specific heat capacity at constant volume, thesis wasnt clear, might be a mistake
         #NOTE: CHANGED TO CPMASS SEEMS TO FIX 0.28 test case, NEED TO CHECK, REALLY NEED TO CHECK AND NOT ASSUME
 
-        rho_1 = CP.PropsSI('D', 'P', P_1, 'T', T_1, 'N2O')
-
-        
+        rho_1 = CP.PropsSI('D', 'T', T_1, 'P', P_1, 'N2O')
         v_1 = 1/rho_1
-        h_1 = CP.PropsSI('H', 'P', P_1, 'T', T_1, 'N2O')
+        h_1 = CP.PropsSI('H', 'T', T_1, 'P', P_1, 'N2O')
 
         #omega_sat here for an initially subcooled fluid (NO VAPOR TERM)
-        omega_sat = (c_1_l*T_1*P_sat/v_1_l)*((v_1_lg/h_1_lg)**2)
-        eta_transition =  2 * omega_sat / ( 1 + 2*omega_sat)
+        omega_sat = (c_1_l*T_1*P_sat/v_1_l)*( (v_1_lg/h_1_lg)**2)
+        eta_transition =  2*omega_sat / (1 + 2*omega_sat)
         
 
-        # High subcooled
-        if P_sat < (eta_transition * P_1):
+        ### High subcooled
+        if P_sat <= (eta_transition * P_1):
             #print("HIGH SUBCOOLED")
 
-            eta_crit = P_sat / P_1
+            P_sat = 0.9*CP.PropsSI('P', 'T', T_1, 'Q', 0, 'N2O')
+            print("additonal factor of 0.9 for debugging")
+            #omega_sat here for an initially subcooled fluid (NO VAPOR TERM)
+            omega_sat = (c_1_l*T_1*P_sat/v_1_l)*( (v_1_lg/h_1_lg)**2)
+            eta_transition =  2*omega_sat / (1 + 2*omega_sat)
+
+            eta_crit = (P_sat / (P_1)) #*0.89 #fixes everything
             P_crit = P_sat
 
-            if P_2 <= P_crit: #choked flow
+            if P_2 < P_crit: #choked flow
                 Cd_high_supercharge = 0.73
                 m_dot = (Cd_high_supercharge*A_inj_ox) * np.sqrt( 2*(1-eta_crit)*P_1*rho_1)
+                print("here!!! ", m_dot)
+                #print( m_dot, eta_crit, P_1, (P_1-P_crit), rho_1, 1/v_1_l)
+                #m_dot = (Cd_high_supercharge*A_inj_ox) * np.sqrt(2*rho_1*(P_1-P_sat))
+
+                #print(eta_crit, eta_crit*0.89, eta_crit_sat)
+
 
                 
             else: 
-                m_dot = dyer_model( Cd_hem_spi_dyer, A_inj_ox, P_1, P_sat, P_2, h_1 )
+                #m_dot = dyer_model( Cd_hem_spi_dyer, A_inj_ox, P_1, P_sat, P_2, h_1 )
+                
+                #BUG? Emerson's thesis directs using dyer model here as ^, but the issue I have is that we are getting a negative denom in the dyer const K. Obv it is supposed to weight SPI model really high in this case so just using here
+                #that might be a patchwork fix that covers something inherently wrong w the model
+                # SPI MODEL
+                rho_1_spi = CP.PropsSI('D', 'H', h_1, 'P', P_1, 'N2O') 
+                m_dot = Cd_hem_spi_dyer * A_inj_ox * np.sqrt( 2 * rho_1_spi * (P_1 - P_2)  )
+                
                 #plt.axvline( x = (P_1-P_2), color = 'r', linestyle = '-' )
 
 
 
         # Low subcooled
-        if (P_sat) > (eta_transition * P_1):
+        else:
 
             ##print("low subcooled: ")
 
             ###NOTE: this seemed to fix low subcooled choked flow case
             eta = P_2 / P_1
+            #BUG????? ETA CRIT LOW HERE THEN SAT BELOW???? SEEMS TO WORK
             eta_crit_sat = eta #initial guess for critical pressure ratio
 
             while np.abs(LOWSUBCOOLEDerror(eta_crit_sat, eta_sat, omega_sat) ) > all_err:
                 eta_crit_sat = secant((lambda T: LOWSUBCOOLEDerror(T, eta_sat, omega_sat)), eta_crit_sat)
 
-            P_crit_sat = eta_crit_sat * P_1
+            P_crit_low = eta_crit_sat * P_1
 
 
-            if P_crit_sat > P_2: #I had this equality mixed up for like a week fml... you remember when you are in elementary school, and they are teaching you about this
+            if P_crit_low > P_2: #I had this equality mixed up for like a week fml... you remember when you are in elementary school, and they are teaching you about this
                 #in terms of crocodile mouths going right or left, yea i clearly dont either send me back bruh
                 #print("SATURATED INLET CHOKED: ")
                 
@@ -264,6 +295,9 @@ def proposed_model_inst(P_1, P_2, T_1): #TODO: ADD below constants TO MODEL INPU
 
                 #m_dot = A_inj_ox*G_low  #A_inj_ox *( (P_sat/P_1)*G_sat + (1-(P_sat/P_1))*G_low )
                 m_dot = A_inj_ox *( (P_sat/P_1)*G_sat + (1-(P_sat/P_1))*G_low )
+
+                #m_dot = None
+                #print(G_sat, G_low)
                 #print(eta_crit_low, eta_crit_sat)
 
             else: #not choked use dyer model
@@ -276,9 +310,9 @@ def proposed_model_inst(P_1, P_2, T_1): #TODO: ADD below constants TO MODEL INPU
 
 
 waxman_data = [ (280, 0.28e6, 'black'), (281, 0.55e6, 'red'), (282, 0.79e6, 'maroon' ), (281, 1.17e6, 'orangered'), (282, 1.42e6, 'pink'), (281, 1.85e6, 'yellow'), (282, 2e6, 'orange'), (283, 2.27e6, 'green'), (283, 2.55e6, 'blue') ]
-
+#waxman_data = [(282, 0.79e6, 'maroon' ), (281, 1.17e6, 'orangered'), (282, 1.42e6, 'pink'), (281, 1.85e6, 'yellow'), (282, 2e6, 'orange'), (283, 2.27e6, 'green'), (283, 2.55e6, 'blue') ]
 #waxman_data = [ (282, 0.79e6, 'maroon' ), (282, 2e6, 'orange'), ]
-#waxman_data = [ (280, 0.28e6, 'black'), (281, 0.55e6, 'red')]
+#waxman_data = [ (280, 0.28e6, 'black') , (281, 0.55e6, 'red')]
 #waxman_data = [(282, 1.42e6, 'pink') ]
 #waxman_data = [ (283, 2.55e6, 'blue') ]
 
@@ -286,7 +320,7 @@ temp, P_super, correlating_colors = zip(*waxman_data)
 
 for i in range(len(waxman_data)):
     T = temp[i]
-    vapor_pressure = CP.PropsSI('P', 'T', T, 'Q', 1, 'N2O')  
+    vapor_pressure = CP.PropsSI('P', 'T', T, 'Q', 0, 'N2O')  
     total_pres = vapor_pressure + P_super[i]
 
     P_upstream = total_pres
