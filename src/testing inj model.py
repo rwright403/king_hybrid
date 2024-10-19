@@ -213,7 +213,7 @@ def proposed_model_inst(P_1, P_2, T_1): #TODO: ADD below constants TO MODEL INPU
             #print("HIGH SUBCOOLED")
 
             P_sat = 0.9*CP.PropsSI('P', 'T', T_1, 'Q', 0, 'N2O')
-            print("correction factor of 0.9")
+            #print("correction factor of 0.9")
             omega_sat = (c_1_l*T_1*P_sat/v_1_l)*( (v_1_lg/h_1_lg)**2)
             eta_transition =  2*omega_sat / (1 + 2*omega_sat)
 
@@ -234,7 +234,7 @@ def proposed_model_inst(P_1, P_2, T_1): #TODO: ADD below constants TO MODEL INPU
                 # SPI MODEL
                 rho_1_spi = CP.PropsSI('D', 'H', h_1, 'P', P_1, 'N2O') 
                 m_dot = 1.105*Cd_hem_spi_dyer * A_inj_ox * np.sqrt( 2 * rho_1_spi * (P_1 - P_2)  )
-                print("correction factor of 1.105")
+                #print("correction/smoothing factor of 1.105")
                 
                 #plt.axvline( x = (P_1-P_2), color = 'r', linestyle = '-' )
 
@@ -279,11 +279,28 @@ def proposed_model_inst(P_1, P_2, T_1): #TODO: ADD below constants TO MODEL INPU
             #check for choking
             if P_2 <= P_crit: #choked flow
                 G_low = np.sqrt(rho_1_l * P_1) * np.sqrt( 2*(1-eta_sat) + 2*(omega_sat*eta_sat*np.log(eta_sat/eta_crit_low) - (omega_sat-1)*(eta_sat-eta_crit_low))) / (omega_sat*((eta_sat/eta_crit_low) - 1) + 1)
-                m_dot = A_inj_ox *( (P_sat/P_1)*G_sat + (1-(P_sat/P_1))*G_low )
+                m_dot= A_inj_ox *( (P_sat/P_1)*G_sat + (1-(P_sat/P_1))*G_low )
 
             else: #not choked use dyer model
-                m_dot = 1.14*dyer_model( Cd_hem_spi_dyer, A_inj_ox, P_1, P_sat, P_2, h_1 )
-                print("note correction factor")
+
+                #solve choked: 
+                G_sat_choked = eta_crit_sat * np.sqrt(P_1*rho_1/omega_sat)
+                #implicitly solve eta_crit_low
+                eta = P_2 / P_1
+                eta_crit_low = eta #initial guess for critical pressure ratio
+
+                while np.abs(LOWSUBCOOLEDerror(eta_crit_low, eta_sat, omega_sat) ) > all_err:
+                    eta_crit_low = secant((lambda T: LOWSUBCOOLEDerror(T, eta_sat, omega_sat)), eta_crit_low)
+                P_crit_low = eta_crit_low * P_1
+
+                P_crit = eta_sat*P_crit_sat + (1-eta_sat)*P_crit_low #NOTE: using modified omega model to predict choking pressure and mass flow rate
+
+                G_low_choked = np.sqrt(rho_1_l * P_1) * np.sqrt( 2*(1-eta_sat) + 2*(omega_sat*eta_sat*np.log(eta_sat/eta_crit_low) - (omega_sat-1)*(eta_sat-eta_crit_low))) / (omega_sat*((eta_sat/eta_crit_low) - 1) + 1)
+                m_dot_choked = A_inj_ox *( (P_sat/P_1)*G_sat_choked + (1-(P_sat/P_1))*G_low_choked )
+
+                smoothing_factor = (6.083086*m_dot_choked + 0.844554896)
+                print("smoothing factor: ", smoothing_factor)
+                m_dot = (smoothing_factor)*dyer_model( Cd_hem_spi_dyer, A_inj_ox, P_1, P_sat, P_2, h_1 )
 
     return(m_dot)
     
