@@ -38,6 +38,10 @@ ax1.set_xscale('log')
 ax1.legend(loc='best')
 ax1.grid(True, which="both", ls="--")
 
+#ax1.axhline(y=CP.PropsSI('P', 'T', 282, 'Q', 1, substance), color='rebeccapurple', linestyle='--')
+ax1.axhline(y=(2.55e6 + CP.PropsSI('P', 'T', 282, 'Q', 1, substance)), color='rebeccapurple', linestyle='--')
+#ax1.scatter(y = (2.55e6 + CP.PropsSI('P', 'T', T, 'Q', 282, 'N2O') ), )
+
 # Plot T-S diagram
 ax2.plot(S_sat_liq, temperatures, 'b-', label='Saturated Liquid')
 ax2.plot(S_sat_vap, temperatures, 'r-', label='Saturated Vapor')
