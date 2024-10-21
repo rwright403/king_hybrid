@@ -36,52 +36,57 @@ def LOWSUBCOOLEDerror(eta_crit, eta_sat, omega_sat):
     return function_diff
 
 
+def spi_model(Cd_hem_spi_dyer, A_inj_ox, P_1, P_2, h_1):
+    rho_1_spi = CP.PropsSI('D', 'H', h_1, 'P', P_1, 'N2O') 
+    m_dot_spi = Cd_hem_spi_dyer * A_inj_ox * np.sqrt( 2 * rho_1_spi * (P_1 - P_2)  )
+    return m_dot_spi
+
+def hem_model(Cd_hem_spi_dyer, A_inj_ox, P_1, P_2, h_1):
+    # HEM MODEL
+    m_dot_hem = None
+    downstream_pres_arr = np.linspace(P_2, P_1, 100)
+    m_dot_hem_arr = []
+
+    for pres in downstream_pres_arr:
+        s_2 = CP.PropsSI('S', 'H', h_1, 'P', P_1, 'N2O') #assuming isentropic, upstream entropy equals downstream entropy
+        h_2_hem = CP.PropsSI('H', 'S', s_2, 'P', pres, 'N2O')
+        rho_2_hem = CP.PropsSI('D', 'S', s_2, 'P', pres, 'N2O')
+            
+        m_dot_hem = Cd_hem_spi_dyer * A_inj_ox * rho_2_hem * np.sqrt( 2 * np.abs(h_1 -  h_2_hem) )
+            
+        m_dot_hem_arr.append(m_dot_hem)
+
+    m_dot_hem_crit = np.max(m_dot_hem_arr)
+    P_crit = downstream_pres_arr[np.argmax(m_dot_hem_arr)]
+
+    if P_2 < P_crit: #flow is choked
+        m_dot_hem = m_dot_hem_crit
+
+    else: #flow is unchoked
+        s_1 = CP.PropsSI('S', 'H', h_1, 'P', P_1, 'N2O')
+        h_2_hem = CP.PropsSI('H', 'S', s_1, 'P', P_2, 'N2O')
+        rho_2_hem = CP.PropsSI('D', 'S', s_1, 'P', P_2, 'N2O')
+        m_dot_hem = Cd_hem_spi_dyer * A_inj_ox * rho_2_hem * np.sqrt( 2 * (h_1 -  h_2_hem) )
+
+    return m_dot_hem
+
 
 def dyer_model( Cd_hem_spi_dyer, A_inj_ox, P_1, P_sat, P_2, h_1):
 
-    # SPI MODEL
-    rho_1_spi = CP.PropsSI('D', 'H', h_1, 'P', P_1, 'N2O') 
-    m_dot_spi = Cd_hem_spi_dyer * A_inj_ox * np.sqrt( 2 * rho_1_spi * (P_1 - P_2)  )
+    m_dot_spi = spi_model(Cd_hem_spi_dyer, A_inj_ox, P_1, P_2, h_1)
                                         
-
     #NOTE: FOR THIS CASE NO CAVITATION SO WE ARE JUST USING THE SPI MODEL
     if(P_sat < P_2):
-        m_dot = m_dot_spi
+        m_dot_dyer = m_dot_spi
 
     #NOTE: ELSE TWO PHASE AT INJ OUTLET AND USE DYER TO ACCOUNT FOR TWO PHASE EFFECTS
     else:
-
-        # HEM MODEL
-        m_dot_hem = None
-        downstream_pres_arr = np.linspace(P_2, P_1, 100)
-        m_dot_hem_arr = []
-
-        for pres in downstream_pres_arr:
-            s_2 = CP.PropsSI('S', 'H', h_1, 'P', P_1, 'N2O') #assuming isentropic, upstream entropy equals downstream entropy
-            h_2_hem = CP.PropsSI('H', 'S', s_2, 'P', pres, 'N2O')
-            rho_2_hem = CP.PropsSI('D', 'S', s_2, 'P', pres, 'N2O')
-            
-            m_dot_hem = Cd_hem_spi_dyer * A_inj_ox * rho_2_hem * np.sqrt( 2 * np.abs(h_1 -  h_2_hem) )
-            
-            m_dot_hem_arr.append(m_dot_hem)
-
-        m_dot_hem_crit = np.max(m_dot_hem_arr)
-        P_crit = downstream_pres_arr[np.argmax(m_dot_hem_arr)]
-
-        if P_2 < P_crit: #flow is choked
-            m_dot_hem = m_dot_hem_crit
-
-        else: #flow is unchoked
-            s_1 = CP.PropsSI('S', 'H', h_1, 'P', P_1, 'N2O')
-            h_2_hem = CP.PropsSI('H', 'S', s_1, 'P', P_2, 'N2O')
-            rho_2_hem = CP.PropsSI('D', 'S', s_1, 'P', P_2, 'N2O')
-            m_dot_hem = Cd_hem_spi_dyer * A_inj_ox * rho_2_hem * np.sqrt( 2 * (h_1 -  h_2_hem) )
-
-
+        m_dot_hem = hem_model(Cd_hem_spi_dyer, A_inj_ox, P_1, P_2, h_1)
+        
         dyer_k = np.sqrt( (P_1 - P_2) / (P_sat - P_2) ) 
-        m_dot = ((dyer_k/(1+dyer_k)) * m_dot_spi) + ((1/(1+dyer_k)) * m_dot_hem)
+        m_dot_dyer = ((dyer_k/(1+dyer_k)) * m_dot_spi) + ((1/(1+dyer_k)) * m_dot_hem)
     
-    return m_dot
+    return m_dot_dyer
 
 
 
@@ -269,7 +274,7 @@ for i in range(len(inj_data)):
     print(correlating_colors[i],"\n----------")
 
     for j in P_arr:
-        x = modified_emerson_and_mohammad_model_inst(P_upstream, j,  T)
+        x = modified_emerson_and_mohammad_model_inst(P_upstream, j, T)
         m_dot_arr.append(x)
         delta_P_arr.append(P_upstream-j)
 
