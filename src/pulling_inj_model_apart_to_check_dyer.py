@@ -35,63 +35,123 @@ def LOWSUBCOOLEDerror(eta_crit, eta_sat, omega_sat):
     function_diff = (((omega_sat+(1/omega_sat)-2)/(2*eta_sat))*(eta_crit**2)) - (2*(omega_sat-1)*eta_crit) + (omega_sat*eta_sat*np.log(eta_crit/eta_sat)) + ((3/2)*omega_sat*eta_sat) - 1
     return function_diff
 
+def thermo_span_wagner(rho, T, param):
+    # Constants for N2O
+    R = 8.3144598 / 44.0128 * 1000  # Gas constant (J/kg*K)
+    T_c = 309.52  # Critical Temperature (K)
+    rho_c = 452.0115  # Critical Density (kg/m^3)
 
+    n0 = np.array([0.88045, -2.4235, 0.38237, 0.068917, 0.00020367, 0.13122, 0.46032,
+          -0.0036985, -0.23263, -0.00042859, -0.042810, -0.023038])
+    n1 = n0[0:5]
+    n2 = n0[5:12]
+    a1 = 10.7927224829
+    a2 = -8.2418318753
+    c0 = 3.5
+    v0 = np.array([2.1769, 1.6145, 0.48393])
+    u0 = np.array([879, 2372, 5447])
+    t0 = np.array([0.25, 1.125, 1.5, 0.25, 0.875, 2.375, 2, 2.125, 3.5, 6.5, 4.75, 12.5])
+    d0 = np.array([1, 1, 1, 3, 7, 1, 2, 5, 1, 1, 4, 2])
+    P0 = np.array([1, 1, 1, 2, 2, 2, 3])
+    t1 = t0[0:5]
+    t2 = t0[5:12]
+    d1 = d0[0:5]
+    d2 = d0[5:12]
 
-def dyer_model( Cd_hem_spi_dyer, A_inj_ox, P_1, P_sat, P_2, h_1):
+    # Calculate non-dimensional variables
+    tau = T_c / T
+    delta = rho / rho_c
+
+    # Calculate explicit Helmholtz energy and derivatives
+    ao = a1 + a2 * tau + np.log(delta) + (c0 - 1) * np.log(tau) + np.sum(v0 * np.log(1 - np.exp(-u0 * tau / T_c)))
+    ar = np.sum(n1 * tau**t1 * delta**d1) + np.sum(n2 * tau**t2 * delta**d2 * np.exp(-delta**P0))
+    ao_tau = a2 + (c0 - 1) / tau + np.sum(v0 * u0 / T_c * np.exp(-u0 * tau / T_c) / (1 - np.exp(-u0 * tau / T_c)))
+    ao_tautau = -(c0 - 1) / tau**2 + np.sum(-v0 * u0**2 / T_c**2 * np.exp(-u0 * tau / T_c) / (1 - np.exp(-u0 * tau / T_c))**2)
+    ar_tau = np.sum(n1 * t1 * tau**(t1 - 1) * delta**d1) + np.sum(n2 * t2 * tau**(t2 - 1) * delta**d2 * np.exp(-delta**P0))
+    ar_tautau = np.sum(n1 * t1 * (t1 - 1) * tau**(t1 - 2) * delta**d1) + np.sum(n2 * t2 * (t2 - 2) * tau**(t2 - 2) * delta**d2 * np.exp(-delta**P0))
+    ar_delta = np.sum(n1 * d1 * delta**(d1 - 1) * tau**t1) + np.sum(n2 * tau**t2 * delta**(d2 - 1) * (d2 - P0 * delta**P0) * np.exp(-delta**P0))
+    ar_deltadelta = np.sum(n1 * d1 * (d1 - 1) * delta**(d1 - 2) * tau**t1) + np.sum(n2 * tau**t2 * delta**(d2 - 2) * ((d2 - P0 * delta**P0) * (d2 - 1 - P0 * delta**P0) - P0**2 * delta**P0) * np.exp(-delta**P0))
+    ar_deltatau = np.sum(n1 * d1 * t1 * delta**(d1 - 1) * tau**(t1 - 1)) + np.sum(n2 * t2 * tau**(t2 - 1) * delta**(d2 - 1) * (d2 - P0 * delta**P0) * np.exp(-delta**P0))
+
+    out = 0.0
+    if param == 'p':  # Pressure (Pa)
+        out = rho * R * T * (1 + delta * ar_delta)
+    elif param == 'u':  # Specific internal energy (J/kg)
+        out = R * T * tau * (ao_tau + ar_tau)
+    elif param == 's':  # Specific entropy (J/kg*K)
+        out = R * (tau * (ao_tau + ar_tau) - ao - ar)
+    elif param == 'h':  # Specific enthalpy (J/kg)
+        out = R * T * (1 + tau * (ao_tau + ar_tau) + delta * ar_delta)
+    elif param == 'cv':  # Specific heat constant volume (J/kg*K)
+        out = R * -tau**2 * (ao_tautau + ar_tautau)
+    elif param == 'cp':  # Specific heat constant pressure (J/kg*K)
+        out = R * (-tau**2 * (ao_tautau + ar_tautau) + (1 + delta * ar_delta - delta * tau * ar_deltatau)**2 / (1 + 2 * delta * ar_delta + delta**2 * ar_deltadelta))
+    elif param == 'a':  # Speed of sound (m/s)
+        out = np.sqrt(R * T * (1 + 2 * delta * ar_delta + delta**2 * ar_deltadelta - (1 + delta * ar_delta - delta * tau * ar_deltatau)**2 / (tau**2 * (ao_tautau + ar_tautau))))
+    else:
+        raise ValueError('Invalid input')
+
+    return out
+
+def dyer_model( Cd_hem_spi_dyer, A_inj_ox, P_1, P_sat, P_2, h_1 ):
+
+    #print("dyer check inputs (P1,P_sat,P_2)",P_1, P_sat, P_2, )
 
     # SPI MODEL
     rho_1_spi = CP.PropsSI('D', 'H', h_1, 'P', P_1, 'N2O') 
     m_dot_spi = Cd_hem_spi_dyer * A_inj_ox * np.sqrt( 2 * rho_1_spi * (P_1 - P_2)  )
+
+    # HEM MODEL
+    m_dot_hem = None
+    downstream_pres_arr = np.linspace(P_2, P_1, 100)
+    m_dot_hem_arr = []
+
+    for pres in downstream_pres_arr:
+        s_2 = CP.PropsSI('S', 'H', h_1, 'P', P_1, 'N2O') #assuming isentropic, upstream entropy equals downstream entropy
+        h_2_hem = CP.PropsSI('H', 'S', s_2, 'P', pres, 'N2O')
+        rho_2_hem = CP.PropsSI('D', 'S', s_2, 'P', pres, 'N2O')
+        
+        m_dot_hem = Cd_hem_spi_dyer * A_inj_ox * rho_2_hem * np.sqrt( 2 * np.abs(h_1 -  h_2_hem) )
+        
+        m_dot_hem_arr.append(m_dot_hem)
+
+    m_dot_hem_crit = np.max(m_dot_hem_arr)
+    P_crit = downstream_pres_arr[np.argmax(m_dot_hem_arr)]
+
+
+    if P_2 < P_crit:
+        #print("HEM predict choked flow: ", P_crit, m_dot_hem_crit)
+        m_dot_hem = m_dot_hem_crit
+        #P_2 = P_crit
+        #plt.axvline( x = (P_1-P_2), color = 'rebeccapurple', linestyle = '-' )
+
+    else:
+        #print("HEM predict unchoked flow")
+        
+        s_1 = CP.PropsSI('S', 'H', h_1, 'P', P_1, 'N2O')
+        h_2_hem = CP.PropsSI('H', 'S', s_1, 'P', P_2, 'N2O')
+        rho_2_hem = CP.PropsSI('D', 'S', s_1, 'P', P_2, 'N2O')
+        m_dot_hem = Cd_hem_spi_dyer * A_inj_ox * rho_2_hem * np.sqrt( 2 * (h_1 -  h_2_hem) )
+        
+        #plt.axvline( x = (P_1-P_2), color = 'honeydew', linestyle = '-' )
                                         
 
-    #NOTE: FOR THIS CASE NO CAVITATION AND USING SPI MODEL
-    if(P_sat < P_2):
-        m_dot = m_dot_spi
+    # Dyer model
 
-    #NOTE: ELSE TWO PHASE AT INJ OUTLET AND USE DYER TO ACCOUNT FOR TWO PHASE EFFECTS
-    else:
+    #print(P_sat, CP.PropsSI('P', 'Q', 0, 'T', 282, 'N2O') )
+    dyer_k = np.sqrt( (P_1 - P_2) / (P_sat - P_2) ) 
+    #print(dyer_k, P_1, P_sat, P_2, P_crit)
 
-        # HEM MODEL
-        m_dot_hem = None
-        downstream_pres_arr = np.linspace(P_2, P_1, 100)
-        m_dot_hem_arr = []
-
-        for pres in downstream_pres_arr:
-            s_2 = CP.PropsSI('S', 'H', h_1, 'P', P_1, 'N2O') #assuming isentropic, upstream entropy equals downstream entropy
-            h_2_hem = CP.PropsSI('H', 'S', s_2, 'P', pres, 'N2O')
-            rho_2_hem = CP.PropsSI('D', 'S', s_2, 'P', pres, 'N2O')
-            
-            m_dot_hem = Cd_hem_spi_dyer * A_inj_ox * rho_2_hem * np.sqrt( 2 * np.abs(h_1 -  h_2_hem) )
-            
-            m_dot_hem_arr.append(m_dot_hem)
-
-        m_dot_hem_crit = np.max(m_dot_hem_arr)
-        P_crit = downstream_pres_arr[np.argmax(m_dot_hem_arr)]
+    #NOTE: FOR THIS CASE REPLACED DYER CALL WITH SPI MODEL SINCE THAT WILL BE DOMINATE MASS FLOW PREDICITON
+    #if(P_sat < P_2) and (m_dot_hem == m_dot_hem_crit) :
+    #    print("(-) ", P_1, P_sat, P_2)
 
 
-
-        if P_2 < P_crit:
-            #print("HEM predict choked flow: ", P_crit, m_dot_hem_crit)
-            m_dot_hem = m_dot_hem_crit
-            #P_2 = P_crit
-            #plt.axvline( x = (P_1-P_2), color = 'rebeccapurple', linestyle = '-' )
-
-        else:
-            #print("HEM predict unchoked flow")
-            
-            s_1 = CP.PropsSI('S', 'H', h_1, 'P', P_1, 'N2O')
-            h_2_hem = CP.PropsSI('H', 'S', s_1, 'P', P_2, 'N2O')
-            rho_2_hem = CP.PropsSI('D', 'S', s_1, 'P', P_2, 'N2O')
-            m_dot_hem = Cd_hem_spi_dyer * A_inj_ox * rho_2_hem * np.sqrt( 2 * (h_1 -  h_2_hem) )
-            
-            #plt.axvline( x = (P_1-P_2), color = 'honeydew', linestyle = '-' )
-
-        dyer_k = np.sqrt( (P_1 - P_2) / (P_sat - P_2) ) 
-        m_dot = ((dyer_k/(1+dyer_k)) * m_dot_spi) + ((1/(1+dyer_k)) * m_dot_hem)
+    m_dot_dyer = ((dyer_k/(1+dyer_k)) * m_dot_spi) + ((1/(1+dyer_k)) * m_dot_hem)
     
     #print(P_sat, P_2, m_dot_dyer, m_dot_hem, m_dot_spi)
 
-    return m_dot
+    return m_dot_dyer
 
 
 
@@ -128,24 +188,20 @@ def proposed_model_inst(P_1, P_2, T_1): #TODO: ADD below constants TO MODEL INPU
     v_1_g = 1/CP.PropsSI('D', 'Q', 1, 'P', P_1, 'N2O')
     v_1_l = 1/CP.PropsSI('D', 'Q', 0, 'P', P_1, 'N2O')
     v_1_lg = v_1_g - v_1_l
+
     h_1_g = CP.PropsSI('H', 'Q', 1, 'P', P_1, 'N2O')
     h_1_l = CP.PropsSI('H', 'Q', 0, 'P', P_1, 'N2O')
     h_1_lg = h_1_g - h_1_l
 
-    c_1_l = CP.PropsSI('CPMASS', 'Q', 0, 'P', P_1, 'N2O') #BUG: ? assuming specific heat capacity at constant pressure, thesis wasnt clear, might be a mistake
+    c_1_l = CP.PropsSI('CPMASS', 'Q', 0, 'P', P_1, 'N2O')
 
     
-
     rho_1 = CP.PropsSI('D', 'P', P_1, 'T', T_1, 'N2O')
     v_1 = 1/rho_1
     h_1 = CP.PropsSI('H', 'P', P_1, 'T', T_1, 'N2O')
 
     x_1 = 0 #ASSUMPTION, TESTING THIS, MIGHT NOT WORK, THATS OK
 
-    #NOTE: MIGHT NEED TO USE P_1 UP THERE ^ this was changed to help fix choked subcooled, negligible effect tho, if other errors introduced, try changing back but i dont think this is a likely cause
-
-    #1) --> check inlet fluid state (sat liq. or subcooled)
-    phase = CP.PropsSI('Phase', 'P', P_1, 'T', T_1, 'N2O')
 
     omega_sat = (x_1*v_1_lg/v_1) + (c_1_l*T_1*P_1/v_1)*((v_1_lg/h_1_lg)**2) #i think this makes sense for it to be P_sat based off of Emerson's thesis but not sure anymore
     eta_sat = P_sat / P_1 
@@ -163,13 +219,10 @@ def proposed_model_inst(P_1, P_2, T_1): #TODO: ADD below constants TO MODEL INPU
     P_crit_sat = eta_crit_sat * P_1
     #print("\n", eta_crit_sat * P_1, eta_crit_sat * P_sat, "\n")
 
-    if P_crit_sat > P_2: #I had this equality mixed up for like a week fml... you remember when you are in elementary school, and they are teaching you about this
-        #in terms of crocodile mouths going right or left, yea i clearly dont either send me back bruh
+    if P_crit_sat > P_2: 
         #print("SATURATED INLET CHOKED: ")
-        
-        
         G_sat = eta_crit_sat * np.sqrt(P_1*rho_1/omega_sat)
-        #print("saturated inlet choking: ", G_sat)
+
     else:
         #print("SATURATED INLET ***NOT*** CHOKED: ")
         G_sat = np.sqrt(P_1*rho_1) *np.sqrt( -2*(omega_sat * np.log(eta_sat) + (omega_sat -1)*(1 - eta_sat)) ) / (omega_sat*((1/eta_sat) - 1) + 1)
@@ -185,8 +238,8 @@ def proposed_model_inst(P_1, P_2, T_1): #TODO: ADD below constants TO MODEL INPU
     if phase == 0: #subcooled fluid 
 
         #setup subcooled fluid inlet 
-        P_sat = CP.PropsSI('P', 'T', T_1, 'Q', 0, 'N2O')
         
+        P_sat = CP.PropsSI('P', 'T', T_1, 'Q', 0, 'N2O')
 
         v_1_g = 1/CP.PropsSI('D', 'Q', 1, 'P', P_1, 'N2O')
         rho_1_l = CP.PropsSI('D', 'Q', 0, 'P', P_1, 'N2O')
@@ -203,6 +256,8 @@ def proposed_model_inst(P_1, P_2, T_1): #TODO: ADD below constants TO MODEL INPU
         v_1 = 1/rho_1
         h_1 = CP.PropsSI('H', 'T', T_1, 'P', P_1, 'N2O')
 
+        
+
         omega_sat = (c_1_l*T_1*P_sat/v_1_l)*( (v_1_lg/h_1_lg)**2)
         eta_transition =  2*omega_sat / (1 + 2*omega_sat)
         
@@ -211,7 +266,7 @@ def proposed_model_inst(P_1, P_2, T_1): #TODO: ADD below constants TO MODEL INPU
         if P_sat <= (eta_transition * P_1):
             #print("HIGH SUBCOOLED")
 
-            P_sat = 0.9*CP.PropsSI('P', 'T', T_1, 'Q', 0, 'N2O')
+            P_sat = CP.PropsSI('P', 'T', T_1, 'Q', 0, 'N2O')
             #print("correction factor of 0.9")
             omega_sat = (c_1_l*T_1*P_sat/v_1_l)*( (v_1_lg/h_1_lg)**2)
             eta_transition =  2*omega_sat / (1 + 2*omega_sat)
@@ -233,9 +288,12 @@ def proposed_model_inst(P_1, P_2, T_1): #TODO: ADD below constants TO MODEL INPU
                 # SPI MODEL
                 rho_1_spi = CP.PropsSI('D', 'H', h_1, 'P', P_1, 'N2O') 
                 m_dot = 1.105*Cd_hem_spi_dyer * A_inj_ox * np.sqrt( 2 * rho_1_spi * (P_1 - P_2)  )
+
+                m_dot = dyer_model( Cd_hem_spi_dyer, A_inj_ox, P_1, P_sat, P_2, h_1 )
                 #print("correction/smoothing factor of 1.105")
                 
                 #plt.axvline( x = (P_1-P_2), color = 'r', linestyle = '-' )
+                print(P_1, P_sat, P_2)
 
 
 
@@ -297,9 +355,11 @@ def proposed_model_inst(P_1, P_2, T_1): #TODO: ADD below constants TO MODEL INPU
                 G_low_choked = np.sqrt(rho_1_l * P_1) * np.sqrt( 2*(1-eta_sat) + 2*(omega_sat*eta_sat*np.log(eta_sat/eta_crit_low) - (omega_sat-1)*(eta_sat-eta_crit_low))) / (omega_sat*((eta_sat/eta_crit_low) - 1) + 1)
                 m_dot_choked = A_inj_ox *( (P_sat/P_1)*G_sat_choked + (1-(P_sat/P_1))*G_low_choked )
 
-                smoothing_factor = (6.083086*m_dot_choked + 0.844554896)
-                print("smoothing factor: ", smoothing_factor)
-                m_dot = (smoothing_factor)*dyer_model( Cd_hem_spi_dyer, A_inj_ox, P_1, P_sat, P_2, h_1 )
+                #smoothing_factor = (6.083086*m_dot_choked + 0.844554896)
+                #print("smoothing factor: ", smoothing_factor)
+                #m_dot = (smoothing_factor)*dyer_model( Cd_hem_spi_dyer, A_inj_ox, P_1, P_sat, P_2, h_1 )
+                m_dot = dyer_model( Cd_hem_spi_dyer, A_inj_ox, P_1, P_sat, P_2, h_1 )
+                print(P_1, P_sat, P_2)
 
     return(m_dot)
     
@@ -307,12 +367,12 @@ def proposed_model_inst(P_1, P_2, T_1): #TODO: ADD below constants TO MODEL INPU
 
 
 
-waxman_data = [ (280, 0.28e6, 'black'), (281, 0.55e6, 'red'), (282, 0.79e6, 'maroon' ), (281, 1.17e6, 'orangered'), (282, 1.42e6, 'pink'), (281, 1.85e6, 'yellow'), (282, 2e6, 'orange'), (283, 2.27e6, 'green'), (283, 2.55e6, 'blue') ]
+#waxman_data = [ (280, 0.28e6, 'black'), (281, 0.55e6, 'red'), (282, 0.79e6, 'maroon' ), (281, 1.17e6, 'orangered'), (282, 1.42e6, 'pink'), (281, 1.85e6, 'yellow'), (282, 2e6, 'orange'), (283, 2.27e6, 'green'), (283, 2.55e6, 'blue') ]
 #waxman_data = [(282, 0.79e6, 'maroon' ), (281, 1.17e6, 'orangered'), (282, 1.42e6, 'pink'), (281, 1.85e6, 'yellow'), (282, 2e6, 'orange'), (283, 2.27e6, 'green'), (283, 2.55e6, 'blue') ]
 #waxman_data = [ (282, 0.79e6, 'maroon' ), (282, 2e6, 'orange'), ]
 #waxman_data = [ (280, 0.28e6, 'black') , (281, 0.55e6, 'red')]
 #waxman_data = [(282, 1.42e6, 'pink') ]
-#waxman_data = [ (283, 2.55e6, 'blue') ]
+waxman_data = [ (283, 2.55e6, 'blue') ]
 
 temp, P_super, correlating_colors = zip(*waxman_data)
 
@@ -337,6 +397,8 @@ for i in range(len(waxman_data)):
     print("\n\n\n")
 
     plt.plot(delta_P_arr,m_dot_arr, label = f'Supercharged {P_super[i]}', color = correlating_colors[i])
+
+print("NOTE: correction factor of 0.9 in high subcooled P_sat case")
 #plt.plot(delta_P_exp, m_dot_exp, label = 'exp data', color = 'pink')
 plt.xlabel('delta P (MPa)')
 plt.ylabel('Mass Flow Rate (kg/s)')
