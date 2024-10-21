@@ -347,7 +347,7 @@ class model():
             
             #dyer solve k to verify using correct model
             dyer_k = np.sqrt( (self.P_tank - self.P_cc) / ( CP.PropsSI('P', 'Q', 1, 'T', self.T_tank, 'N2O') - self.P_cc) ) #call coolprop to get vapor pressure
-            
+            print(self.T_tank, self.P_tank , self.P_cc, CP.PropsSI('P', 'Q', 1, 'T', self.T_tank, 'N2O') )
             m_dot_dyer = ((dyer_k/(1+dyer_k)) * m_dot_spi) + ((1/(1+dyer_k)) * m_dot_hem)
             self.m_dot_ox = m_dot_dyer
 
