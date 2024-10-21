@@ -109,51 +109,58 @@ def LOWSUBCOOLEDerror(eta_crit, eta_sat, omega_sat):
     function_diff = (((omega_sat+(1/omega_sat)-2)/(2*eta_sat))*(eta_crit**2)) - (2*(omega_sat-1)*eta_crit) + (omega_sat*eta_sat*np.log(eta_crit/eta_sat)) + ((3/2)*omega_sat*eta_sat) - 1
     return function_diff
 
-def dyer_model( Cd_hem_spi_dyer, A_inj_ox, P_1, P_sat, P_2, h_1):
 
-    # SPI MODEL
-    rho_1_spi = CP.PropsSI('D', 'H', h_1, 'P', P_1, 'N2O') 
-    m_dot_spi = Cd_hem_spi_dyer * A_inj_ox * np.sqrt( 2 * rho_1_spi * (P_1 - P_2)  )
+def spi_model(Cd_hem_spi_dyer, A_inj_ox, P_1, P_2, rho_tank_exit): 
+    m_dot_spi = Cd_hem_spi_dyer * A_inj_ox * np.sqrt( 2 * rho_tank_exit * (P_1 - P_2)  )
+    return m_dot_spi
+
+def hem_model(Cd_hem_spi_dyer, A_inj_ox, P_1, P_2, h_1):
+    # HEM MODEL
+    m_dot_hem = None
+    downstream_pres_arr = np.linspace(P_2, P_1, 100)
+    m_dot_hem_arr = []
+
+    for pres in downstream_pres_arr:
+        s_2 = CP.PropsSI('S', 'H', h_1, 'P', P_1, 'N2O') #assuming isentropic, upstream entropy equals downstream entropy
+        h_2_hem = CP.PropsSI('H', 'S', s_2, 'P', pres, 'N2O')
+        rho_2_hem = CP.PropsSI('D', 'S', s_2, 'P', pres, 'N2O')
+            
+        m_dot_hem = Cd_hem_spi_dyer * A_inj_ox * rho_2_hem * np.sqrt( 2 * np.abs(h_1 -  h_2_hem) )
+            
+        m_dot_hem_arr.append(m_dot_hem)
+
+    m_dot_hem_crit = np.max(m_dot_hem_arr)
+    P_crit = downstream_pres_arr[np.argmax(m_dot_hem_arr)]
+
+    if P_2 < P_crit: #flow is choked
+        m_dot_hem = m_dot_hem_crit
+
+    else: #flow is unchoked
+        s_1 = CP.PropsSI('S', 'H', h_1, 'P', P_1, 'N2O')
+        h_2_hem = CP.PropsSI('H', 'S', s_1, 'P', P_2, 'N2O')
+        rho_2_hem = CP.PropsSI('D', 'S', s_1, 'P', P_2, 'N2O')
+        m_dot_hem = Cd_hem_spi_dyer * A_inj_ox * rho_2_hem * np.sqrt( 2 * (h_1 -  h_2_hem) )
+
+    return m_dot_hem
+
+
+def dyer_model( Cd_hem_spi_dyer, A_inj_ox, P_1, P_sat, P_2, rho_tank_exit, h_1):
+
+    m_dot_spi = spi_model(Cd_hem_spi_dyer, A_inj_ox, P_1, P_2, rho_tank_exit)
                                         
-
     #NOTE: FOR THIS CASE NO CAVITATION SO WE ARE JUST USING THE SPI MODEL
     if(P_sat < P_2):
-        m_dot = m_dot_spi
+        m_dot_dyer = m_dot_spi
 
     #NOTE: ELSE TWO PHASE AT INJ OUTLET AND USE DYER TO ACCOUNT FOR TWO PHASE EFFECTS
     else:
-
-        # HEM MODEL
-        m_dot_hem = None
-        downstream_pres_arr = np.linspace(P_2, P_1, 100)
-        m_dot_hem_arr = []
-
-        for pres in downstream_pres_arr:
-            s_2 = CP.PropsSI('S', 'H', h_1, 'P', P_1, 'N2O') #assuming isentropic, upstream entropy equals downstream entropy
-            h_2_hem = CP.PropsSI('H', 'S', s_2, 'P', pres, 'N2O')
-            rho_2_hem = CP.PropsSI('D', 'S', s_2, 'P', pres, 'N2O')
-            
-            m_dot_hem = Cd_hem_spi_dyer * A_inj_ox * rho_2_hem * np.sqrt( 2 * np.abs(h_1 -  h_2_hem) )
-            
-            m_dot_hem_arr.append(m_dot_hem)
-
-        m_dot_hem_crit = np.max(m_dot_hem_arr)
-        P_crit = downstream_pres_arr[np.argmax(m_dot_hem_arr)]
-
-        if P_2 < P_crit: #flow is choked
-            m_dot_hem = m_dot_hem_crit
-
-        else: #flow is unchoked
-            s_1 = CP.PropsSI('S', 'H', h_1, 'P', P_1, 'N2O')
-            h_2_hem = CP.PropsSI('H', 'S', s_1, 'P', P_2, 'N2O')
-            rho_2_hem = CP.PropsSI('D', 'S', s_1, 'P', P_2, 'N2O')
-            m_dot_hem = Cd_hem_spi_dyer * A_inj_ox * rho_2_hem * np.sqrt( 2 * (h_1 -  h_2_hem) )
-
-
+        m_dot_hem = hem_model(Cd_hem_spi_dyer, A_inj_ox, P_1, P_2, h_1)
+        
         dyer_k = np.sqrt( (P_1 - P_2) / (P_sat - P_2) ) 
-        m_dot = ((dyer_k/(1+dyer_k)) * m_dot_spi) + ((1/(1+dyer_k)) * m_dot_hem)
+        m_dot_dyer = ((dyer_k/(1+dyer_k)) * m_dot_spi) + ((1/(1+dyer_k)) * m_dot_hem)
     
-    return m_dot
+    return m_dot_dyer
+
 
 def modified_emerson_and_mohammad_model_inst(P_1, P_2, T_1, x_1, A_inj_1, rho_1, h_1): #TODO: ADD below constants TO MODEL INPUTS:
     all_err = 0.01 #TODO: maybe UPDATE TO USE WHAT THE REST OF THE FUNCTION USES?
@@ -257,7 +264,7 @@ def modified_emerson_and_mohammad_model_inst(P_1, P_2, T_1, x_1, A_inj_1, rho_1,
                 m_dot = (Cd_high_supercharge*A_inj_1) * np.sqrt( 2*(1-eta_crit)*P_1*rho_1)
 
             else: 
-                m_dot = 1.105*dyer_model( Cd_hem_spi_dyer, A_inj_1, P_1, P_sat, P_2, h_1 )
+                m_dot = 1.105*dyer_model( Cd_hem_spi_dyer, A_inj_1, P_1, P_sat, P_2, rho_1, h_1 )
                 #print("correction/smoothing factor of 1.105")
 
 
@@ -314,7 +321,7 @@ def modified_emerson_and_mohammad_model_inst(P_1, P_2, T_1, x_1, A_inj_1, rho_1,
                 
                 smoothing_factor = (6.083086 * m_dot_choked + 0.8304554896) #I made this up to get the transition to be smooth
                 #print("smoothing factor: ", smoothing_factor)
-                m_dot = (smoothing_factor)*dyer_model( Cd_hem_spi_dyer, A_inj_1, P_1, P_sat, P_2, h_1 )
+                m_dot = (smoothing_factor)*dyer_model( Cd_hem_spi_dyer, A_inj_1, P_1, P_sat, P_2, rho_1, h_1 )
 
     return(m_dot)
 
@@ -485,93 +492,20 @@ class model():
         ### SPI MODEL ###
         if(self.inj_model == 1):
             #correct density for this model calculated from above based on nitrous state
-            self.m_dot_ox = self.Cd_1 *self.A_inj_1 * np.sqrt( 2 * self.rho_exit * (self.P_tank - self.P_cc)  )
+            self.m_dot_ox = spi_model(self.Cd_1, self.A_inj_1, self.P_tank, self.P_cc, self.rho_exit)
 
             #print(self.rho_exit, self.rho_liq, self.x_tank, h_tank_exit, self.P_tank, self.P_cc)
 
 
         ### HEM MODEL ###
         elif(self.inj_model == 2):
-            #assuming isentropic, upstream entropy equals downstream entropy
-            s_inj = CP.PropsSI('S', 'H', h_tank_exit, 'P', self.P_tank, 'N2O')
-            h_inj_exit = CP.PropsSI('H', 'S', s_inj, 'P', self.P_cc, 'N2O')
-            
-            self.rho_exit = CP.PropsSI('D', 'S', s_inj, 'P', self.P_cc, 'N2O')
-
-            downstream_pres_arr = np.linspace(1e5, self.P_tank, 100)
-            m_dot_HEM_arr = []
-
-            for pres in downstream_pres_arr:
-                rho_exit = CP.PropsSI('D', 'S', s_inj, 'P', pres, 'N2O')
-                m_dot_HEM = (self.Cd_1*self.A_inj_1) * rho_exit * np.sqrt( 2 * (h_tank_exit -  h_inj_exit) ) #NOTE: might need to recalc h_inj_exit
-                m_dot_HEM_arr.append(m_dot_HEM)
-
-            m_dot_HEM_crit = np.max(m_dot_HEM_arr)
-            P_crit = downstream_pres_arr[np.argmax(m_dot_HEM_arr)]
-
-            if P_cc < P_crit:
-                print("choked flow")
-                self.m_dot_ox = m_dot_HEM_crit
-
-            else:
-                print("unchoked")
-                rho_exit = CP.PropsSI('D', 'S', s_inj, 'P', P_cc, 'N2O')
-                self.m_dot_ox = (self.Cd_1*self.A_inj_1) * rho_exit * np.sqrt( 2 * (h_tank_exit -  h_inj_exit) )
-
-
-
-            """
-            self.m_dot_ox  = self.Cd_1 * self.A_inj_1 * self.rho_exit * np.sqrt( 2 * (h_tank_exit -  h_inj_exit) )
-            print("test vals: ", self.Cd_1, self.A_inj_1, self.rho_exit, h_tank_exit, h_inj_exit, self.P_tank, self.P_cc)
-            """
-
+            self.m_dot_ox = hem_model(self.Cd_1, self.A_inj_1, self.P_tank, self.P_cc, h_tank_exit)
 
         ### DYER MODEL ###
 
         #TODO: USE DYER MODEL FUNCTION ABOVE!
         elif(self.inj_model == 3):
-            
-            ### SPI MODEL ###
-            rho_exit_spi = CP.PropsSI('D', 'H', h_tank_exit, 'P', self.P_cc, 'N2O') #is isentropic valid for this model?
-            m_dot_spi = self.Cd_1 * self.A_inj_1 * np.sqrt( 2 * rho_exit_spi * (self.P_tank - self.P_cc)  )
-
-            ### HEM MODEL ###
-
-            #assuming isentropic, upstream entropy equals downstream entropy
-            s_inj = CP.PropsSI('S', 'H', h_tank_exit, 'P', self.P_tank, 'N2O')
-            h_inj_exit = CP.PropsSI('H', 'S', s_inj, 'P', self.P_cc, 'N2O')
-            #rho_exit_hem = CP.PropsSI('D', 'S', s_inj, 'P', self.P_cc, 'N2O')
-
-            #m_dot_hem = self.Cd_1 * self.A_inj_1 * rho_exit_hem * np.sqrt( 2 * (h_tank_exit -  h_inj_exit) )
-            
-            m_dot_hem = None
-            downstream_pres_arr = np.linspace(1e5, self.P_tank, 100)
-            m_dot_hem_arr = []  
-
-            for pres in downstream_pres_arr:
-                rho_exit_hem = CP.PropsSI('D', 'S', s_inj, 'P', pres, 'N2O')
-                m_dot_hem_i = (self.Cd_1*self.A_inj_1) * rho_exit_hem * np.sqrt( 2 * (h_tank_exit -  h_inj_exit) ) #NOTE: might need to recalc h_inj_exit
-                m_dot_hem_arr.append(m_dot_hem_i)
-
-            m_dot_hem_crit = np.max(m_dot_hem_arr)
-            P_crit = downstream_pres_arr[np.argmax(m_dot_hem_arr)]
-
-            if P_cc < P_crit:
-                #print("choked flow")
-                m_dot_hem = m_dot_hem_crit#*self.Cd_1 #NOTE: MIGHT HAVE MISSED Cd_1 here
-
-            else:
-                #print("unchoked")
-                rho_exit_hem = CP.PropsSI('D', 'S', s_inj, 'P', self.P_cc, 'N2O')
-                m_dot_hem = (self.Cd_1*self.A_inj_1) * rho_exit_hem * np.sqrt( 2 * (h_tank_exit -  h_inj_exit) )
-
-
-            
-            #dyer solve k to verify using correct model
-            dyer_k = np.sqrt( (self.P_tank - self.P_cc) / ( CP.PropsSI('P', 'Q', 1, 'T', self.T_tank, 'N2O') - self.P_cc) ) #call coolprop to get vapor pressure
-            print(self.T_tank, self.P_tank , self.P_cc, CP.PropsSI('P', 'Q', 1, 'T', self.T_tank, 'N2O') )
-            m_dot_dyer = ((dyer_k/(1+dyer_k)) * m_dot_spi) + ((1/(1+dyer_k)) * m_dot_hem)
-            self.m_dot_ox = m_dot_dyer
+            self.m_dot_ox = dyer_model(self.Cd_1, self.A_inj_1, self.P_tank, self.P_cc, self.rho_exit, h_tank_exit)
 
             
             #NOTE: not sure if this works/makes sense but couldnt think of a better way to get outlet density
