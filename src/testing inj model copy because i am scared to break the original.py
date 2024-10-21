@@ -147,10 +147,6 @@ def modified_emerson_and_mohammad_model_inst(P_1, P_2, T_1, x_1): #TODO: ADD bel
     #1) --> check inlet fluid state (sat liq. or subcooled)
     phase = CP.PropsSI('Phase', 'P', P_1, 'T', T_1, 'N2O')
 
-    phase = 5
-
-    print(rho_1)
-
     if phase == 5: #saturated liquid vapor
         k_cavitation_const = (P_1 - P_sat) / (P_1 - P_2)
         Cd_twophase = 0.386 + 0.361*np.sqrt(k_cavitation_const)
