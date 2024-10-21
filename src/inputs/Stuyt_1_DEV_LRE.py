@@ -89,7 +89,7 @@ timestep = timestep
 m_ox = 5.73815484158 #kg 
 #NOTE: GUESSING Cd
 Cd_1 =  0.6
-A_inj_1 = 3.090605599220321e-5 #m^2
+A_inj_1 = 2.5*3.090605599220321e-5 #m^2
 V_tank = 0.01177057403 #m^3
 P_tank = 5.2e6 #Pa
 P_atm = P_atm 
@@ -99,7 +99,7 @@ all_error = 0.01
 # 1 --> SPI 
 # 2 --> HEM
 # 3 --> Dyer
-inj_model = 3
+inj_model = 4
 
 
 """awful liquid"""
