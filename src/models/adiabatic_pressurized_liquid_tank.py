@@ -109,7 +109,7 @@ class model():
 
         rho_exit = self.rho_prop
         
-        print(self.P_tank, P_downstream)
+        #print(self.P_tank, P_downstream)
 
         testing = self.P_tank-P_downstream
         if testing < 0:
