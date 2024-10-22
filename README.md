@@ -19,7 +19,8 @@ I would recommend checking his thesis and program out. His work taught me a good
 
 I made this progam to help with rocket engine design. I decided to make this over alternatives like
 already built software packages alternatives because I enjoy programming and I value having the control
-of creating my own models and the understanding it brings me. 
+of creating my own models and the understanding it brings me. I think it is important to have a good amount
+of understanding and control because of how finicky nitrous oxide is.
 
 Maybe this isn't the most efficient choice though. I have definitely learned a lot through making it though. Even when the program is broken, its cool to see how the errors propagate through the program. I have read about vehicle failures where the failure of a component causes several effects that propagate through the system, and I definitely see that when I have extraneous inputs.
 
@@ -32,7 +33,10 @@ I got some of the liquid stuff to work and by doing that broke the hybrid models
 ## Sources and Citations:
 | Number | Source                                                                                                                                                         |
 |--------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| 1      | Emerson Vargas Niño, Mohammad Reza H. Razavi, Design of Two-Phase Injectors Using Analytical and Numerical Methods with Application to Hybrid Rockets https://emersonvn.com/project/two_phase_injector/# |
+| 1      | Ben Klammer, Hybrid Modelling: https://github.com/bklammer/HybridModeling                                                                                      |
+| 2      | Emerson Vargas Niño, Mohammad Reza H. Razavi, Design of Two-Phase Injectors Using Analytical and Numerical Methods with Application to Hybrid Rockets https://emersonvn.com/project/two_phase_injector/# |
+| 3      | Benjamin S. Waxman, Jonah E. Zimmerman, Brian J. Cantwell, Mass Flow Rate and Isolation Characteristics of Injectors
+for Use with Self-Pressurizing Oxidizers in Hybrid Rockets https://ntrs.nasa.gov/api/citations/20190001326/downloads/20190001326.pdf |
 
 
 Ryan "king hybrid" Wright, From Calgary, Alberta, Canada --> University of Victoria, BC, Canada, 2023 --> forever (mech lab reference)
