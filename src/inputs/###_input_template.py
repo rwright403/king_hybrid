@@ -123,6 +123,16 @@ ID_PROPTANK = None
 TIMESTEP = timestep
 """
 
+"""piping_real_fuel_tank_data"""
+#
+""""
+T_tank = None
+Cd_spi = None
+A_inj = None
+fuel_name = None
+fuel_tank_pressure_filepath = None
+"""
+
 
 ### Plotting
 exp_thrust_file_path = None
