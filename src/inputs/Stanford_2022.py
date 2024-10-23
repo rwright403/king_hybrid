@@ -141,10 +141,10 @@ TIMESTEP = timestep
 
 
 ### Calling experimental data for thrust curve
-exp_thrust_file_path = None
-exp_p_cc_file_path = None
-exp_p_ox_tank_file_path = None
-exp_p_fuel_tank_file_path = None
+exp_thrust_file_path = r'./src/inputs/liquid_validation_data/Stanford_2022/Stanford_2022_Thrust.csv'
+exp_p_cc_file_path = r'./src/inputs/liquid_validation_data/Stanford_2022/Stanford_2022_CC_Pressure.csv'
+exp_p_ox_tank_file_path = r'./src/inputs/liquid_validation_data/Stanford_2022/Stanford_2022_Ox_Tank_Pressure.csv'
+exp_p_fuel_tank_file_path = r'./src/inputs/liquid_validation_data/Stanford_2022/Stanford_2022_Fuel_Tank_Pressure.csv'
 
 
 ### Sensitivity Analysis:
