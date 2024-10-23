@@ -7,7 +7,7 @@ matplotlib.use('Agg')  # Use the Agg backend
 
 
 # Load the image
-image_path = '/home/rwright/king_hybrid/prelim_sizing_tools_and_other_msc_programs/old_stuff_i_might_want_to_ref_later/waterloo_static_fire_2.png'
+image_path = '/home/rwright/king_hybrid/prelim_sizing_tools_and_other_msc_programs/STANFORDTHRUST.png'
 absolute_path = os.path.abspath(image_path)
 print("Absolute path to the image:", absolute_path)
 image = cv2.imread(image_path)
@@ -23,14 +23,14 @@ else:
 image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
 # Define color ranges (Green, Orange, Blue) in RGB
-green_lower = np.array([0, 120, 0])
-green_upper = np.array([150, 255, 150])
+#green_lower = np.array([0, 120, 0])
+#green_upper = np.array([150, 255, 150])
 
 orange_lower = np.array([150, 90, 0])
-orange_upper = np.array([255, 180, 100])
+orange_upper = np.array([260, 180, 100])
 
-blue_lower = np.array([0, 0, 100])
-blue_upper = np.array([120, 120, 255])
+#blue_lower = np.array([0, 0, 100])
+#blue_upper = np.array([120, 120, 255])
 
 # Function to create color masks
 def create_mask(image, lower, upper):
@@ -38,18 +38,18 @@ def create_mask(image, lower, upper):
     return mask
 
 # Create masks for each line
-green_mask = create_mask(image_rgb, green_lower, green_upper)
+#green_mask = create_mask(image_rgb, green_lower, green_upper)
 orange_mask = create_mask(image_rgb, orange_lower, orange_upper)
-blue_mask = create_mask(image_rgb, blue_lower, blue_upper)
+#blue_mask = create_mask(image_rgb, blue_lower, blue_upper)
 
 # Extract line data from masks
 def extract_line_data(mask):
     coords = np.column_stack(np.where(mask > 0))
     return coords
 
-green_coords = extract_line_data(green_mask)
+#green_coords = extract_line_data(green_mask)
 orange_coords = extract_line_data(orange_mask)
-blue_coords = extract_line_data(blue_mask)
+#blue_coords = extract_line_data(blue_mask)
 
 # Map pixel coordinates to graph coordinates
 def map_to_graph_coords(coords, img_shape, x_min, x_max, y_min, y_max):
@@ -63,18 +63,20 @@ time_min, time_max = 2890, 2904  # Time axis
 pressure_min, pressure_max = 0, 800  # Pressure axis
 
 # Convert pixel data to graph coordinates
-green_time, green_pressure = map_to_graph_coords(green_coords, image.shape, time_min, time_max, pressure_min, pressure_max)
+#green_time, green_pressure = map_to_graph_coords(green_coords, image.shape, time_min, time_max, pressure_min, pressure_max)
 orange_time, orange_pressure = map_to_graph_coords(orange_coords, image.shape, time_min, time_max, pressure_min, pressure_max)
-blue_time, blue_pressure = map_to_graph_coords(blue_coords, image.shape, time_min, time_max, pressure_min, pressure_max)
+#blue_time, blue_pressure = map_to_graph_coords(blue_coords, image.shape, time_min, time_max, pressure_min, pressure_max)
 
 # Downsample to 100 points
 def downsample(x, y, num_points=100):
     idx = np.round(np.linspace(0, len(x) - 1, num_points)).astype(int)
     return x[idx], y[idx]
 
-green_time_ds, green_pressure_ds = downsample(green_time, green_pressure)
+
+print(len(orange_time), len(orange_pressure)) 
+#green_time_ds, green_pressure_ds = downsample(green_time, green_pressure)
 orange_time_ds, orange_pressure_ds = downsample(orange_time, orange_pressure)
-blue_time_ds, blue_pressure_ds = downsample(blue_time, blue_pressure)
+#blue_time_ds, blue_pressure_ds = downsample(blue_time, blue_pressure)
 
 #convert pressure from psi to pa
 def convert_pressure_to_si(color_pressure):
@@ -85,11 +87,12 @@ def convert_pressure_to_si(color_pressure):
 
     return si
 
-green_pressure_ds = convert_pressure_to_si(green_pressure_ds)
+#green_pressure_ds = convert_pressure_to_si(green_pressure_ds)
 orange_pressure_ds = convert_pressure_to_si(orange_pressure_ds)
-blue_pressure_ds = convert_pressure_to_si(blue_pressure_ds)
+#blue_pressure_ds = convert_pressure_to_si(blue_pressure_ds)
 
 # Plotting for verification
+"""
 plt.figure(figsize=(10, 6))
 plt.plot(green_time_ds, green_pressure_ds, label='Fuel Tank Pressure (Green)')
 plt.plot(orange_time_ds, orange_pressure_ds, label='Oxidizer Tank Pressure (Orange)')
@@ -99,18 +102,18 @@ plt.ylabel('Pressure (psi)')
 plt.title('Static Fire 2 Pressure Data')
 plt.legend()
 plt.show()
-
+""" # broken, wsl and gui is wonky
 # Save the data points
 import pandas as pd
 
 # Create DataFrames for each set of data
-green_df = pd.DataFrame({'Time (s)': green_time_ds, 'Pressure (psi)': green_pressure_ds})
+#green_df = pd.DataFrame({'Time (s)': green_time_ds, 'Pressure (psi)': green_pressure_ds})
 orange_df = pd.DataFrame({'Time (s)': orange_time_ds, 'Pressure (psi)': orange_pressure_ds})
-blue_df = pd.DataFrame({'Time (s)': blue_time_ds, 'Pressure (psi)': blue_pressure_ds})
+#blue_df = pd.DataFrame({'Time (s)': blue_time_ds, 'Pressure (psi)': blue_pressure_ds})
 
 # Save each DataFrame to a CSV file
-green_df.to_csv('green_fuel_tank_pressure.csv', index=False)
+#green_df.to_csv('green_fuel_tank_pressure.csv', index=False)
 orange_df.to_csv('orange_oxidizer_tank_pressure.csv', index=False)
-blue_df.to_csv('blue_combustion_chamber_pressure.csv', index=False)
+#blue_df.to_csv('blue_combustion_chamber_pressure.csv', index=False)
 
 print("Data saved to CSV files!")
