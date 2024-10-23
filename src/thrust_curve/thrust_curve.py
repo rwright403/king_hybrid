@@ -6,7 +6,8 @@ CC_MODEL_MAP = {
 TANK_MODEL_MAP = {
     1: 'src.models.bens_ox_tank',
     2: 'src.models.adiabatic_ext_pressure_fed_cryo',
-    3: 'src.models.adiabatic_pressurized_liquid_tank'
+    3: 'src.models.adiabatic_pressurized_liquid_tank',
+    4: 'src.models.piping_real_fuel_tank_data',
 }
 
 
@@ -139,8 +140,11 @@ def run_thrust_curve(inputs):
             print("todo: implement")
             
         if inputs.analysis_mode[2] == 3:
-            s1_fuel_tank = fuel_tank_model_class(inputs.pressurant_name, inputs.m_pressurant, inputs.fuel_name, inputs.m_fuel, inputs.P_fueltank, inputs.ID_PROPTANK, inputs.V_tank_2, inputs.Cd_2, inputs.A_inj_2, inputs.T_amb, inputs.TIMESTEP)
+            s1_fuel_tank = fuel_tank_model_class(inputs.pressurant_name, inputs.m_pressurant, inputs.fuel_name_1, inputs.m_fuel, inputs.P_fueltank, inputs.ID_PROPTANK, inputs.V_tank_2, inputs.Cd_2, inputs.A_inj_2, inputs.T_amb, inputs.TIMESTEP)
         
+        if inputs.analysis_mode[2] == 4:
+            s1_fuel_tank = fuel_tank_model_class(inputs.T_tank, inputs.Cd_spi, inputs.A_inj, inputs.fuel_name, inputs.fuel_tank_pressure_filepath)
+
         ### LIQUID THRUST CURVE
         
         time_arr = []
