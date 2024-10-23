@@ -236,7 +236,7 @@ def modified_emerson_and_mohammad_model_inst(P_1, P_2, T_1, x_1, A_inj_1, rho_1,
         Cd_twophase = 0.386 + 0.361*np.sqrt(k_cavitation_const)
         m_dot =  ( Cd_twophase *A_inj_1) * G_sat  
 
-        print("line 232", m_dot, rho_1, P_1, eta_crit_sat, omega_sat, x_1)
+        #print("line 232", m_dot, rho_1, P_1, eta_crit_sat, omega_sat, x_1)
         #checked A_inj_1 is correct, fixed issue with cavitation constant k
 
     
@@ -332,7 +332,7 @@ class model():
     def __init__(self, oxidizer, timestep, m_ox, Cd_1, A_inj_1, V_tank, P_tank, P_cc, all_error, inj_model):
         self.oxidizer = oxidizer
         self.timestep = timestep
-        self.m_ox =  m_ox
+        self.m_ox = m_ox
         self.Cd_1 = Cd_1
         self.A_inj_1 = A_inj_1
         self.m_dot_ox = 0
@@ -539,3 +539,5 @@ class model():
         #print(self.m_dot_ox," ",self.m_ox," ",self.t)
 
         #print("exit rho",self.rho_exit)
+
+        #print(self.t)
