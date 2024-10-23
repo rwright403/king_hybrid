@@ -1,4 +1,5 @@
 """Sim Variables"""
+import numpy as np
 
 # analysis mode (select models for sim):
 #                               oxidizer tank model 
@@ -12,8 +13,12 @@ analysis_mode = [1,1]
 timestep = 0.05 #s
 all_error = 0.01
 
+### PROGRAM OUTPUT:
+thrust_curve_graphs = True
+
 ### ENVIRONMENTAL DATA
 P_atm = 101325 #Pa
+T_amb = 275 #K
 
 ### Launch Canada Timmins Pad
 latitude = 47.989083
@@ -29,6 +34,10 @@ month = 10
 date = 24
 hour = 13
 
+### Propellant and Pressurants 
+oxidizer_name = 'N2O'
+fuel_name = 'Ethanol'
+pressurant_name = 'N2' 
 
 ### CC models ###
 
@@ -59,27 +68,28 @@ A_exit = None
      
 """ 2 --> adiabatic_lre_cc"""
 #
-"""
-oxidizer_name = None,
-fuel_name = None
-A_throat = None
-A_exit = None 
+
+oxidizer_name = oxidizer_name,
+fuel_name = fuel_name
+A_throat = 0.25*np.pi*(0.0254*(1.975))**2
+A_exit = A_throat * 4.1
 P_atm = P_atm
 TIMESTEP = timestep
-"""
+
 
 
 ### Tank models ###
 
 """ 1 --> bens_ox_tank"""
 #
-"""
-oxName = None 
+
+oxName = oxidizer_name
 timestep = timestep 
 m_ox = None 
-C_inj = None
-V_tank = None
-P_tank = None
+Cd_1 = 0.66 #guess, could be v wrong
+A_inj_1 = 1 #m^2
+V_tank = 0.25*np.pi*( (0.0254*5.625)**2 - (0.0254*2.84)**2 ) * (0.0254*64)
+P_tank = 5.51581e6
 P_atm = P_atm 
 all_error = all_error 
 
@@ -87,8 +97,8 @@ all_error = all_error
 # 1 --> SPI 
 # 2 --> HEM
 # 3 --> Dyer
-inj_model = NONE
-"""
+inj_model = 4
+
 
 """awful liquid"""
 #
@@ -111,18 +121,37 @@ OUTLET_DIAM = None
 """simpleAdiabaticPressurizedTank"""
 #
 """
-pressurant_name = None 
-m_pressurant  = None 
-fuel_name = None
-m_fuel = None 
-P_fueltank = None 
-ID_PROPTANK = None 
+pressurant_name = pressurant_name 
+m_pressurant  = 
+fuel_name = fuel_name #NOTE: This might not work, assuming 100% when they used 95% as well
+m_fuel = 4.25 #kg 
+P_fueltank = 5.51581e6 #Pa
+ID_PROPTANK = 0.0254*2.84 #m 
+V_tank_2 = 0.25*np.pi*(0.0254*2.84**2 ) * (0.0254*64) #m^3
+Cd_2 = 
+A_inj_2 =  #m^2
+T_amb = T_amb
 TIMESTEP = timestep
 """
 
+"""piping_real_fuel_tank_data"""
+#
+
+T_tank = T_amb
+Cd_spi = 0.66 #guess, could be v wrong
+print("NOTE*** COAXIAL INJECTOR UNKNOWN DISCHARGE COEFFS")
+A_inj = None
+fuel_name = fuel_name
+fuel_tank_pressure_filepath = r'./src/inputs/liquid_validation_data/Waterloo_2024/Waterloo_2024_Fuel_Tank_Pressure.csv'
+
+
+
 
 ### Plotting
-exp_thrust_file_path = None
-exp_pressure_file_paths = [None,None,None]
+exp_thrust_file_path = r'./src/inputs/liquid_validation_data/MASA_Laika/MASA_Laika_Thrust.csv'
+print("thrust not validated rn will be wrong")
+exp_p_cc_file_path = r'./src/inputs/liquid_validation_data/Waterloo_2024/Waterloo_2024_CC_Pressure.csv'
+exp_p_ox_tank_file_path = r'./src/inputs/liquid_validation_data/Waterloo_2024/Waterloo_2024_Oxidizer_Tank_Pressure.csv'
+exp_p_fuel_tank_file_path = r'./src/inputs/liquid_validation_data/Waterloo_2024/Waterloo_2024_Fuel_Tank_Pressure.csv'
 
 ### TODO: Add rocket definition

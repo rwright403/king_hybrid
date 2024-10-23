@@ -1,5 +1,3 @@
-###NOTE: THIS IS BAD! should have neglected mixing of helium and GOX!!!
-
 from rocketcea.cea_obj_w_units import CEA_Obj #how to access this as a non us citizen?
 import CoolProp.CoolProp as CP #I love coolprop! ~ units: http://www.coolprop.org/v4/apidoc/CoolProp.html
 import matplotlib.pyplot as plt
@@ -52,6 +50,7 @@ class model():
         self.A_proptank = 0.25*np.pi*id_PROPTANK**2 #NOTE: passing in metric tank diam!!!!!
 
         self.TIMESTEP = TIMESTEP
+        self.t = 0
 
         #TODO: ADD TO INIT
         self.V_tank = V_tank_2
@@ -76,6 +75,7 @@ class model():
         self.R_pres = 8.314 / CP.PropsSI('MOLARMASS', pres_name) #8.314 J/(kg K)
 
         self.m_dot_fuel = 0
+        self.m_dot_fuel_prev = 0
 
         ###heat transfer coefficients:
         self.C = 0.27 #NOTE: DOUBLE CHECK THIS APPLIES TO SPECIFIC FLUIDS OR IF ITS GENERAL
@@ -93,6 +93,7 @@ class model():
 
 
     def inst(self, P_downstream):
+        self.t += self.TIMESTEP
 
         #solve mass flow out of tank
         #print(self.P_tank, P_downstream)
@@ -116,7 +117,15 @@ class model():
             testing = 1
 
         self.m_dot_fuel = self.Cd_2 * self.A_inj_2 * np.sqrt( 2 * self.rho_prop * (testing) )
+
+        #TODO: TRY IMPLEMENT BELOW AND SEE IF THAT FIXES IT:
         
+        if self.t == self.TIMESTEP:
+            self.m_dot_fuel = 0.5 * self.m_dot_fuel
+        else:
+            self.m_dot_fuel = 0.5 * self.m_dot_fuel + 0.5 * self.m_dot_fuel_prev
+        
+        self.m_dot_fuel_prev = self.m_dot_fuel
         """
         if a <= (self.m_dot_fuel/(self.A_inj_2*self.rho_prop)):
             print("spi model predicting choked flow for FUEL!")

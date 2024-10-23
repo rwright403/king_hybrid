@@ -19,7 +19,7 @@ thrust_curve_graphs = True
 
 ### ENVIRONMENTAL DATA
 P_atm = 101325 #Pa
-T_amb = 275 #K
+T_amb = 293.15 #K
 
 ### Launch Canada Timmins Pad
 latitude = 47.989083
