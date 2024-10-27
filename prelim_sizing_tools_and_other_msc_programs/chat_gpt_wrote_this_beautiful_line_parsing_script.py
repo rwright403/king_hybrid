@@ -7,10 +7,9 @@ matplotlib.use('Agg')  # Use the Agg backend
 
 
 # Load the image
-image_path = '/home/rwright/king_hybrid/prelim_sizing_tools_and_other_msc_programs/old_stuff_i_might_want_to_ref_later/waterloo_static_fire_2.png'
-absolute_path = os.path.abspath(image_path)
-print("Absolute path to the image:", absolute_path)
-image = cv2.imread(image_path)
+img_path = os.path.join('prelim_sizing_tools_and_other_msc_programs', 'old_stuff_i_might_want_to_ref_later', 'tomasz_data.png')
+#print("\n\n\n", img_path, "\nprelim_sizing_tools_and_other_msc_programs/old_stuff_i_might_want_to_ref_later/tomasz_data.png" "\n\n\n")
+image = cv2.imread(img_path)
 
 
 # Check if the image was loaded correctly
@@ -58,8 +57,9 @@ def map_to_graph_coords(coords, img_shape, x_min, x_max, y_min, y_max):
     y_mapped = y_max - (coords[:, 0] / y_pixels) * (y_max - y_min)
     return x_mapped, y_mapped
 
+
 # Axis limits of your graph
-time_min, time_max = 2890, 2904  # Time axis
+time_min, time_max = 0, 14  # Time axis
 pressure_min, pressure_max = 0, 800  # Pressure axis
 
 # Convert pixel data to graph coordinates
@@ -80,7 +80,7 @@ blue_time_ds, blue_pressure_ds = downsample(blue_time, blue_pressure)
 def convert_pressure_to_si(color_pressure):
     si = []
     for p in color_pressure:
-        p *= 6894.76
+        p *= 1e5
         si.append(float(p))
 
     return si
@@ -102,6 +102,17 @@ plt.show()
 
 # Save the data points
 import pandas as pd
+
+# Combine time and pressure into a single array, then sort by time
+def sort_data_by_time(time, pressure):
+    data = np.column_stack((time, pressure))
+    sorted_data = data[data[:, 0].argsort()]  # Sort by the first column (time)
+    return sorted_data[:, 0], sorted_data[:, 1]
+
+# Sort each dataset by time
+green_time_ds, green_pressure_ds = sort_data_by_time(green_time_ds, green_pressure_ds)
+orange_time_ds, orange_pressure_ds = sort_data_by_time(orange_time_ds, orange_pressure_ds)
+blue_time_ds, blue_pressure_ds = sort_data_by_time(blue_time_ds, blue_pressure_ds)
 
 # Create DataFrames for each set of data
 green_df = pd.DataFrame({'Time (s)': green_time_ds, 'Pressure (psi)': green_pressure_ds})

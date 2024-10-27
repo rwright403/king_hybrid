@@ -45,7 +45,8 @@ def get_model(model_code, char):
     module = importlib.import_module(module_path)
     return module.model  # or whichever class is appropriate for your tank model
 
-
+def check_nan(value):
+    return 9e5 if np.isnan(value) else value
 
 def run_thrust_curve(inputs):
 
@@ -100,8 +101,7 @@ def run_thrust_curve(inputs):
         #### HYBRID THRUST CURVE
 
         r1ox.inst(P_cc)
-        #TODO: FIX with sim time? not sure its not working w OF now
-        while (r1ox.t < 1):
+        while (r1ox.t < inputs.sim_time):
             #print(r1cc.OF)
             r1cc.inst(r1ox.m_dot_ox)
             r1ox.inst(r1cc.P_cc)
@@ -140,10 +140,10 @@ def run_thrust_curve(inputs):
             print("todo: implement")
             
         if inputs.analysis_mode[2] == 3:
-            s1_fuel_tank = fuel_tank_model_class(inputs.pressurant_name, inputs.m_pressurant, inputs.fuel_name_1, inputs.m_fuel, inputs.P_fueltank, inputs.ID_PROPTANK, inputs.V_tank_2, inputs.Cd_2, inputs.A_inj_2, inputs.T_amb, inputs.TIMESTEP)
+            s1_fuel_tank = fuel_tank_model_class(inputs.pressurant_name, inputs.m_pressurant, inputs.fuel_name, inputs.m_fuel, inputs.P_fueltank, inputs.ID_PROPTANK, inputs.V_tank_2, inputs.Cd_2, inputs.A_inj_2, inputs.T_amb, inputs.TIMESTEP)
         
         if inputs.analysis_mode[2] == 4:
-            s1_fuel_tank = fuel_tank_model_class(inputs.T_tank, inputs.Cd_spi, inputs.A_inj, inputs.fuel_name, inputs.fuel_tank_pressure_filepath)
+            s1_fuel_tank = fuel_tank_model_class(inputs.T_tank, inputs.Cd_2, inputs.A_inj_2, inputs.fuel_name, inputs.fuel_tank_pressure_filepath, inputs.TIMESTEP)
 
         ### LIQUID THRUST CURVE
         
@@ -205,9 +205,13 @@ def run_thrust_curve(inputs):
             #print("initial mass flow rates: ",r1ox.m_dot_ox, s1_fuel_tank.m_dot_fuel)
             #NOTE: fuel seems to be significantly underpredicting, and nan propagating through model
             r1cc.inst(r1ox.m_dot_ox, s1_fuel_tank.m_dot_fuel)
-            #print("thrust curve: ",r1ox.t, r1cc.P_cc)
-            r1ox.inst(r1cc.P_cc)
-            s1_fuel_tank.inst(r1cc.P_cc)
+            #print(r1cc.OF)
+            p = r1cc.P_cc
+            if r1cc.P_cc == 0 or r1cc.P_cc == -float('nan'):
+                p = 9e4
+            #print(p)
+            r1ox.inst(p)
+            s1_fuel_tank.inst(p)
 
             #print("looking at m_dot_f, m_dot_ox: ", s1_fuel_tank.m_dot_fuel, r1ox.m_dot_ox, r1cc.OF)
     
@@ -252,15 +256,15 @@ def run_thrust_curve(inputs):
 
                 smallest_fuel_inj_pressure_drop = inst_fuel_inj_pressure_drop
 
-                p_fuel_up_min_dp = s1_fuel_tank.P_tank
-                p_fuel_down_min_dp = r1cc.P_cc
+                #p_fuel_up_min_dp = s1_fuel_tank.P_tank
+                #p_fuel_down_min_dp = r1cc.P_cc
 
-                m_dot_fuel_min_dp = s1_fuel_tank.m_dot_fuel
-                rho_fuel_min_dp = s1_fuel_tank.rho_prop
-                kinematic_visc_fuel_min_dp = s1_fuel_tank.kinematic_visc_fuel
-                y_fuel_min_dp = s1_fuel_tank.y_fuel
+                #m_dot_fuel_min_dp = s1_fuel_tank.m_dot_fuel
+                #rho_fuel_min_dp = s1_fuel_tank.rho_prop
+                #kinematic_visc_fuel_min_dp = s1_fuel_tank.kinematic_visc_fuel
+                #y_fuel_min_dp = s1_fuel_tank.y_fuel
 
-                t_fuel_min_dp = r1ox.t
+                #t_fuel_min_dp = r1ox.t
 
 
 
@@ -309,9 +313,9 @@ def run_thrust_curve(inputs):
         plt.legend()
 
 
-        print(f"\nThroat Properties at Peak Thrust for Heat Transfer\n------------\nRatio of specific heats: {y_peak} (-)\nSpec. Heat Const. Pres. {cp_peak} (J/(kg K))\nThroat Pressure {P_cc_peak} (Pa)\nCharacteristic Velocity {C_star_peak} (m/s)\nThroat Flame Temp {T_flame_peak} (K)\nViscosity {viscosity_peak} (Pa s)\nGas Constant {R_peak} (J/(kg K))")
+        #print(f"\nThroat Properties at Peak Thrust for Heat Transfer\n------------\nRatio of specific heats: {y_peak} (-)\nSpec. Heat Const. Pres. {cp_peak} (J/(kg K))\nThroat Pressure {P_cc_peak} (Pa)\nCharacteristic Velocity {C_star_peak} (m/s)\nThroat Flame Temp {T_flame_peak} (K)\nViscosity {viscosity_peak} (Pa s)\nGas Constant {R_peak} (J/(kg K))")
 
-        print(f"\nMinimum Pressure Drop Fuel Inj Properties for Sizing\n------------\nTotal Fuel Mass Flow rate of all elements: {m_dot_fuel_min_dp} (kg/s)\nUpstream Pressure at inst: {p_fuel_up_min_dp} (Pa)\nDownstream Pressure at inst: {p_fuel_down_min_dp} (Pa)\nFuel Density at Orifice Outlet {rho_fuel_min_dp} (kg/m^3)\nFuel Kinematic Viscosity {kinematic_visc_fuel_min_dp} (Pa s)\nFuel Ratio of specific heats: {y_fuel_min_dp} (-)\nFuel Orifice Discharge Coeff: {inputs.Cd_2} (-)\nAt t = {t_fuel_min_dp} (s)")
-        print(f"\nMinimum Pressure Drop Ox Inj Properties for Sizing\n------------\nTotal Ox Mass Flow rate of all elements: {m_dot_ox_min_dp} (kg/s)\nUpstream Pressure at inst: {p_ox_up_min_dp} (Pa)\nDownstream Pressure at inst: {p_ox_down_min_dp} (Pa)\nOx Density at Orifice Outlet {rho_ox_min_dp} (kg/m^3)\nOx Kinematic Viscosity {kinematic_visc_ox_min_dp} (Pa s)\nOx Ratio of specific heats: {y_ox_min_dp} (-)\nOx Orifice Discharge Coeff: {inputs.Cd_1} (-)\nAt t = {t_ox_min_dp} (s)")
+        #print(f"\nMinimum Pressure Drop Fuel Inj Properties for Sizing\n------------\nTotal Fuel Mass Flow rate of all elements: {m_dot_fuel_min_dp} (kg/s)\nUpstream Pressure at inst: {p_fuel_up_min_dp} (Pa)\nDownstream Pressure at inst: {p_fuel_down_min_dp} (Pa)\nFuel Density at Orifice Outlet {rho_fuel_min_dp} (kg/m^3)\nFuel Kinematic Viscosity {kinematic_visc_fuel_min_dp} (Pa s)\nFuel Ratio of specific heats: {y_fuel_min_dp} (-)\nFuel Orifice Discharge Coeff: {inputs.Cd_2} (-)\nAt t = {t_fuel_min_dp} (s)")
+        #print(f"\nMinimum Pressure Drop Ox Inj Properties for Sizing\n------------\nTotal Ox Mass Flow rate of all elements: {m_dot_ox_min_dp} (kg/s)\nUpstream Pressure at inst: {p_ox_up_min_dp} (Pa)\nDownstream Pressure at inst: {p_ox_down_min_dp} (Pa)\nOx Density at Orifice Outlet {rho_ox_min_dp} (kg/m^3)\nOx Kinematic Viscosity {kinematic_visc_ox_min_dp} (Pa s)\nOx Ratio of specific heats: {y_ox_min_dp} (-)\nOx Orifice Discharge Coeff: {inputs.Cd_1} (-)\nAt t = {t_ox_min_dp} (s)")
 
         plt.show()

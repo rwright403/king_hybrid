@@ -112,6 +112,7 @@ def LOWSUBCOOLEDerror(eta_crit, eta_sat, omega_sat):
 
 def spi_model(Cd_hem_spi_dyer, A_inj_ox, P_1, P_2, rho_tank_exit): 
     m_dot_spi = Cd_hem_spi_dyer * A_inj_ox * np.sqrt( 2 * rho_tank_exit * (P_1 - P_2)  )
+    print(rho_tank_exit)
     return m_dot_spi
 
 def hem_model(Cd_hem_spi_dyer, A_inj_ox, P_1, P_2, h_1):
@@ -162,6 +163,7 @@ def dyer_model( Cd_hem_spi_dyer, A_inj_ox, P_1, P_sat, P_2, rho_tank_exit, h_1):
     return m_dot_dyer
 
 
+#NOTE: not using subcooled inlet stuff in this tank model
 def modified_emerson_and_mohammad_model_inst(P_1, P_2, T_1, x_1, A_inj_1, rho_1, h_1): #TODO: ADD below constants TO MODEL INPUTS:
     all_err = 0.01 #TODO: maybe UPDATE TO USE WHAT THE REST OF THE FUNCTION USES?
 
@@ -218,17 +220,19 @@ def modified_emerson_and_mohammad_model_inst(P_1, P_2, T_1, x_1, A_inj_1, rho_1,
     P_crit_sat = eta_crit_sat * P_1
     #print("\n", eta_crit_sat * P_1, eta_crit_sat * P_sat, "\n")
 
-    if P_crit_sat > P_2: #Saturated Inlet Choked
+    if P_crit_sat >= P_2: #Saturated Inlet Choked
         G_sat = eta_crit_sat * np.sqrt(P_1*rho_1/omega_sat)
 
-        print("choked")
+        print("sat inlet choked")
 
     else: #Saturated Inlet Not Choked
-        G_sat = np.sqrt(P_1*rho_1) *np.sqrt( -2*(omega_sat * np.log(eta_sat) + (omega_sat -1)*(1 - eta_sat)) ) / (omega_sat*((1/eta_sat) - 1) + 1)
+        pratio = P_2/P_sat
+        G_sat = np.sqrt(P_1*rho_1) *np.sqrt( -2*(omega_sat * np.log(pratio) + (omega_sat -1)*(1 - pratio)) ) / (omega_sat*((1/(pratio)) - 1) + 1)
 
-        print("not choked")
 
-    #BUG? is this wrong? I think it should be 6????
+
+        #print("sat inlet not choked", G_sat,  (-2*(omega_sat * np.log(eta_sat))) , ((omega_sat -1)*(1 - eta_sat)), omega_sat, eta_sat)
+
     if phase == 6: #saturated liquid vapor
         k_cavitation_const = (P_1 - P_sat) / (P_1 - P_2)
         if k_cavitation_const == 0:
@@ -236,6 +240,7 @@ def modified_emerson_and_mohammad_model_inst(P_1, P_2, T_1, x_1, A_inj_1, rho_1,
         Cd_twophase = 0.386 + 0.361*np.sqrt(k_cavitation_const)
         m_dot =  ( Cd_twophase *A_inj_1) * G_sat  
 
+        
         #print("line 232", m_dot, rho_1, P_1, eta_crit_sat, omega_sat, x_1)
         #checked A_inj_1 is correct, fixed issue with cavitation constant k
 
@@ -418,7 +423,7 @@ class model():
         
           
 
-    def inst(self,P_cc):
+    def inst(self, P_cc):
         self.P_cc = P_cc
 
         #setup iteration error tolerance
@@ -447,9 +452,9 @@ class model():
             #update current time
             self.t = self.t + self.timestep
             #assume only liquid draining from tank #NOTE: challenge this?
-            self.rho_exit = self.rho_liq
+            self.rho_exit = self.rho_tank#self.rho_liq
 
-            
+            print("liquid phase", self.P_tank,self.x_tank, self.T_tank, self.m_ox)
             
             if(self.inj_model == 1):
                 h_tank_exit = h_liq
@@ -460,7 +465,7 @@ class model():
             
 
         else:
-            #print("VAPOR PHASE")
+            print("VAPOR PHASE")
             #solve variables
             self.rho_tank = self.m_ox/self.V_tank
             self.u_tank = self.U_tank/self.m_ox
@@ -474,9 +479,8 @@ class model():
 
             #update current time
             self.t = self.t + self.timestep
-            #rho exit is rho vapor (assume only vapor left in tank)
-            self.rho_exit = CP.PropsSI('D', 'Q', 1, 'P', self.P_cc, 'N2O')
-
+            self.rho_exit = self.rho_tank
+            #print('here')
             h_tank_exit = h_tank_exit + 7.3397e+05 #Convert from Span-Wagner enthalpy convention to NIST
 
 
@@ -505,11 +509,8 @@ class model():
 
         #TODO: USE DYER MODEL FUNCTION ABOVE!
         elif(self.inj_model == 3):
-            self.m_dot_ox = dyer_model(self.Cd_1, self.A_inj_1, self.P_tank, self.P_cc, self.rho_exit, h_tank_exit)
-
-            
-            #NOTE: not sure if this works/makes sense but couldnt think of a better way to get outlet density
-            #self.rho_exit = ((dyer_k/(1+dyer_k)) * rho_exit_spi) + ((1/(1+dyer_k)) * rho_exit_hem)
+            P_sat = CP.PropsSI('P', 'Q', 0, 'T', self.T_tank, 'N2O')
+            self.m_dot_ox = dyer_model(self.Cd_1, self.A_inj_1, self.P_tank, P_sat, self.P_cc, self.rho_exit, h_tank_exit)
 
             #mu = CP.PropsSI('V', 'T', self.T_tank, 'P', self.P_cc, 'N2O')  # dynamic viscosity in Pa·s
             #self.kinematic_visc_ox = mu / self.rho_exit
@@ -519,7 +520,7 @@ class model():
         #https://web.stanford.edu/~cantwell/AA284A_Course_Material/AA284A_Resources/Nino%20and%20Razavi,%20Design%20of%20Two-Phase%20Injectors%20Using%20Analytical%20and%20Numerical%20Methods%20with%20Application%20to%20Hybrid%20Rockets%202019-4154.pdf
         elif(self.inj_model == 4):
             self.m_dot_ox = modified_emerson_and_mohammad_model_inst(self.P_tank, self.P_cc, self.T_tank, self.x_tank, self.A_inj_1, self.rho_exit, h_tank_exit)
-
+        
         mu = self.rp_nos_obj.ViscAtTdegR(1.8*self.T_tank) *0.1 # convert input T from K to R and convert returned Poise to Pa s
         self.kinematic_visc_ox = mu / self.rho_exit
 
@@ -532,6 +533,7 @@ class model():
             self.m_dot_ox = 0.5 * self.m_dot_ox + 0.5 * self.m_dot_ox_prev
 
         #move forward in time with differential eqns
+        print(self.x_tank, self.t)
         self.m_ox = self.m_ox - self.m_dot_ox*self.timestep
         self.m_dot_ox_prev = self.m_dot_ox
         self.U_tank = self.U_tank -self.m_dot_ox*h_tank_exit*self.timestep
