@@ -10,17 +10,17 @@
 analysis_mode = [1,1]
 
 timestep = 0.05 #s
-sim_time = 8.5#s (time engine will be simulated over)
+all_error = 0.01
+sim_time = 8#s (time engine will be simulated over)
 #NOTE: if this is too big and you are simulating over a range the script will break
 #is it really a leading edge simulation software if the ux is poor?
-
-all_error = 0.01
 
 ### PROGRAM OUTPUT:
 thrust_curve_graphs = True
 
 ### ENVIRONMENTAL DATA
 P_atm = 101325 #Pa
+T_amb = 295 #K
 
 ### Launch Canada Timmins Pad
 latitude = 47.989083
@@ -81,9 +81,10 @@ TIMESTEP = timestep
 #
 
 oxName = 'N2O'
-timestep = timestep
+TIMESTEP = timestep
 m_ox = 8.2 #kg
-C_inj_1 = 0.0000294229787 #m^2
+Cd_1 = 1
+A_inj_1 = 0.0000294229787 #m^2
 V_tank = 0.012 #m^3
 P_tank = 3920207.656 #Pa
 P_atm = P_atm 
@@ -128,6 +129,7 @@ TIMESTEP = timestep
 
 
 ### Plotting
-exp_thrust_file_path = None
-exp_p_cc_file_paths = [None,None]
-exp_p_tank_file_path = None
+exp_thrust_file_path = r'./src/inputs/bens_validation_data/UofT_Deliverance_II/UofT_Deliverance_II_Thrust.csv'
+exp_p_cc_file_path = r'./src/inputs/bens_validation_data/UofT_Deliverance_II/UofT_Deliverance_II_CC_Pressure.csv'
+exp_p_ox_tank_file_path = r'./src/inputs/bens_validation_data/UofT_Deliverance_II/UofT_Deliverance_II_Tank_Pressure.csv'
+#exp_p_fuel_tank_file_path = None
