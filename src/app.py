@@ -4,6 +4,7 @@ from src.thrust_curve import thrust_curve
 
 #from src.sensitivity_analysis import sensitivity_analysis
 from src.model_validation import model_validation
+from src.model_validation import nitrous_validation
 from src.prelim_wizard import prelim_wizard
 from src.sensitivity_analysis import sensitivity_analysis
 
@@ -23,6 +24,7 @@ def run(input_file):
         print("3 --> Sensitivity Analysis")
         print("4 --> Model Validation")
         print("5 --> Prelim Design Wizard")
+        print("6 --> Oxidizer Tank and Injector Validation")
 
         user_input = input("Enter number to select analysis: ")
 
@@ -44,3 +46,6 @@ def run(input_file):
 
     if user_input == '5':
         prelim_wizard.magic(program_input)
+    
+    if user_input == '6':
+        nitrous_validation.run_nitrous_validation(program_input)

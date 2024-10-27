@@ -69,7 +69,6 @@ A_exit = None
      
 """ 2 --> adiabatic_lre_cc"""
 #
-
 oxidizer_name = oxidizer_name
 fuel_name = fuel_name
 A_throat = 0.00102028641 #m^2
@@ -83,7 +82,6 @@ TIMESTEP = timestep
 
 """ 1 --> bens_ox_tank"""
 #
-
 oxName = oxidizer_name
 timestep = timestep 
 m_ox = 4.48 #kg 
@@ -99,7 +97,7 @@ all_error = 0.01
 # 1 --> SPI 
 # 2 --> HEM
 # 3 --> Dyer
-inj_model = 4
+inj_model = 2
 
 
 """awful liquid"""
@@ -122,7 +120,6 @@ OUTLET_DIAM = None
 
 """simpleAdiabaticPressurizedTank"""
 #
-
 pressurant_name = pressurant_name 
 m_pressurant  = 0.12 #NOTE: estimated for now based on volume they gave in report, should i change inputs to this model?
 fuel_name = fuel_name #NOTE: This might not work, assuming 100% when they used 95% as well

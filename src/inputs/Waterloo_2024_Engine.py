@@ -1,5 +1,5 @@
-"""Sim Variables"""
 import numpy as np
+"""Sim Variables"""
 
 # analysis mode (select models for sim):
 #                               oxidizer tank model 
@@ -8,17 +8,18 @@ import numpy as np
 #                            ^   ^
 #                            |    fuel tank model (if liquid rocket engine, otherwise vector should be 2 numbers long w hybrid cc)
 #                            cc model
-analysis_mode = [1,1]
+analysis_mode = [2,1,4]
 
 timestep = 0.05 #s
 all_error = 0.01
+sim_time = 8 #s
 
 ### PROGRAM OUTPUT:
 thrust_curve_graphs = True
 
 ### ENVIRONMENTAL DATA
 P_atm = 101325 #Pa
-T_amb = 275 #K
+T_amb = 295 #K
 
 ### Launch Canada Timmins Pad
 latitude = 47.989083
@@ -68,8 +69,7 @@ A_exit = None
      
 """ 2 --> adiabatic_lre_cc"""
 #
-
-oxidizer_name = oxidizer_name,
+oxidizer_name = oxidizer_name
 fuel_name = fuel_name
 A_throat = 0.25*np.pi*(0.0254*(1.975))**2
 A_exit = A_throat * 4.1
@@ -82,12 +82,11 @@ TIMESTEP = timestep
 
 """ 1 --> bens_ox_tank"""
 #
-
 oxName = oxidizer_name
 timestep = timestep 
-m_ox = None 
-Cd_1 = 0.66 #guess, could be v wrong
-A_inj_1 = 1 #m^2
+m_ox = 12 #NOTE: guess
+Cd_1 = 0.8 #guess, could be v wrong
+A_inj_1 = 0.25*np.pi*(1.2*(0.0254*0.06793)**2)*6
 V_tank = 0.25*np.pi*( (0.0254*5.625)**2 - (0.0254*2.84)**2 ) * (0.0254*64)
 P_tank = 5.51581e6
 P_atm = P_atm 
@@ -97,7 +96,7 @@ all_error = all_error
 # 1 --> SPI 
 # 2 --> HEM
 # 3 --> Dyer
-inj_model = 4
+inj_model = 3
 
 
 """awful liquid"""
@@ -119,17 +118,17 @@ OUTLET_DIAM = None
 """
 
 """simpleAdiabaticPressurizedTank"""
-#
+#NOTE:piston fed tank can't use this model for this engine
 """
 pressurant_name = pressurant_name 
-m_pressurant  = 
+m_pressurant  = 0.125 #NOTE: Random guess for now
 fuel_name = fuel_name #NOTE: This might not work, assuming 100% when they used 95% as well
 m_fuel = 4.25 #kg 
 P_fueltank = 5.51581e6 #Pa
 ID_PROPTANK = 0.0254*2.84 #m 
 V_tank_2 = 0.25*np.pi*(0.0254*2.84**2 ) * (0.0254*64) #m^3
-Cd_2 = 
-A_inj_2 =  #m^2
+Cd_2 = 0.66 #NOTE: could be very wrong
+A_inj_2 = 0.25*np.pi*((0.0254*0.06793)**2)*5*6 #m^2
 T_amb = T_amb
 TIMESTEP = timestep
 """
@@ -138,9 +137,9 @@ TIMESTEP = timestep
 #
 
 T_tank = T_amb
-Cd_spi = 0.66 #guess, could be v wrong
+Cd_2 = 0.1 #guess, could be v wrong
 print("NOTE*** COAXIAL INJECTOR UNKNOWN DISCHARGE COEFFS")
-A_inj = None
+A_inj_2 = 0.25*np.pi*((0.0254*0.06793)**2)*5*6
 fuel_name = fuel_name
 fuel_tank_pressure_filepath = r'./src/inputs/liquid_validation_data/Waterloo_2024/Waterloo_2024_Fuel_Tank_Pressure.csv'
 
@@ -148,8 +147,7 @@ fuel_tank_pressure_filepath = r'./src/inputs/liquid_validation_data/Waterloo_202
 
 
 ### Plotting
-exp_thrust_file_path = r'./src/inputs/liquid_validation_data/MASA_Laika/MASA_Laika_Thrust.csv'
-print("thrust not validated rn will be wrong")
+exp_thrust_file_path = r'./src/inputs/liquid_validation_data/Waterloo_2024/Waterloo_2024_Thrust.csv'
 exp_p_cc_file_path = r'./src/inputs/liquid_validation_data/Waterloo_2024/Waterloo_2024_CC_Pressure.csv'
 exp_p_ox_tank_file_path = r'./src/inputs/liquid_validation_data/Waterloo_2024/Waterloo_2024_Oxidizer_Tank_Pressure.csv'
 exp_p_fuel_tank_file_path = r'./src/inputs/liquid_validation_data/Waterloo_2024/Waterloo_2024_Fuel_Tank_Pressure.csv'
