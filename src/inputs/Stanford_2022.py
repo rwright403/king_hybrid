@@ -39,7 +39,7 @@ hour = 13
 
 ### Propellant and Pressurants 
 oxidizer_name = 'N2O'
-#fuel_name = None
+#fuel_name = Kerosene
 pressurant_name = 'N2' 
 
 ### CC models ###
@@ -71,7 +71,6 @@ A_exit = None
      
 """ 2 --> adiabatic_lre_cc"""
 #
-
 oxidizer_name = oxidizer_name
 fuel_name = 'Kerosene'
 A_throat = 0.25*np.pi*((0.0254*1)**2) #m^2
@@ -85,7 +84,6 @@ TIMESTEP = timestep
 
 """ 1 --> bens_ox_tank"""
 #
-
 oxName = oxidizer_name
 timestep = timestep 
 m_ox = 10#kg 
@@ -101,7 +99,7 @@ all_error = 0.01
 # 2 --> HEM
 # 3 --> Dyer
 # 4 --> just use 4
-inj_model = 4
+inj_model = 2
 
 
 """awful liquid"""
@@ -122,9 +120,8 @@ V_PRESTANK = None
 OUTLET_DIAM = None
 """
 
-"""simpleAdiabaticPressurizedTank"""
+""" --> simpleAdiabaticPressurizedTank"""
 #
-
 pressurant_name = pressurant_name
 m_pressurant  = 0.12 #NOTE: estimated for now based on amount of pressurant used by MASA's Laika
 fuel_name_1 = "n-Dodecane"
@@ -133,7 +130,6 @@ m_fuel = 1.75 #kg
 P_fueltank = 6894.76* 610 #Pa
 ID_PROPTANK = 0.0254*4.75 #m 
 V_tank_2 = (0.0254*13.90) * 0.25*np.pi*((0.0254*4.75)**2) #m^3 
-print("***", V_tank_2)
 Cd_2 = 1
 A_inj_2 = 2.4e-6 #m^2
 T_amb = T_amb
@@ -141,10 +137,10 @@ TIMESTEP = timestep
 
 
 ### Calling experimental data for thrust curve
-exp_thrust_file_path = None
-exp_p_cc_file_path = None
-exp_p_ox_tank_file_path = None
-exp_p_fuel_tank_file_path = None
+exp_thrust_file_path = r'./src/inputs/liquid_validation_data/Stanford_2022/Stanford_2022_Thrust.csv'
+exp_p_cc_file_path = r'./src/inputs/liquid_validation_data/Stanford_2022/Stanford_2022_CC_Pressure.csv'
+exp_p_ox_tank_file_path = r'./src/inputs/liquid_validation_data/Stanford_2022/Stanford_2022_Ox_Tank_Pressure.csv'
+exp_p_fuel_tank_file_path = r'./src/inputs/liquid_validation_data/Stanford_2022/Stanford_2022_Fuel_Tank_Pressure.csv'
 
 
 ### Sensitivity Analysis:

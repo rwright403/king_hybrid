@@ -1,5 +1,5 @@
+import numpy as np
 """Sim Variables"""
-
 # analysis mode (select models for sim):
 #                               oxidizer tank model 
 #                              v
@@ -9,11 +9,11 @@
 #                            cc model
 analysis_mode = [1,1]
 
-TIMESTEP = 0.05 #s
-sim_time = 14.5 #s (time engine will be simulated over)
+timestep = 0.05 #s
+all_error = 0.01
+sim_time = 3.6 #s (time engine will be simulated over)
 #NOTE: if this is too big and you are simulating over a range the script will break
 #is it really a leading edge simulation software if the ux is poor?
-all_error = 0.01
 
 ### PROGRAM OUTPUT:
 thrust_curve_graphs = True
@@ -41,27 +41,28 @@ hour = 13
 
 """ 1 --> hybrid_cc_w_fuel_grain"""
 #
+"""
 oxName = 'N2O'
 fuelName = 'paraffin'
-TIMESTEP  = TIMESTEP
-m_fuel_i = 5.44311 #kg
+timestep  = timestep
+m_fuel_i = 1.5
 rho_fuel = 900
 
 # RocketCEA doesnt have paraffin built in: CREATE IT BELOW
 #C32H66 from RPA Paraffin Wax Composition
-CEA_fuel_str = f"""
+CEA_fuel_str = f
 #fuel paraffin  C 20   H 42    wt%=100.00
 #h,KJ/mol=-13313.49  t(k)=298.15   rho,kg/m3={rho_fuel}
-"""
+
 
 a = 0.155/1000 #m/s
 n = 0.5
-L = 0.41130982 #m
-A_port_i = 0.001302041 #m^2
+L = 0.3852333 #m
+A_port_i = 0.0038319753 #m^2
 P_atm = P_atm
-A_throat = 0.001302041 #m^2
-A_exit = 0.0061470149 #m^2
-
+A_throat = 0.0010653525 #m^2
+A_exit = 0.00531921243 #m^2
+"""
      
 """ 2 --> adiabatic_lre_cc"""
 #
@@ -71,7 +72,7 @@ fuel_name = None
 A_throat = None
 A_exit = None 
 P_atm = P_atm
-TIMESTEP = TIMESTEP
+TIMESTEP = timestep
 """
 
 
@@ -81,12 +82,12 @@ TIMESTEP = TIMESTEP
 #
 
 oxName = 'N2O'
-TIMESTEP = TIMESTEP
-m_ox = 14.61751413 #kg
-Cd_1 = 1
-A_inj_1 = 0.00002364094414 #m^2
-V_tank = 0.024956005 #m^3
-P_tank = 4933902 #Pa
+TIMESTEP = timestep
+m_ox = 0.175 #kg
+Cd_1 = 0.66
+A_inj_1 = 0.25*np.pi*((1.5e-3)**2) #m^2
+V_tank = 0.25*np.pi*((40e-3)**2)*(220e-3) #m^3
+P_tank = 5.2e6 #Pa
 P_atm = P_atm 
 all_error = all_error
 
@@ -106,7 +107,7 @@ id_PROPTANK = None
 P_proptank = None
 m_prop = None 
 V_PROPTANK = None 
-TIMESTEP = TIMESTEP
+TIMESTEP = timestep
 pressurant_name = None 
 P_prestank = None 
 m_pres = None 
@@ -124,12 +125,12 @@ fuel_name = None
 m_fuel = None 
 P_fueltank = None 
 ID_PROPTANK = None 
-TIMESTEP = TIMESTEP
+TIMESTEP = timestep
 """
 
 
 ### Plotting
-exp_thrust_file_path = r'./src/inputs/bens_validation_data/UofW_Boundless/UofW_Boundless_Thrust.csv'
-exp_p_cc_file_path = r'./src/inputs/bens_validation_data/UofW_Boundless/UofW_Boundless_CC_Pressure.csv'
-exp_p_ox_tank_file_path = r'./src/inputs/bens_validation_data/UofW_Boundless/UofW_Boundless_Tank_Pressure.csv'
+#exp_thrust_file_path = None
+exp_p_cc_file_path = r'./src/inputs/msc_test_cases/tomasz_test_case_CC_Pressure.csv'
+exp_p_ox_tank_file_path = r'./src/inputs/msc_test_cases/tomasz_test_case_Ox_Tank_Pressure.csv'
 #exp_p_fuel_tank_file_path = None
