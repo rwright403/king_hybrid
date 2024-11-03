@@ -36,6 +36,8 @@ I got some of the liquid stuff to work and by doing that broke the hybrid models
 | 1      | Ben Klammer, Hybrid Modelling: https://github.com/bklammer/HybridModeling                                                                                      |
 | 2      | Emerson Vargas Niño, Mohammad Reza H. Razavi, Design of Two-Phase Injectors Using Analytical and Numerical Methods with Application to Hybrid Rockets https://emersonvn.com/project/two_phase_injector/# |
 | 3      | Benjamin S. Waxman, Jonah E. Zimmerman, Brian J. Cantwell, Mass Flow Rate and Isolation Characteristics of Injectors for Use with Self-Pressurizing Oxidizers in Hybrid Rockets https://ntrs.nasa.gov/api/citations/20190001326/downloads/20190001326.pdf |
+| 4      | Zilliac, Gregory & Karabeyoglu, Arif. (2005). Modeling of Propellant Tank Pressurization.                                                                      |
+
 
 
 Ryan "king hybrid" Wright, From Calgary, Alberta, Canada --> University of Victoria, BC, Canada, 2023 --> forever (mech lab reference)
