@@ -11,7 +11,7 @@ analysis_mode = [1,1]
 
 timestep = 0.05 #s
 all_error = 0.01
-sim_time = 3.6 #s (time engine will be simulated over)
+sim_time = 3 #s (time engine will be simulated over)
 #NOTE: if this is too big and you are simulating over a range the script will break
 #is it really a leading edge simulation software if the ux is poor?
 
@@ -83,7 +83,7 @@ TIMESTEP = timestep
 
 oxName = 'N2O'
 TIMESTEP = timestep
-m_ox = 0.175 #kg
+m_ox = 0.180 #kg
 Cd_1 = 0.66
 A_inj_1 = 0.25*np.pi*((1.5e-3)**2) #m^2
 V_tank = 0.25*np.pi*((40e-3)**2)*(220e-3) #m^3

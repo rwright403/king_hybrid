@@ -86,7 +86,7 @@ oxName = oxidizer_name
 timestep = timestep 
 m_ox = 4.48 #kg 
 #NOTE: GUESSING Cd
-Cd_1 = 0.65
+Cd_1 = 0.66
 A_inj_1 = 0.00007471705 #m^2
 V_tank = 6.4e-3 # - from report: "5.8L of nos in a 6.4L tank"
 P_tank = 5.171e6 #Pa
@@ -97,7 +97,7 @@ all_error = 0.01
 # 1 --> SPI 
 # 2 --> HEM
 # 3 --> Dyer
-inj_model = 2
+inj_model = 1
 
 
 """awful liquid"""
