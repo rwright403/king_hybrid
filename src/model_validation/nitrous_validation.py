@@ -47,6 +47,8 @@ def run_nitrous_validation(inputs):
 
     time_arr = []
     p_ox_tank_arr = []
+    m_arr = []
+    m_dot_arr = []
 
 
     while t < sim_time:
@@ -57,22 +59,57 @@ def run_nitrous_validation(inputs):
 
         time_arr.append(r1ox.t)
         p_ox_tank_arr.append(r1ox.P_tank)
+        m_arr.append(r1ox.m_ox)
+        m_dot_arr.append(r1ox.m_dot_ox)
 
         #print(r1ox.P_tank, p, t)
         #print(t, "\n")
 
         t += TIMESTEP
 
+
+    plt.subplot(1,3,1)
+    plt.axvline(x=4.1, color='red', linestyle='--', linewidth=2, label='liquid phase depletes')
     plt.plot(time_arr,p_ox_tank_arr, label = 'model out NOS Tank')
     plt.plot(exp_time_p_ox_tank, exp_p_ox_tank, label = 'experimental NOS Tank')
     
     exp_time_p_cc, exp_p_cc = read_csv(inputs.exp_p_cc_file_path)
     plt.plot(exp_time_p_cc, exp_p_cc, label = 'cc Pressure')
+
     plt.xlabel('Time (s)')
     plt.ylabel('Pressure (Pa)')
     plt.title('System Pressures Over Time')
     plt.grid(True)
     plt.legend()
+
+    #mass vs time
+    plt.subplot(1,3,2)
+    plt.axvline(x=4.1, color='red', linestyle='--', linewidth=2, label='liquid phase depletes')
+    plt.plot(time_arr,m_arr, label = 'model out NOS Tank')
+    
+    mass_path = r'./src/inputs/msc_test_cases/tomasz_test_case_m.csv'
+    exp_time_mass, exp_mass = read_csv(mass_path)
+    plt.plot(exp_time_mass, exp_mass, label = 'mass')
+    plt.xlabel('Time (s)')
+    plt.ylabel('Tank Mass (kg)')
+    plt.title('Tank Mass Over Time')
+    plt.grid(True)
+    plt.legend()
+
+    #mass flow rate vs time
+    plt.subplot(1,3,3)
+    plt.axvline(x=4.1, color='red', linestyle='--', linewidth=2, label='liquid phase depletes')
+    plt.plot(time_arr,m_dot_arr, label = 'model out NOS Tank')
+    
+    mass_flow_rate_path = r'./src/inputs/msc_test_cases/tomasz_test_case_m_dot.csv'
+    exp_time_p_cc, exp_p_cc = read_csv(mass_flow_rate_path)
+    plt.plot(exp_time_p_cc, exp_p_cc, label = 'cc Pressure')
+    plt.xlabel('Time (s)')
+    plt.ylabel('Mass Flow Rate (kg/s)')
+    plt.title('Tank Mass Flow Rate')
+    plt.grid(True)
+    plt.legend()
+
     plt.show()
 
 
