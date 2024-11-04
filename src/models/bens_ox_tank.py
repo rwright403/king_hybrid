@@ -45,7 +45,7 @@ def uerror(T, rho_tank, u_tank): #TODO:(u_tank + 7.3397e+5)
 
 def thermo_span_wagner(rho, T, param):
     # Constants for N2O
-    R = 8.3144598 / 44.0128 * 1000  # Gas constant (J/kg*K)
+    R = 8.3144598 / 44.0128 * 1000 # Gas constant (kJ/kg*K)
     T_c = 309.52  # Critical Temperature (K)
     rho_c = 452.0115  # Critical Density (kg/m^3)
 
@@ -109,14 +109,39 @@ def LOWSUBCOOLEDerror(eta_crit, eta_sat, omega_sat):
     function_diff = (((omega_sat+(1/omega_sat)-2)/(2*eta_sat))*(eta_crit**2)) - (2*(omega_sat-1)*eta_crit) + (omega_sat*eta_sat*np.log(eta_crit/eta_sat)) + ((3/2)*omega_sat*eta_sat) - 1
     return function_diff
 
+"""
+def hem_predict_choking(Cd_hem_spi_dyer, A_inj_ox, P_1, P_2, h_1):
+    m_dot_hem = None
+    downstream_pres_arr = np.linspace(P_2, P_1, 100)
+    m_dot_hem_arr = []
 
-def spi_model(Cd_hem_spi_dyer, A_inj_ox, P_1, P_2, rho_tank_exit): 
+    for pres in downstream_pres_arr:
+        s_2 = CP.PropsSI('S', 'H', h_1, 'P', P_1, 'N2O') #assuming isentropic, upstream entropy equals downstream entropy
+        h_2_hem = CP.PropsSI('H', 'S', s_2, 'P', pres, 'N2O')
+        rho_2_hem = CP.PropsSI('D', 'S', s_2, 'P', pres, 'N2O')
+            
+        m_dot_hem = Cd_hem_spi_dyer * A_inj_ox * rho_2_hem * np.sqrt( 2 * np.abs(h_1 -  h_2_hem) )
+            
+        m_dot_hem_arr.append(m_dot_hem)
+
+    P_crit = downstream_pres_arr[np.argmax(m_dot_hem_arr)]
+
+    #print(P_2, P_crit)
+
+    if P_2 < P_crit: #flow is choked
+        return P_crit
+    else: #flow is unchoked
+        return P_2
+"""
+
+def spi_model(Cd_hem_spi_dyer, A_inj_ox, P_1, P_2, rho_tank_exit, h_1):
     m_dot_spi = Cd_hem_spi_dyer * A_inj_ox * np.sqrt( 2 * rho_tank_exit * (P_1 - P_2)  )
     print(rho_tank_exit)
     return m_dot_spi
 
 def hem_model(Cd_hem_spi_dyer, A_inj_ox, P_1, P_2, h_1):
     # HEM MODEL
+    
     m_dot_hem = None
     downstream_pres_arr = np.linspace(P_2, P_1, 100)
     m_dot_hem_arr = []
@@ -135,6 +160,7 @@ def hem_model(Cd_hem_spi_dyer, A_inj_ox, P_1, P_2, h_1):
 
     if P_2 < P_crit: #flow is choked
         m_dot_hem = m_dot_hem_crit
+        print("HEM PREDICT CHOKING!!!! ITS CHOKING!!!!")
 
     else: #flow is unchoked
         s_1 = CP.PropsSI('S', 'H', h_1, 'P', P_1, 'N2O')
@@ -147,7 +173,7 @@ def hem_model(Cd_hem_spi_dyer, A_inj_ox, P_1, P_2, h_1):
 
 def dyer_model( Cd_hem_spi_dyer, A_inj_ox, P_1, P_sat, P_2, rho_tank_exit, h_1):
 
-    m_dot_spi = spi_model(Cd_hem_spi_dyer, A_inj_ox, P_1, P_2, rho_tank_exit)
+    m_dot_spi = spi_model(Cd_hem_spi_dyer, A_inj_ox, P_1, P_2, rho_tank_exit, h_1)
                                         
     #NOTE: FOR THIS CASE NO CAVITATION SO WE ARE JUST USING THE SPI MODEL
     if(P_sat < P_2):
@@ -156,6 +182,7 @@ def dyer_model( Cd_hem_spi_dyer, A_inj_ox, P_1, P_sat, P_2, rho_tank_exit, h_1):
     #NOTE: ELSE TWO PHASE AT INJ OUTLET AND USE DYER TO ACCOUNT FOR TWO PHASE EFFECTS
     else:
         m_dot_hem = hem_model(Cd_hem_spi_dyer, A_inj_ox, P_1, P_2, h_1)
+        print("HEM: ", m_dot_hem)
         
         dyer_k = np.sqrt( (P_1 - P_2) / (P_sat - P_2) ) 
         m_dot_dyer = ((dyer_k/(1+dyer_k)) * m_dot_spi) + ((1/(1+dyer_k)) * m_dot_hem)
@@ -165,7 +192,7 @@ def dyer_model( Cd_hem_spi_dyer, A_inj_ox, P_1, P_sat, P_2, rho_tank_exit, h_1):
 
 #NOTE: not using subcooled inlet stuff in this tank model
 def modified_emerson_and_mohammad_model_inst(P_1, P_2, T_1, x_1, A_inj_1, rho_1, h_1): #TODO: ADD below constants TO MODEL INPUTS:
-    all_err = 0.01 #TODO: maybe UPDATE TO USE WHAT THE REST OF THE FUNCTION USES?
+    all_err = 0.005 #TODO: maybe UPDATE TO USE WHAT THE REST OF THE FUNCTION USES?
 
 
 
@@ -381,47 +408,9 @@ class model():
         self.rp_nos_obj = get_prop('NitrousOxide')
         self.kinematic_visc_ox = 0
 
-        print("\n------------\nsummary of bens ox tank inputs: \nOxidizer: ", oxidizer ,"\nTimestep: ", timestep,"\nm_ox: ", m_ox ,"(kg)\nCd: ", Cd_1, "(-)\nA_inj_1: ", A_inj_1, "(m^2)\nV_tank: ", V_tank, "(m^3)\nP_tank: ", P_tank, "(Pa)\nP_cc: ", P_cc, "(Pa)\n------------\n\n\n")
-
-
-
-    #TODO: TEST THIS FUNCTION!!!
-    ### NOTE: diams input in SI!!!!!! DONT INPUT IMPERIAL FUNCTION IS CIVILIZED NOT FREE!
-    def hold_time(self, T_atm, k_cond, L_wall, d_outer, d_inner):
-        if(self.t > 0):
-            print("WARNING HOLD TIME CALLED AT INVALID TIME T")
-
-        v_tank = (self.V_tank/self.m_ox)
-
-        # Get the critical temperature and pressure
-        T_crit = CP.PropsSI('Tcrit', 'N2O')
-        P_crit = CP.PropsSI('Pcrit', 'N2O')
-
-        v_crit = CP.PropsSI('V', 'T', T_crit, 'P', P_crit, 'N2O')
-
-        if(v_tank < v_crit):
-            x = 1
-        else:
-            x = 0
-
-        u_sat = CP.PropsSI('U', 'Q', x, 'V', v_tank, 'N2O')
-
-        #solve Q
-        Q_max = self.m_ox*(u_sat - self.u_tank)
-
-        ####HEAT TRANSFER MODEL!!!!!!
-        A_inner = 0.25*np.pi*d_inner**2
-        wall_thermal_resistance = L_wall/(k_cond*A_inner)
-        
-        cylinder_thermal_resistance = np.ln(d_outer/d_inner)/(2*np.pi*L_wall*k_cond)
-
-        thermal_resistance = 1/cylinder_thermal_resistance + 2/wall_thermal_resistance
-
-        Q_dot = (T_atm - self.T_tank)/thermal_resistance
-
-        return Q_max/Q_dot
-        
+        print("\n------------\nsummary of bens ox tank inputs: \nOxidizer: ", oxidizer ,"\nTimestep: ", timestep,"\nm_ox: ", m_ox ,"(kg)\nCd: ", Cd_1, "(-)\nA_inj_1: ", A_inj_1, "(m^2)\nV_tank: ", V_tank, "(m^3)\nP_tank: ", P_tank, "(Pa)\nP_cc: ", P_cc, "(Pa)\n------------\n\n\n")     
           
+
 
     def inst(self, P_cc):
         self.P_cc = P_cc
@@ -436,6 +425,9 @@ class model():
                 self.T_tank = secant((lambda T: Verror(T, self.U_tank, self.m_ox, self.V_tank)), self.T_tank)
 
             #use temperature to calculate thermo properties of tank
+
+            print(self.x_tank, self.T_tank)
+
             self.P_tank = CP.PropsSI('P', 'Q', self.x_tank, 'T', self.T_tank, 'N2O')
             h_liq = CP.PropsSI('H', 'Q', 0, 'T', self.T_tank, 'N2O')
             h_vap = CP.PropsSI('H', 'Q', 1, 'T', self.T_tank, 'N2O')
@@ -445,7 +437,7 @@ class model():
             self.u_vap = CP.PropsSI('U', 'Q', 1, 'T', self.T_tank, 'N2O')
 
             self.x_tank = (self.U_tank/self.m_ox - self.u_liq)/(self.u_vap - self.u_liq)
-            self.u_tank = self.x_tank*self.u_vap + (1 - self.x_tank)*self.u_liq
+            self.u_tank = (self.x_tank*self.u_vap + (1 - self.x_tank)*self.u_liq )
             h_tank_exit = self.x_tank*h_vap + (1 - self.x_tank)*h_liq
             self.rho_tank = self.x_tank*self.rho_vap + (1-self.x_tank)*self.rho_liq
 
@@ -454,10 +446,11 @@ class model():
             #assume only liquid draining from tank #NOTE: challenge this?
             self.rho_exit = self.rho_tank#self.rho_liq
 
-            print("liquid phase", self.P_tank,self.x_tank, self.T_tank, self.m_ox)
+            #print("liquid phase", self.P_tank,self.P_cc,self.x_tank,self.rho_tank,self.rho_liq, self.t)
             
             if(self.inj_model == 1):
                 h_tank_exit = h_liq
+                self.rho_exit = self.rho_liq
                 #SPI Model --> single phase so using liquid enthalpy
             
             
@@ -480,7 +473,6 @@ class model():
             #update current time
             self.t = self.t + self.timestep
             self.rho_exit = self.rho_tank
-            #print('here')
             h_tank_exit = h_tank_exit + 7.3397e+05 #Convert from Span-Wagner enthalpy convention to NIST
 
 
@@ -496,7 +488,7 @@ class model():
         ### SPI MODEL ###
         if(self.inj_model == 1):
             #correct density for this model calculated from above based on nitrous state
-            self.m_dot_ox = spi_model(self.Cd_1, self.A_inj_1, self.P_tank, self.P_cc, self.rho_exit)
+            self.m_dot_ox = spi_model(self.Cd_1, self.A_inj_1, self.P_tank, self.P_cc, self.rho_exit, h_tank_exit)
 
             #print(self.rho_exit, self.rho_liq, self.x_tank, h_tank_exit, self.P_tank, self.P_cc)
 
@@ -527,13 +519,14 @@ class model():
         #TODO: add feed system term ^
 
         #Ben does this to eliminate numerical instability
+        
         if self.t == self.timestep:
             self.m_dot_ox = 0.5 * self.m_dot_ox
         else:
             self.m_dot_ox = 0.5 * self.m_dot_ox + 0.5 * self.m_dot_ox_prev
 
         #move forward in time with differential eqns
-        print(self.x_tank, self.t)
+        #print(self.x_tank, self.t)
         self.m_ox = self.m_ox - self.m_dot_ox*self.timestep
         self.m_dot_ox_prev = self.m_dot_ox
         self.U_tank = self.U_tank -self.m_dot_ox*h_tank_exit*self.timestep
