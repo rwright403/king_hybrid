@@ -56,14 +56,19 @@ def cp_sat_vap(T):
     A = a * P_sat / ((RM**2)*(T**2))  # Unitless
     B = b * P_sat / (RM * T)  # Unitless
 
+    #print(A, a, B, b, P_sat)
+
     Z = compressibility(A, B)  # Unitless
 
-    pr_eos_vap = PR(T=T, P=P_sat, Tc=T_crit, Pc=P_crit, omega=omega)
-    rho = (MW/1000) / pr_eos_vap.V_g  # kg/m^3
+    #pr_eos_vap = PR(T=T, P=P_sat, Tc=T_crit, Pc=P_crit, omega=omega)
+    #rho = (MW/1000) / pr_eos_vap.V_g  # kg/m^3
 
-    F_2 = (RM * T) * ((-Z / rho) * (A / ((Z**2) + 2 * B * Z - (B**2))) * (1 + kappa * np.sqrt(T_ref / alpha)))  # J/kg
+    #F_2 = (RM * T) * ((-Z / rho) * (A / ((Z**2) + 2 * B * Z - (B**2))) * (1 + kappa * np.sqrt(T_ref / alpha)))  
+    
+    #F_1 = 20000*(RM * T) * (np.log( (Z+2.414*B)/(Z-0.414*B) ) *(A/(5.657*B)) *(kappa/(T_crit*alpha)) * (np.sqrt(alpha/T_ref)+kappa) ) # units???
 
-    print(F_2, rho, P_sat, A, B, kappa, alpha, RM, T)
+    #print(F_1, P_sat, A, B, kappa, alpha, RM, T, Z, T_ref, T_crit)
+    #print(F_1)
     
     #setup
     A = -5956.82087
@@ -80,12 +85,12 @@ def cp_sat_vap(T):
     else:
         T/=1000
         val = 1000*( A + B*T + C*(T**2) + D*(T**3) + E/(T**2) ) / MW #J/(kg K)
-        return F_2*val #J/(kg K)
+        return F_1 + val 
     
 
 pObj = get_prop('N2O')
 
-Temps = np.linspace(188,300,50)
+Temps = np.linspace(188,308,50)
 
 cp_arr = []
 polynomial_arr = []
