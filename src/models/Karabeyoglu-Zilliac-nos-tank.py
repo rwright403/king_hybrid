@@ -8,7 +8,7 @@ from scipy.integrate import solve_ivp
 import numpy as np
 
 #global constants:
-R_u = 8.31446 #J/K/mol
+R_u = 8.31446 #J/(mol K) 
 
 T_ref = 298.15 #K
 P_ref = 101325 #Pa
@@ -204,11 +204,9 @@ def solve_Q_dot_ullage_gas_liquid_surface():
 
     return 1
 
-#Q_dot_VLC - condensation
-def solve_Q_dot_condensation(T, m_dot_condensation):
-    return m_dot_condensation*latent_heat_liq_vap(T)
+#Q_dot_VLC - condensation - NEGLECT
 
-#Q_dot_VLB - condensation
+#Q_dot_VLB - evaporation
 def solve_Q_dot_vaporization(T, m_dot_vaporization):
     return m_dot_vaporization*latent_heat_liq_vap(T)
 
@@ -249,7 +247,7 @@ def solve_m_dot_evaporated_liq():
 def solve_F_1(T, Z, A, B, alpha, n2o):
 
     #NOTE: n2o.MW --> g/mol | 
-    F_1 = ((R_u*T)/n2o.MW) * (np.ln( (Z+2.414*B)/(Z-0.414*B) ) * (A/(5.657*B)) * (n2o.kappa/(n2o.Tc*alpha)) * (np.sqrt(alpha/T_ref) + n2o.kappa) )
+    F_1 = ((R_u*T)/(n2o.MW/1000)) * (np.log( (Z+2.414*B)/(Z-0.414*B) ) * (A/(5.657*B)) * (n2o.kappa/(n2o.Tc*alpha)) * (np.sqrt(alpha/T_ref) + n2o.kappa) )
     return F_1
 
 
@@ -265,6 +263,7 @@ def vap_phase_T_dot(T, rho, rho_dot, m, m_dot_prop, n2o, u_e, Q_dot_gas_wall):
     V_m = (n2o.MW/1000) / rho
 
     #actually likely makes sense to keep T separate or define a new PR object????
+    #BUG: this is definitely wrong, want T_sat?
     pr_eos_vap = PR(T=T, V=V_m, Tc=n2o.Tc, Pc=n2o.Pc, omega=n2o.omega) #TODO: check units
     P = pr_eos_vap.P #allegedly this is how pressure is solved (on init?)
 
@@ -278,7 +277,10 @@ def vap_phase_T_dot(T, rho, rho_dot, m, m_dot_prop, n2o, u_e, Q_dot_gas_wall):
     F_1 = solve_F_1(T, Z, A, B, alpha, n2o)
     F_2 = solve_F_2(T, Z, A, B, alpha, rho, n2o)
 
-    cv_ideal_gas = cp_ideal_gas(T) - (R_u/n2o.MW)
+
+    ####
+
+    cv_ideal_gas = n2o.Cp_ideal_gas_mass()  - (R_u/(n2o.MW/1000))
 
     T_dot =  (Q_dot_gas_wall - m_dot_prop*( (P/rho) + 0.5*(u_e**2) ) - m*F_2*rho_dot) / (m*(F_1+cv_ideal_gas))
     return T_dot
@@ -345,7 +347,7 @@ class model():
         #TODO: PUT INJECTOR MODEL HERE!!!!
         #starting with spi model like the thesis used, once i prove everything runs i will swap in a better model here
         
-        self.m_dot = spi_model(self.Cd_1, self.A_inj_1, self.P_tank, self.P_cc, self.rho_exit)
+        self.m_dot = spi_model(self.Cd_1, self.A_inj_1, self.P_tank, P_cc, self.rho_exit)
 
 
 
@@ -360,7 +362,7 @@ class model():
 
             ###solve T_dot 
 
-            sol = solve_ivp( lambda T: liq_phase_T_dot_liq
+            #sol = solve_ivp( lambda T: liq_phase_T_dot_liq
 
 
 
@@ -411,11 +413,6 @@ class model():
             self.pr_eos_vap = PR(T=self.T_vap, V=V_m, Tc=self.n2o.Tc, Pc=self.n2o.Pc, omega=self.n2o.omega)
             self.P_vap = self.pr_eos_vap.P
 
-
             #resolve all thermodynamic properties
 
             self.rho_exit = self.rho_vap
-
-
-
-
