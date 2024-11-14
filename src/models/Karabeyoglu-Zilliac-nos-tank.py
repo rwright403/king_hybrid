@@ -1,261 +1,182 @@
+
+from scipy.optimize import minimize
 from thermo import Chemical
-from thermo.eos import PR
-
-# Create a Fluid object for nitrous oxide
-nitrous_oxide = Chemical('nitrous oxide')
-
-from scipy.integrate import solve_ivp
+from thermo import PR
 import numpy as np
+from scipy.integrate import solve_ivp
+import rocketprops
+import CoolProp.CoolProp as CP
 
-#global constants:
-R_u = 8.31446 #J/(mol K) 
+# Global Constants:
+R_U = 8.31446 #J/(mol K) 
 
-T_ref = 298.15 #K
-P_ref = 101325 #Pa
+T_REF = 298.15 #K
+P_REF = 101325 #Pa
+#NOTE: do i even use this? ^
+n2o = Chemical('nitrous oxide')
 
+MW = (n2o.MW/1000) #n2o.MW in g/mol --> converted to kg/mol
+KAPPA = 0.37464 + 1.5422*n2o.omega - 0.26992*n2o.omega**2
 
+TANK_DIAM = 0.0254*5.5 #m
+CS_AREA = 0.25*np.pi*(TANK_DIAM**2) #m^2
+g = 9.81 #m/s^2
+
+#TODO: update with other injector model once we get this thing up
 def spi_model(Cd_hem_spi_dyer, A_inj_ox, P_1, P_2, rho_tank_exit):
     m_dot_spi = Cd_hem_spi_dyer * A_inj_ox * np.sqrt( 2 * rho_tank_exit * (P_1 - P_2)  )
     #print(rho_tank_exit)
     return m_dot_spi
 
-### property relations
-    
-def dynamic_visc_vap(T):
-    A = 2.1150e-6
-    B = 0.46420
-    C = 305.70
-
-    T_max = 1000 #K
-    T_min = 182 #K
-
-    if (T < T_min) or (T > T_max):
-        raise ValueError(f"Input T={T} is out of bounds! dynamic_visc_vap only valid for [{T_min},{T_max}]")
-    else:
-        val = A+B*T+C*T**2
-        return val #kg/(m s)
-
-def beta_liq(T):
-    A = 2.781
-    B = 0.27244
-    C = 309.57
-    D = 0.2882
-
-    T_max = 310 #K
-    T_min = 160 #K
-
-    if (T < T_min) or (T > T_max):
-        raise ValueError(f"Input T={T} is out of bounds! beta_liq only valid for [{T_min},{T_max}]")
-    else:
-        val = (-D/C)*np.ln(B)*(1-T/C)**(D-1)
-        return val #1/K
-
-def T_sat_vap(P):
-    A = 4.80716087
-    B = 967.819748
-    C = 19.6368887
-
-    val = B/(A-np.log10(P/100000))-C
-    return val #K
-
-def P_sat_vap(T):
-    A = 4.80716087
-    B = 967.819748
-    C = 19.6368887
-
-    T_max = 310 #K
-    T_min = 140 #K
-
-    if (T < T_min) or (T > T_max):
-        raise ValueError(f"Input T={T} is out of bounds! P_sat_vap only valid for [{T_min},{T_max}]")
-    else:
-        val = 100000*(10**(A-(B/(T+C))))
-        return val #Pa TODO: CHECK UNITS I THINK ITS IN KPA
-
-def dynamic_visc_liq(T):
-    A = 0.001877085
-    B = 1.1864e-5
-    C = 1.928e-8
-
-    T_max = 300 #K
-    T_min = 230 #K
-
-    if (T < T_min) or (T > T_max):
-        raise ValueError(f"Input T={T} is out of bounds! dynamic_visc_liq only valid for [{T_min},{T_max}]")
-    else:
-        val = A+B*T+C*T**2
-        return val #kg/(m s)
-
-def k_liq(T):
-    A = 0.39815
-    B = -0.0011510
-
-    T_max = 310 #K
-    T_min = 182 #K
-
-    if (T < T_min) or (T > T_max):
-        raise ValueError(f"Input T={T} is out of bounds! k_liq only valid for [{T_min},{T_max}]")
-    else:
-        val = A+B*T
-        return val #W/(m K)
-
-def k_vap(T):
-    A = -0.007037
-    B = 0.0000823
-
-    T_max = 430 #K
-    T_min = 190 #K
-
-    if (T < T_min) or (T > T_max):
-        raise ValueError(f"Input T={T} is out of bounds! k_vap only valid for [{T_min},{T_max}]")
-    else:
-        val = A+B*T
-        return val #W/(m K)
-
-def cp_sat_vap(T):
-    A = -5956.82087
-    B = 59029.4538
-    C = -215342.983
-    D = 276450.549
-    E = 23.5743297
-
-    T_max = 310 #K
-    T_min = 150 #K
-
-    if (T < T_min) or (T > T_max):
-        raise ValueError(f"Input T={T} is out of bounds! cp_sat_vap only valid for [{T_min},{T_max}]")
-    else:
-        val = A + B*T + C*(T**2) + D*(T**3) + E*(T**4)
-        return val #J/(kg K)
-
-def cp_ideal_gas(T):
-    A = 21.62
-    B = 78.81
-    C = -57.78
-    D = 18.3
-
-    T_max = 310 #K
-    T_min = 150 #K
-
-    if (T < T_min) or (T > T_max):
-        raise ValueError(f"Input T={T} is out of bounds! cp_ideal_gas only valid for [{T_min},{T_max}]")
-    else:
-        val = A + B*T + C*(T**2) + D*(T**3) + E*(T**4)
-        return val #J/(kg K)
-    
-def cp_sat_liq(T):
-    A = -131.55551
-    B = 3013.03128
-    C = -14290.1471
-    D = 22239.8432
-
-    T_max = 390 #K
-    T_min = 183 #K
-
-    if (T < T_min) or (T > T_max):
-        raise ValueError(f"Input T={T} is out of bounds! cp_sat_liq only valid for [{T_min},{T_max}]")
-    else:
-        val = A + B*T + C*(T**2) + D*(T**3) + E*(T**4)
-        return val #J/(kg K)
-
-def latent_heat_liq_vap(T,MW):
-    A = 2.686e7
-    B = 0.182
-    C = 0.9387
-    D = -0.706
-
-    T_max = 390 #K
-    T_min = 183 #K
-
-    #NOTE: thesis includes T_crit = 309.6 K here, not sure the significance rn
-
-    if (T < T_min) or (T > T_max):
-        raise ValueError(f"Input T={T} is out of bounds! latent_heat_liq_vap only valid for [{T_min},{T_max}]")
-    else:
-        val = (A*(1-T_ref)**(B+C*T_ref+D*(T_ref**2)+E*(T_ref**3)))/MW 
-        return val #J/(kg K) 
 
 
 
-#Q_dot_GW - convection
-def solve_Q_dot_vap_wall(T_tank_gas,T_wall_gas,rho_gas,L_scale,diam_tank,C_gas_wall,n_gas_wall):
-    
-    A_gas_wall = np.pi*diam_tank*L_scale #m^2
+#CoolProp missing some NOS models thermo has
+def get_thermal_conductivity(T, P):
+    n2o.T = T #K
+    n2o.P = P #Pa
+    return n2o.kl  #(W/(m K))
 
-    T_gas_wall_film = (T_tank_gas + T_wall_gas)/2 #K 
-
-    beta_gas_wall_film = beta_ ??? (T_gas_wall_film)
-    dynamic_visc_vap = dynamic_visc_vap(T_gas_wall_film)
-    cp_vap = ??? (T_gas_wall_film)
-    k_gas_wall_film = k_vap(T_gas_wall_film)
-
-
-    X_gas_wall = ((L_scale**3)*(rho_gas**2)*alpha*beta_gas_wall_film* np.abs(T_tank_gas - T_wall_gas)/(dynamic_visc_vap**2) ) * (cp_vap * dynamic_visc_vap/k_gas_wall_film)
-
-    #NOTE: sign?
-    h_gas_wall = C_gas_wall * k_gas_wall_film * (X_gas_wall**n_gas_wall) * (T_tank_gas - T_wall_gas)
-
-    Q_dot_vap_wall = h_gas_wall * A_gas_wall * (T_tank_gas - T_wall_gas)
-
-    return Q_dot_vap_wall
-
-#Q_dot_GS - convection
-def solve_Q_dot_ullage_gas_liquid_surface():
-
-    return 1
-
-#Q_dot_VLC - condensation - NEGLECT
-
-#Q_dot_VLB - evaporation
-def solve_Q_dot_vaporization(T, m_dot_vaporization):
-    return m_dot_vaporization*latent_heat_liq_vap(T)
-
-#Q_dot_LW - convection
-def solve_Q_dot_wall_liq():
-
-    return 1
-
-#Q_dot_LS - convection
-def solve_Q_dot_liq_liq_surface_layer():
-
-    return 1
+def get_viscosity(T, P): #(dynamic viscosity)
+    n2o.T = T #K
+    n2o.P = P #P
+    return n2o.ViscosityLiquid.calculate_P(T,P, "LUCAS")  #(Pa s)
 
 
-#Q_dot_AWL
-def solve_Q_env_liq_wall():
-
-    return 1
 
 
-#Q_dot_AWG
-def solve_Q_env_vap_wall():
-
-    return 1
 
 
-def solve_m_dot_evaporated_liq():
+# Heat Transfer Functions and LHS
+def latent_heat_vap(T): #TODO: convert to coolprop
+    return (CP.PropsSI('H', 'T', T, 'Q', 1, "N2O") - CP.PropsSI('H', 'T', T, 'Q', 0, "N2O")) #J/kg
+#BUG: assuming equilibrium here, that seems wrong...
+
+def solve_Q_dot_evap(T, m_dot_evap):
+    #print("m_dot_evap", m_dot_evap)
+    return m_dot_evap*latent_heat_vap(T) #J/s
+
+def solve_h_ls(T_1_l, P_1_l, rho_1_l, T_1_s):
+    #NOTE: THIS MIGHT NOT APPLY TO NOS
+    C_ls = 0.27
+    n_ls = 0.25
+
+    k_l = get_thermal_conductivity(T_1_l, P_1_l) #(W/(m K))
+    Cp_l = CP.PropsSI('C', 'T', T_1_l, 'P', P_1_l, 'N2O') #J/(kg K)
+    visc_l = get_viscosity(T_1_l, P_1_l) #(Pa s)
+
+    dV_dT_P = n2o.VolumeLiquid.TP_dependent_property_derivative_T(T_1_l, P_1_l)  #TODO: CHECK THIS
+    #print(f"\n dV_dT_P = {dV_dT_P}")
+    beta = dV_dT_P*rho_1_l 
+
+    Gr = ((TANK_DIAM**3)*(rho_1_l**2)*g*beta*np.abs(T_1_l - T_1_s) ) / (visc_l**2)
+    Pr = (Cp_l*visc_l)/ k_l
+
+    X_ls = Gr*Pr
+    h_ls = C_ls * (k_l/TANK_DIAM) * X_ls**n_ls
+
+    return h_ls
+
+#Q_dot_LS - convection between bulk liquid surface and liquid surface layer
+def solve_Q_dot_ls(T_1_l, P_1_l, rho_1_l):
+
+    T_1_s = CP.PropsSI('T', 'P', P_1_l, 'Q', 0, 'N2O')
+    h_ls = solve_h_ls(T_1_l, P_1_l, rho_1_l, T_1_s)
+
+    Q_dot_ls = h_ls*CS_AREA*(T_1_l - T_1_s) #liquid temp minus surface temp --> assuming surface temp is sat temp?
+
+    #print("\nCHECKING Q_DOT_LS: ", Q_dot_ls, T_1_l, T_1_s, h_ls, "\n")
+    return Q_dot_ls
+
+def solve_m_dot_evaporated_liq(T_1_l, P_1_l, rho_1_l):
     #NOTE: fluid restricted to one component and surface temperature assumed to equal saturation temperature
-    h_ls = 
     
-    E = 2.1e4 #correction coeff for N2O
+    T_1_s = CP.PropsSI('T', 'P', P_1_l, 'Q', 0, 'N2O')
+    h_ls = solve_h_ls(T_1_l, P_1_l, rho_1_l, T_1_s)
+    
+    E = 2.1e4 #correction coeff for N2O from thesis
     h_lsb = E*h_ls
     
-    m_dot_evaporated_liq = h_lsb * (Area/latent_heat_liq_vap(T,MW))*(T_liq-T_sat)
+    #latent heat from ideal gas relation under model? #     T_1 and T_Liq same?
+    m_dot_evaporated_liq = h_lsb * (CS_AREA/latent_heat_vap(T_1_l))*(T_1_l-T_1_s)
     return m_dot_evaporated_liq
 
 
-def solve_F_1(T, Z, A, B, alpha, n2o):
+def calculate_LHS(P_1_l, T_1_l, rho_1_l, m_dot_inj):
 
-    #NOTE: n2o.MW --> g/mol | 
-    F_1 = ((R_u*T)/(n2o.MW/1000)) * (np.log( (Z+2.414*B)/(Z-0.414*B) ) * (A/(5.657*B)) * (n2o.kappa/(n2o.Tc*alpha)) * (np.sqrt(alpha/T_ref) + n2o.kappa) )
+    h_l = CP.PropsSI('H', 'T', T_1_l, 'P', P_1_l, 'N2O')
+
+    m_dot_evap = solve_m_dot_evaporated_liq(T_1_l, P_1_l, rho_1_l)
+    Q_dot_evap = solve_Q_dot_evap(T_1_l, m_dot_evap)
+
+    h_evap = latent_heat_vap(T_1_l)
+
+    Q_dot_ls = solve_Q_dot_ls(T_1_l, P_1_l, rho_1_l)
+
+
+    #print(f"LHS: Q_dot_evap={Q_dot_evap} (J/s), Q_dot_ls={Q_dot_ls} (J/s), m_dot={m_dot} (kg/s), h_l={h_l} (J/kg), m_dot_evap={m_dot_evap}, h_evap={h_evap} (J/kg)\n")
+    #print("checking LHS SIGN", (Q_dot_evap -Q_dot_ls), (m_dot*h_l), ( m_dot_evap*h_evap) )
+    
+    lhs = (Q_dot_evap -Q_dot_ls) + m_dot_inj*h_l + m_dot_evap*h_evap
+    return lhs
+
+
+
+
+
+# Thermodynamic Functions and RHS
+
+def solve_F_1(T, Z, A, B, alpha):
+    F_1 = ((R_U*T)/MW) * (np.log( (Z+2.414*B)/(Z-0.414*B) ) * (A/(5.657*B)) * (KAPPA/(n2o.Tc*alpha)) * (np.sqrt(alpha/T_REF) + KAPPA) )
     return F_1
 
 
-def solve_F_2(T, Z, rho, A, B, alpha, n2o):
-
-    F_2 = ((R_u*T)/n2o.MW) * ( (-1)*(Z/rho) * (A/((Z**2)+2*B*Z-(B**2))) * (1+n2o.kappa*np.sqrt(T_ref/alpha)) ) #NOTE: alpha from EOS?
+def solve_F_2(T, Z, rho, A, B, alpha):
+    F_2 = ((R_U*T)/MW) * ( (-1)*(Z/rho) * (A/((Z**2)+2*B*Z-(B**2))) * (1+KAPPA*np.sqrt(T_REF/alpha)) )
     return F_2
 
+
+def calculate_RHS(P:float, T:float, rho:float, m:float, P_dot:float, T_dot:float, rho_dot:float, m_dot:float):
+
+    V_m = MW/ rho
+
+    Z = (P*V_m)/(R_U*T)
+
+    #does calling PR EOS for this still work with constraints?
+    alpha = (1+ KAPPA * (1 - np.sqrt(T/n2o.Tc))) 
+
+    a = (0.4572 * ((R_U/MW)**2) * (n2o.Tc**2)/n2o.Pc) * alpha
+    b = 0.07780 * (R_U/MW) * n2o.Tc/n2o.Pc
+
+    A = (a*P)/( ((R_U/MW)**2)*T**2)
+    B = (b*P)/((R_U/MW)*T)
+    #print(b, P, (R_U/MW), T)
+
+    F_1 = solve_F_1(T, Z, A, B, alpha)
+    F_2 = solve_F_2(T, Z, A, B, alpha, rho)
+
+    #n2o_ideal = IdealGas('N2O', T=T_1_l)
+    #print("CP", n2o.HeatCapacityGas.T_dependent_property(T_1_l)/MW)
+    cv_ig = (n2o.HeatCapacityGas.T_dependent_property(T)/MW) - (R_U/MW)
+    #BUG: i think the error is here
+
+
+    #NEED TO SOLVE u for liquid here!!!!! coolprop?
+    u = CP.PropsSI('U', 'T', T, 'P', P, 'N2O') #J/kg
+
+    #print(f"RHS: P={P}, T={T}, rho={rho}")
+
+    #print(f"RHS: P={P}, V_dot={V_dot}, P_dot={P_dot}, rho={rho}, m={m},m_dot={m_dot}, u={u}, F_1={F_1}, cv_ig={cv_ig}, T_dot={T_dot}, F_2={F_2}, rho_dot={rho_dot}")
+    #print("RHS", P*V_dot, P_dot*(m/rho), m_dot*u, m*(F_1 + cv_ig)*T_dot, m*F_2*rho_dot)
+
+    #print(m_dot*u, m_dot, u)
+    V_dot = (-1/rho**2)*rho_dot #NOTE: CHECK THIS
+
+    RHS = (P*V_dot + P_dot*(m/rho)) + m_dot*u + m*(F_1 + cv_ig)*T_dot + m*F_2*rho_dot
+    return RHS
+
+
+### T_dot eqns for explicit property estimation
 
 def vap_phase_T_dot(T, rho, rho_dot, m, m_dot_prop, n2o, u_e, Q_dot_gas_wall):
 
@@ -282,7 +203,7 @@ def vap_phase_T_dot(T, rho, rho_dot, m, m_dot_prop, n2o, u_e, Q_dot_gas_wall):
 
     cv_ideal_gas = n2o.Cp_ideal_gas_mass()  - (R_u/(n2o.MW/1000))
 
-    T_dot =  (Q_dot_gas_wall - m_dot_prop*( (P/rho) + 0.5*(u_e**2) ) - m*F_2*rho_dot) / (m*(F_1+cv_ideal_gas))
+    T_dot = (Q_dot_gas_wall - m_dot_prop*( (P/rho) + 0.5*(u_e**2) ) - m*F_2*rho_dot) / (m*(F_1+cv_ideal_gas))
     return T_dot
 
 
@@ -297,77 +218,157 @@ def liq_phase_T_dot_liq():
     T_dot = 1
     return T_dot
 
+### V_dot eqns for explicit property estimation (recall vapor phase V_dot = 0)
+
+def liq_phase_v_dot_vap():
+
+    v_dot = 1
+    return v_dot
+
+
+def liq_phase_v_dot_liq():
+
+    v_dot = 1
+    return v_dot
 
 
 class model():
 
     #NOTE/TODO: THIS IS PROBABLY THE SAME as bens, change if not
+    def __init__(self, oxidizer, TIMESTEP, T_atm, m_nos, Cd_1, A_inj_1, V_tank, Diam_tank, P_tank, P_cc, all_error, inj_model):
+        
 
-    def __init__(self, oxidizer, TIMESTEP, T_amb, m_nos, Cd_1, A_inj_1, V_tank, Diam_tank, P_tank, P_cc, all_error, inj_model):
-        self.oxidizer = oxidizer
-        self.TIMESTEP = TIMESTEP #s
-        self.T_amb = T_amb #K
-        self.m_nos = m_nos #kg
-        self.Cd_1 = Cd_1
-        self.A_inj_1 = A_inj_1 #m^2
-        self.V_tank = V_tank #m^3
-        self.cross_sect_area = 0.25*np.pi*(Diam_tank**2)
-        self.P_tank = P_tank #Pa
-        self.all_error = all_error #%
-        self.inj_model = inj_model
 
-        self.n2o = Chemical('nitrous oxide')
+        # setup - start by assuming the tank is in thermal equillibrium
+        
+        rho_sat_vap = CP.PropsSI('D', 'P', P_tank, 'Q', 1, "N2O")
+        rho_sat_liq = CP.PropsSI('D', 'P', P_tank, 'Q', 0, "N2O")
+        rho_sat_tank = m_nos/V_tank
 
-        #setup - start by assuming the tank is in thermal equillibrium
+        x_tank = ( (1/rho_sat_tank)-(1/rho_sat_liq) ) / ( (1/rho_sat_vap)-(1/rho_sat_liq) )
 
-        #solve molar volume
-        V_m = (self.n2o.MW/1000) / (self.m_nos/self.V_tank)
+        self.m_vap = x_tank*m_nos
+        self.m_liq = m_nos-self.m_vap
 
-        #input into PR EOS to solve temp :/
+        self.v_vap = 1/rho_sat_vap
+        self.P_vap = P_tank
+        self.T_vap = T_atm
+    
 
-        #BUG: does this solve temperature?
-        self.T_liq = PR(T=None, V=V_m, Tc=self.n2o.Tc, Pc=self.n2o.Pc, omega=self.n2o.omega)
-        self.T_vap = self.T_liq #assuming tank starts in thermal equillibrium
+        self.v_liq = 1/rho_sat_liq
+        self.P_liq = P_tank
+        self.T_liq = T_atm
 
-        # Initialize nitrous oxide using the Chemical class to obtain critical properties
-        self.pr_eos_liq = None #= PR(T=T, V=V_m, Tc=self.n2o.Tc, Pc=self.n2o.Pc, omega=self.n2o.omega)
-        self.pr_eos_vap = None
 
-        #TODO: solve quality of tank:
+        self.Q_dot_evap = 0
+        self.m_dot_evap = 0
+        self.m_dot_inj = 0
+        
+        self.P_vap_prev = P_tank
+        self.P_liq_prev = P_tank
+        
+        self.convergence_percent = 0.001 #NOTE: ADJUST AS REQUIRED, better yet make it a percent
+        
 
-        self.m_liq = None
-        self.m_vap = None
-
-        self.rho_exit = 1
+        
 
 
 
     def inst(self, P_cc):
 
-        #TODO: PUT INJECTOR MODEL HERE!!!!
-        #starting with spi model like the thesis used, once i prove everything runs i will swap in a better model here
+        self.m_dot_inj = spi_model(self.Cd_1, self.A_inj_1, self.P_tank, P_cc, self.rho_exit)
+        #NOTE: this should be vapor or liquid pressure?
         
-        self.m_dot = spi_model(self.Cd_1, self.A_inj_1, self.P_tank, P_cc, self.rho_exit)
-
-
-
         if self.m_liq >= 0: #two phases in the tank!
 
-            #assuming only liquid drains from the tank
-            self.m_liq -= self.TIMESTEP * self.m_dot
+            RHS = calculate_RHS(self.P_liq, self.T_liq, (1/self.v_liq), self.m_liq, 0, 0, 0, self.m_dot_inj)
+            LHS = calculate_LHS(self.P_liq, self.T_liq, (1/self.v_liq), self.m_dot_inj)
+            convergence_criteria = (np.abs(RHS) + np.abs(LHS) ) / 2 * self.convergence_percent
 
-            ###solve heat transfer terms
+            while( convergence_criteria < ((RHS-LHS)**2) ):
 
+                #solve mass transfer for both cv
 
-
-            ###solve T_dot 
-
-            #sol = solve_ivp( lambda T: liq_phase_T_dot_liq
-
-
-
+                #solve m_dot evap
+                #NOTE: i think this is the wrong formula, this will depend on both CV
+                m_dot_evap = solve_m_dot_evaporated_liq(self.T_liq, self.P_liq, (1/self.v_liq))          
 
 
+                #solve heat transfer for both cv
+
+                Q_dot_evap = solve_Q_dot_evap(self.T_dot_liq, m_dot_evap)
+                Q_dot_ls = solve_Q_dot_ls(self.T_liq, self.P_liq, (1/self.v_liq)) 
+
+
+                #solve T_dot and rho_dot #NOTE: missing a lot of steps here
+
+                #this is most defnitely a runge kutta method!
+
+
+                ###runge kutta for volume change
+
+                sol = solve_ivp( lambda T: liq_phase_v_dot_liq(T, ""                                    "")
+                            , self.TIMESTEP, self.T_vap, method='RK45', t_eval=self.TIMESTEP)
+
+                self.v_liq = sol.y[0,-1]
+
+
+                sol = solve_ivp( lambda T: liq_phase_v_dot_vap(T, ""                                    "")
+                            , self.TIMESTEP, self.T_vap, method='RK45', t_eval=self.TIMESTEP)
+
+                self.v_vap = sol.y[0,-1]
+
+
+
+
+
+
+                #runge kutta for temp change
+
+                sol = solve_ivp( lambda T: liq_phase_T_dot_liq(T, ""                                    "")
+                            , self.TIMESTEP, self.T_vap, method='RK45', t_eval=self.TIMESTEP)
+
+                self.T_liq = sol.y[0,-1]
+
+
+                sol = solve_ivp( lambda T: liq_phase_T_dot_vap(T, ""                                    "")
+                            , self.TIMESTEP, self.T_vap, method='RK45', t_eval=self.TIMESTEP)
+
+                self.T_vap = sol.y[0,-1]
+
+
+
+
+                #use fwd Euler method to solve new mass in both cv
+                self.m_liq += m_dot_evap*self.TIMESTEP + self.m_dot_inj*self.TIMESTEP #NOTE: CHECK MAKE SURE THIS IS SIGNED WRT REST OF SCRIPT
+                self.m_vap += m_dot_evap*self.TIMESTEP
+
+                #should this be higher? ^^^^
+
+
+                #use fwd Euler method to solve new temp in both cv
+                self.T_liq += T_dot_liq*self.TIMESTEP
+                self.T_vap += T_dot_vap*self.TIMESTEP
+
+                #PR EOS to solve new pressure for both cv NOTE: takes molar volume as input!!!!
+                pr_eos_liq = PR(T=self.T_liq, V=(MW*self.v_liq),  Tc=n2o.Tc, Pc=n2o.Pc, omega=n2o.omega)
+                self.P_liq = pr_eos_liq.P
+                P_dot_liq = (self.P_liq - self.P_liq_prev) / self.TIMESTEP
+
+                pr_eos_vap = PR(T=self.T_vap, V=(MW*self.v_vap),  Tc=n2o.Tc, Pc=n2o.Pc, omega=n2o.omega)
+                self.P_vap = pr_eos_vap.P
+                P_dot_vap = (self.P_vap - self.P_vap_prev) / self.TIMESTEP
+        
+
+
+
+
+                #solved new T,P,rho, for both cv check if density converged in convergence loop
+                #resolve LHS, RHS
+                RHS = calculate_RHS(self.P_liq, self.T_liq, (1/self.v_liq), self.m_liq, P_dot_liq, T_dot_liq, self.v_dot_liq, (self.m_dot_inj+m_dot_evap) )
+                LHS = calculate_LHS(self.P_liq, self.T_liq, (1/self.v_liq), self.m_dot_inj)
+            #NOTE: I DONT THINK THIS WOULD ALLOW VAPOR CV TO CONTROL CONVERGENCE
+                
 
 
 
@@ -379,10 +380,36 @@ class model():
 
 
 
-        else: #only gas in tank
+
+
+        else: #only gas in tank (only one cv same idea though?)
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+"""#OLD:
             #update conservation of mass
 
             self.m_vap -= self.TIMESTEP * self.m_dot
@@ -416,3 +443,4 @@ class model():
             #resolve all thermodynamic properties
 
             self.rho_exit = self.rho_vap
+"""
