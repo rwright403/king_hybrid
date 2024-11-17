@@ -59,10 +59,10 @@ def solve_F_2(T, rho):
 
 
 
-def liq_phase_v_dot_liq(V, rho, rho_dot, m_dot_inj, m_dot_evap, m):
-    v_dot = (-m_dot_inj - m_dot_evap - V*m*rho_dot) / (m*rho) #NOTE: NOT SPECIFIC VOLUME!!!!
-    print("v_dot",v_dot)
-    return v_dot
+def liq_phase_V_dot_liq(V, rho, rho_dot, m_dot_inj, m_dot_evap):
+    V_dot = (-m_dot_inj - m_dot_evap - V*rho_dot) / rho #NOTE: NOT SPECIFIC VOLUME!!!!
+    print("V_dot", V_dot)
+    return V_dot
 
 """
 def liq_phase_P_dot_liq(P, P_prev, TIMESTEP): #NOTE: I DONT LIKE THIS!   - Bad
@@ -71,7 +71,7 @@ def liq_phase_P_dot_liq(P, P_prev, TIMESTEP): #NOTE: I DONT LIKE THIS!   - Bad
     return P_dot_liq
 """
     
-def liq_phase_T_dot_liq(P, T, rho, Q_dot_net, m_dot_inj, m_dot_evap, h_evap, m):
+def liq_phase_T_dot_liq(P, T, rho, Q_dot_net, m_dot_inj, m_dot_evap, h_evap, m, P_dot, V_dot, rho_dot):
 
     F_1 = solve_F_1(T, rho)
     F_2 = solve_F_2(T, rho)
@@ -86,8 +86,9 @@ def liq_phase_T_dot_liq(P, T, rho, Q_dot_net, m_dot_inj, m_dot_evap, h_evap, m):
     P_dot = 0
     rho_dot = 0
 
+    V = m/rho
 
-    T_dot = (Q_dot_net - m_dot_inj*h - m_dot_evap*h_evap -(P*V_dot + P_dot/rho) - m_dot_inj*u - m*F_2*rho_dot ) / (m*(F_1+cv_ideal_gas))
+    T_dot = (Q_dot_net - m_dot_inj*h - m_dot_evap*h_evap -(P*V_dot + P_dot*V) - m_dot_inj*u - m*F_2*rho_dot ) / (m*(F_1+cv_ideal_gas))
 
     print("T_dot",T_dot)
     return T_dot
@@ -103,31 +104,26 @@ def liq_phase_T_dot_liq(P, T, rho, Q_dot_net, m_dot_inj, m_dot_evap, h_evap, m):
 
 
 
-def system_of_odes(t, y, P_init, m_dot_inj, m_dot_evap, Q_dot_net, m, rho):
+def system_of_odes(t, y, P_init, m_dot_inj, m_dot_evap, Q_dot_net, m, rho, rho_dot):
     """
     System of ODEs for T, P, V.
     
     y: State variables [T, P, V]
     """
-    T, V = y  # Unpack state variables
+    T, v = y  # Unpack state variables
 
-    print("before the crash: ", T, P_init, V)
+    #print("before the crash: ", T, P_init, v)
 
 
-    h_evap = (CP.PropsSI('H', 'T', T, 'Q', 1, "N2O") - CP.PropsSI('H', 'T', T, 'Q', 0, "N2O")) #J/kg
+    h_evap = (CP.PropsSI('H', 'T', T, 'D', rho, "N2O") - CP.PropsSI('H', 'T', T, 'D', rho, "N2O")) #J/kg
 
-    # Get the rate of change of temperature, pressure, and volume
-    V_dot = liq_phase_v_dot_liq(V, rho, 0, m_dot_inj, m_dot_evap, m) #NOTE: RHO_dot zero for testing
-    #rho_dot = (-1/(V**2))*V_dot
+    V_dot = liq_phase_V_dot_liq( (v*m), rho, rho_dot, m_dot_inj, m_dot_evap) 
 
-    #print("V_dot:" , V_dot)
-    T_dot = liq_phase_T_dot_liq(P_init, T, rho, Q_dot_net, m_dot_inj, m_dot_evap, h_evap, m) 
+    P_dot = 0
     
-    #pr_eos = PR(T=T, V=(MW*V), Tc=n2o.Tc, Pc=n2o.Pc, omega=n2o.omega)
-    #P = pr_eos.P
-    #P_dot = liq_phase_P_dot_liq(P, P_prev, TIMESTEP)
+    T_dot = liq_phase_T_dot_liq(P_init, T, rho, Q_dot_net, m_dot_inj, m_dot_evap, h_evap, m, P_dot, 0, rho_dot)
     
-
+    print(V_dot, T_dot)
     return [T_dot, V_dot]
 
 
@@ -137,17 +133,19 @@ def system_of_odes(t, y, P_init, m_dot_inj, m_dot_evap, Q_dot_net, m, rho):
 
 
 # Initial conditions
+TIMESTEP = 1e-4
+
 P_init = 45e5 # Initial pressure in Pa
 #T_init = 286.5
 Tank_V = 0.0354
 m_nos = 20
-V_init = Tank_V/m_nos  # Initial volume in m^3
+v_init = Tank_V/m_nos  # Initial volume in m^3
 
 
 
 rho_sat_vap = CP.PropsSI('D', 'P', P_init, 'Q', 1, "N2O")
 rho_sat_liq = CP.PropsSI('D', 'P', P_init, 'Q', 0, "N2O")
-rho_sat_tank = m_nos/V_init
+rho_sat_tank = 1/v_init
 
 x_tank = ( (1/rho_sat_tank)-(1/rho_sat_liq) ) / ( (1/rho_sat_vap)-(1/rho_sat_liq) )
 
@@ -161,6 +159,10 @@ P_vap = P_init
 v_liq = 1/rho_sat_liq
 P_liq = P_init
 
+rho_dot = 0
+P_dot = 0
+V_dot = 0
+
 
 Q_dot_evap = 0
 m_dot_evap = 0
@@ -170,39 +172,37 @@ h_evap = (CP.PropsSI('H', 'P', P_init, 'Q', 1, "N2O") - CP.PropsSI('H', 'P', P_i
 P_vap_prev = P_init
 P_liq_prev = P_init
 
-# Time span for the integration
-#t_end = 10
-#t_eval = np.linspace(t0, t_end, 100)
-TIMESTEP = 1e-4
+
 
 pr_eos = PR(P=P_init, V= (MW*v_liq), Tc=n2o.Tc, Pc=n2o.Pc, omega=n2o.omega)
-T_init = pr_eos.solve_T(P_init,(MW*v_liq) )
+T_init = pr_eos.solve_T(P_init, (MW*v_liq) )
+
+print(T_init, P_init, v_liq)
 
 # Initial state
-y0 = [T_init, v_liq]
+y0 = [T_init, (v_liq*m_liq)]
 
 # Solve the system
-#solution = solve_ivp(system_of_odes, [t0, t_end], y0, args=(m_dot_inj, m_dot_evap, Q_dot_net, m, rho, F_1, cv_ideal_gas, F_2, u, P_prev, TIMESTEP), method='RK45', t_eval=t_eval)
-
-                                                            #P_init, m_dot_inj, m_dot_evap, Q_dot_net, m, rho)
 print(m_liq)
 m_liq-=m_dot_inj*TIMESTEP
 print(m_liq)
 
-solution = solve_ivp(system_of_odes, [0, TIMESTEP], y0, args=(P_init, m_dot_inj, m_dot_evap, 0, m_liq, rho_sat_liq),
+solution = solve_ivp(system_of_odes, [0, TIMESTEP], y0, args=(P_init, m_dot_inj, m_dot_evap, 0, m_liq, rho_sat_liq, rho_dot),
                      method='RK45', rtol=1e-8, atol=1e-8)
 
 # Extract results
 t = solution.t
 y = solution.y
+pr_eos = PR(T=y[0, -1], V= (MW*y[1, -1]/m_liq), Tc=n2o.Tc, Pc=n2o.Pc, omega=n2o.omega)
+P = pr_eos.P
+
+print(f"t = {t[-1]:.5f}, T = {y[0, -1]:.4f}, V = {y[1, -1]}, P = {P}, rho = {1/y[1, -1]}") # P = {y[1, i]:.4f},
+
 
 # Print results
 for i in range(len(t)):
 
-    
-    pr_eos = PR(T=y[0, i], V= (MW*y[1, i]), Tc=n2o.Tc, Pc=n2o.Pc, omega=n2o.omega)
-
-    #print( v_liq, y[1, i])
-
+    pr_eos = PR(T=y[0, -1], V= (MW*y[1, -1]/m_liq), Tc=n2o.Tc, Pc=n2o.Pc, omega=n2o.omega)
 
     print(f"t = {t[i]:.8f}, T = {y[0, i]:.4f}, V = {y[1, i]}, P = {pr_eos.P}, rho = {1/y[1, i]}") # P = {y[1, i]:.4f},
+
