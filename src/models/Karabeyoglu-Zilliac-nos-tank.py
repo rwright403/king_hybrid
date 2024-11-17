@@ -10,8 +10,8 @@ import CoolProp.CoolProp as CP
 # Global Constants:
 R_U = 8.31446 #J/(mol K) 
 
-T_REF = 298.15 #K
-P_REF = 101325 #Pa
+#T_REF = 298.15 #K
+#P_REF = 101325 #Pa
 #NOTE: do i even use this? ^
 n2o = Chemical('nitrous oxide')
 
@@ -48,6 +48,7 @@ def get_viscosity(T, P): #(dynamic viscosity)
 
 
 # Heat Transfer Functions and LHS
+
 def latent_heat_vap(T): #TODO: convert to coolprop
     return (CP.PropsSI('H', 'T', T, 'Q', 1, "N2O") - CP.PropsSI('H', 'T', T, 'Q', 0, "N2O")) #J/kg
 #BUG: assuming equilibrium here, that seems wrong...
@@ -124,112 +125,135 @@ def calculate_LHS(P_1_l, T_1_l, rho_1_l, m_dot_inj):
 
 
 
+
+
+
 # Thermodynamic Functions and RHS
 
-def solve_F_1(T, Z, A, B, alpha):
+def solve_A_B_Z_alpha(T, rho):
+    #convert rho to V_m
+    V_m = MW / rho
+
+    pr_eos_vap = PR(T=T, V=V_m, Tc=n2o.Tc, Pc=n2o.Pc, omega=n2o.omega) #TODO: check units
+    P = pr_eos_vap.P #allegedly this is how pressure is solved (on init?)
+
+    Z = (P*V_m)/(R_U*T)
+
+    A = (pr_eos_vap.a*P)/( ((R_U/MW)**2)*T**2)
+    B = (pr_eos_vap.b*P)/((R_U/MW)*T)
+
+    alpha = (1+ KAPPA * (1 - np.sqrt(T/n2o.T_cr))) 
+
+    return A, B, Z, alpha
+
+def solve_F_1(T, rho):
+
+
+    A, B, Z, alpha = solve_A_B_Z_alpha(T, rho)
+
     F_1 = ((R_U*T)/MW) * (np.log( (Z+2.414*B)/(Z-0.414*B) ) * (A/(5.657*B)) * (KAPPA/(n2o.Tc*alpha)) * (np.sqrt(alpha/T_REF) + KAPPA) )
     return F_1
 
 
-def solve_F_2(T, Z, rho, A, B, alpha):
+def solve_F_2(T, rho):
+    A, B, Z, alpha = solve_A_B_Z_alpha(T, rho)
+
     F_2 = ((R_U*T)/MW) * ( (-1)*(Z/rho) * (A/((Z**2)+2*B*Z-(B**2))) * (1+KAPPA*np.sqrt(T_REF/alpha)) )
     return F_2
 
 
-def calculate_RHS(P:float, T:float, rho:float, m:float, P_dot:float, T_dot:float, rho_dot:float, m_dot:float):
+def calculate_RHS(P:float, T:float, rho:float, m:float, P_dot:float, T_dot:float, rho_dot:float, m_dot:float): #BUG: need to pass in n2o
 
-    V_m = MW/ rho
+    F_1 = solve_F_1(T, rho)
+    F_2 = solve_F_2(T, rho)
 
-    Z = (P*V_m)/(R_U*T)
-
-    #does calling PR EOS for this still work with constraints?
-    alpha = (1+ KAPPA * (1 - np.sqrt(T/n2o.Tc))) 
-
-    a = (0.4572 * ((R_U/MW)**2) * (n2o.Tc**2)/n2o.Pc) * alpha
-    b = 0.07780 * (R_U/MW) * n2o.Tc/n2o.Pc
-
-    A = (a*P)/( ((R_U/MW)**2)*T**2)
-    B = (b*P)/((R_U/MW)*T)
-    #print(b, P, (R_U/MW), T)
-
-    F_1 = solve_F_1(T, Z, A, B, alpha)
-    F_2 = solve_F_2(T, Z, A, B, alpha, rho)
-
-    #n2o_ideal = IdealGas('N2O', T=T_1_l)
-    #print("CP", n2o.HeatCapacityGas.T_dependent_property(T_1_l)/MW)
     cv_ig = (n2o.HeatCapacityGas.T_dependent_property(T)/MW) - (R_U/MW)
-    #BUG: i think the error is here
 
-
-    #NEED TO SOLVE u for liquid here!!!!! coolprop?
     u = CP.PropsSI('U', 'T', T, 'P', P, 'N2O') #J/kg
 
-    #print(f"RHS: P={P}, T={T}, rho={rho}")
-
-    #print(f"RHS: P={P}, V_dot={V_dot}, P_dot={P_dot}, rho={rho}, m={m},m_dot={m_dot}, u={u}, F_1={F_1}, cv_ig={cv_ig}, T_dot={T_dot}, F_2={F_2}, rho_dot={rho_dot}")
-    #print("RHS", P*V_dot, P_dot*(m/rho), m_dot*u, m*(F_1 + cv_ig)*T_dot, m*F_2*rho_dot)
-
-    #print(m_dot*u, m_dot, u)
-    V_dot = (-1/rho**2)*rho_dot #NOTE: CHECK THIS
+    #V_dot = (-1/rho**2)*rho_dot #NOTE: CHECK THIS
 
     RHS = (P*V_dot + P_dot*(m/rho)) + m_dot*u + m*(F_1 + cv_ig)*T_dot + m*F_2*rho_dot
     return RHS
 
 
+
+
+
+
+
+
+
+### V_dot eqns for explicit property estimation (recall vapor phase V_dot = 0)
+
+def liq_phase_v_dot_liq(V, rho, rho_dot, m_dot_inj, m_dot_evap):
+    v_dot = ( -m_dot_inj -m_dot_evap -V*rho_dot) / rho
+    return v_dot
+
+#do i even need this? just sign result of other?
+def liq_phase_v_dot_vap(V_liq, rho_liq, rho_dot_liq, m_dot_inj, m_dot_evap):
+    return -liq_phase_v_dot_liq(V_liq, rho_liq, rho_dot_liq, m_dot_inj, m_dot_evap)
+
+
+
+
 ### T_dot eqns for explicit property estimation
 
-def vap_phase_T_dot(T, rho, rho_dot, m, m_dot_prop, n2o, u_e, Q_dot_gas_wall):
-
-    #convert rho to V_m
-    V_m = (n2o.MW/1000) / rho
+def vap_phase_T_dot(T, rho, rho_dot, m, m_dot_prop, n2o, ke, Q_dot_gas_wall):
 
     #actually likely makes sense to keep T separate or define a new PR object????
     #BUG: this is definitely wrong, want T_sat?
-    pr_eos_vap = PR(T=T, V=V_m, Tc=n2o.Tc, Pc=n2o.Pc, omega=n2o.omega) #TODO: check units
+    pr_eos_vap = PR(T=T, V=(MW/rho), Tc=n2o.Tc, Pc=n2o.Pc, omega=n2o.omega) #TODO: check units
     P = pr_eos_vap.P #allegedly this is how pressure is solved (on init?)
 
-    Z = (P*V_m)/(R_u*T)
-
-    A = (pr_eos_vap.a*P)/( ((R_u/n2o.MW)**2)*T**2)
-    B = (pr_eos_vap.b*P)/((R_u/n2o.MW)*T)
-
-    alpha = (1+ n2o.kappa * (1 - np.sqrt(T/n2o.T_cr))) 
-
-    F_1 = solve_F_1(T, Z, A, B, alpha, n2o)
-    F_2 = solve_F_2(T, Z, A, B, alpha, rho, n2o)
+    F_1 = solve_F_1(P, T, rho, n2o)
+    F_2 = solve_F_2(P, T, rho, n2o)
 
 
     ####
 
-    cv_ideal_gas = n2o.Cp_ideal_gas_mass()  - (R_u/(n2o.MW/1000))
 
-    T_dot = (Q_dot_gas_wall - m_dot_prop*( (P/rho) + 0.5*(u_e**2) ) - m*F_2*rho_dot) / (m*(F_1+cv_ideal_gas))
+    cv_ideal_gas = n2o.Cp_ideal_gas_mass()  - (R_U/MW)
+
+    T_dot = (Q_dot_gas_wall - m_dot_prop*( (P/rho) + 0.5*(ke**2) ) - m*F_2*rho_dot) / (m*(F_1+cv_ideal_gas))
     return T_dot
 
 
-def liq_phase_T_dot_vap():
+def liq_phase_v_dot_liq(P, T, rho, Q_dot_net, m_dot_inj, m_dot_evap, h_evap, m):
 
-    T_dot = 1
+    F_1 = solve_F_1(T, rho)
+    F_2 = solve_F_2(T, rho)
+
+    u = CP.PropsSI('U', 'T', T, 'P', P, 'N2O') #J/kg
+    h = CP.PropsSI('U', 'T', T, 'P', P, 'N2O') #J/kg
+
+    cv_ideal_gas = n2o.Cp_ideal_gas_mass() - (R_U/MW)
+
+    T_dot = (Q_dot_net - m_dot_inj*h - m_dot_evap*h_evap -(P*V_dot + P_dot*V) - m_dot_inj*u - m*F_2*rho_dot ) / (m*(F_1+cv_ideal_gas))
+
+
     return T_dot
 
 
-def liq_phase_T_dot_liq():
+def liq_phase_T_dot_vap(P,T,rho,):
 
-    T_dot = 1
+    F_1 = solve_F_1(P, T, rho, n2o)
+    F_2 = solve_F_2(P, T, rho, n2o)
+
+    u = CP.PropsSI('U', 'T', T, 'P', P, 'N2O') #J/kg
+    h = CP.PropsSI('U', 'T', T, 'P', P, 'N2O') #J/kg
+
+    cv_ideal_gas = n2o.Cp_ideal_gas_mass() - (R_U/MW)
+
+    T_dot = (Q_dot_net - m_dot_evap*h_evap -(P*V_dot + P_dot*V) - m_dot_inj*u - m*F_2*rho_dot ) / (m*(F_1+cv_ideal_gas))
+
+
     return T_dot
 
-### V_dot eqns for explicit property estimation (recall vapor phase V_dot = 0)
-
-def liq_phase_v_dot_vap():
-
-    v_dot = 1
-    return v_dot
 
 
-def liq_phase_v_dot_liq():
 
-    v_dot = 1
-    return v_dot
+
 
 
 class model():
@@ -237,6 +261,7 @@ class model():
     #NOTE/TODO: THIS IS PROBABLY THE SAME as bens, change if not
     def __init__(self, oxidizer, TIMESTEP, T_atm, m_nos, Cd_1, A_inj_1, V_tank, Diam_tank, P_tank, P_cc, all_error, inj_model):
         
+        ###Injector Constants
 
 
         # setup - start by assuming the tank is in thermal equillibrium
@@ -263,6 +288,7 @@ class model():
         self.Q_dot_evap = 0
         self.m_dot_evap = 0
         self.m_dot_inj = 0
+        self.h_evap = (CP.PropsSI('H', 'T', self.T_vap, 'Q', 1, "N2O") - CP.PropsSI('H', 'T', self.T_liq, 'Q', 0, "N2O")) #J/kg
         
         self.P_vap_prev = P_tank
         self.P_liq_prev = P_tank
@@ -276,10 +302,20 @@ class model():
 
     def inst(self, P_cc):
 
-        self.m_dot_inj = spi_model(self.Cd_1, self.A_inj_1, self.P_tank, P_cc, self.rho_exit)
-        #NOTE: this should be vapor or liquid pressure?
+        self.m_dot_inj = spi_model(self.Cd_1, self.A_inj_1, self.P_vap, P_cc, self.rho_exit)
+        #NOTE: this should be vapor or liquid pressure? solve in init?
         
         if self.m_liq >= 0: #two phases in the tank!
+
+            #recall m_dot, Q_dot, h_evap terms stored as attributes from
+
+            sol = solve_ivp(system_of_thermo_property_odes, TIMESTEP, y0, method='RK45')
+            
+
+
+
+
+
 
             RHS = calculate_RHS(self.P_liq, self.T_liq, (1/self.v_liq), self.m_liq, 0, 0, 0, self.m_dot_inj)
             LHS = calculate_LHS(self.P_liq, self.T_liq, (1/self.v_liq), self.m_dot_inj)
@@ -305,50 +341,9 @@ class model():
                 #this is most defnitely a runge kutta method!
 
 
-                ###runge kutta for volume change
-
-                sol = solve_ivp( lambda T: liq_phase_v_dot_liq(T, ""                                    "")
-                            , self.TIMESTEP, self.T_vap, method='RK45', t_eval=self.TIMESTEP)
-
-                self.v_liq = sol.y[0,-1]
+                ### solve volume and temperature change
 
 
-                sol = solve_ivp( lambda T: liq_phase_v_dot_vap(T, ""                                    "")
-                            , self.TIMESTEP, self.T_vap, method='RK45', t_eval=self.TIMESTEP)
-
-                self.v_vap = sol.y[0,-1]
-
-
-
-
-
-
-                #runge kutta for temp change
-
-                sol = solve_ivp( lambda T: liq_phase_T_dot_liq(T, ""                                    "")
-                            , self.TIMESTEP, self.T_vap, method='RK45', t_eval=self.TIMESTEP)
-
-                self.T_liq = sol.y[0,-1]
-
-
-                sol = solve_ivp( lambda T: liq_phase_T_dot_vap(T, ""                                    "")
-                            , self.TIMESTEP, self.T_vap, method='RK45', t_eval=self.TIMESTEP)
-
-                self.T_vap = sol.y[0,-1]
-
-
-
-
-                #use fwd Euler method to solve new mass in both cv
-                self.m_liq += m_dot_evap*self.TIMESTEP + self.m_dot_inj*self.TIMESTEP #NOTE: CHECK MAKE SURE THIS IS SIGNED WRT REST OF SCRIPT
-                self.m_vap += m_dot_evap*self.TIMESTEP
-
-                #should this be higher? ^^^^
-
-
-                #use fwd Euler method to solve new temp in both cv
-                self.T_liq += T_dot_liq*self.TIMESTEP
-                self.T_vap += T_dot_vap*self.TIMESTEP
 
                 #PR EOS to solve new pressure for both cv NOTE: takes molar volume as input!!!!
                 pr_eos_liq = PR(T=self.T_liq, V=(MW*self.v_liq),  Tc=n2o.Tc, Pc=n2o.Pc, omega=n2o.omega)
