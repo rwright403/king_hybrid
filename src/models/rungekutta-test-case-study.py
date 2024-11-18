@@ -64,12 +64,6 @@ def liq_phase_v_dot_liq(V, rho, rho_dot, m_dot_inj, m_dot_evap, m):
     print("v_dot",v_dot)
     return v_dot
 
-"""
-def liq_phase_P_dot_liq(P, P_prev, TIMESTEP): #NOTE: I DONT LIKE THIS!   - Bad
-    P_dot_liq = (P - P_prev) / TIMESTEP
-
-    return P_dot_liq
-"""
     
 def liq_phase_T_dot_liq(P, T, rho, Q_dot_net, m_dot_inj, m_dot_evap, h_evap, m):
 
@@ -206,4 +200,3 @@ for i in range(len(t)):
 
 
     print(f"t = {t[i]:.8f}, T = {y[0, i]:.4f}, V = {y[1, i]}, P = {pr_eos.P}, rho = {1/y[1, i]}") # P = {y[1, i]:.4f},
-
