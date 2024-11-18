@@ -78,15 +78,15 @@ def solve_F_2(T, rho):
 
 
 
-def liq_phase_V_dot_liq(V, rho, rho_dot, m_dot_inj, m_dot_evap):
+def solve_liq_phase_V_dot_liq(V, rho, rho_dot_liq, m_dot_inj, m_dot_evap):
 
-    V_dot = (-m_dot_inj - m_dot_evap - V*rho_dot) / rho #NOTE: NOT SPECIFIC VOLUME!!!!
-    print("V_dot", V_dot)
-    return V_dot
+    V_dot_liq = (-m_dot_inj - m_dot_evap - V*rho_dot_liq) / rho #NOTE: NOT SPECIFIC VOLUME!!!!
+    print("V_dot_liq", V_dot_liq)
+    return V_dot_liq
 
 
     
-def liq_phase_T_dot_liq(P, T, rho, Q_dot_net, m_dot_inj, m_dot_evap, h_evap, m, P_dot, V_dot, rho_dot):
+def solve_liq_phase_T_dot_liq(P, T, rho, Q_dot_net, m_dot_inj, m_dot_evap, h_evap, m, P_dot_liq, V_dot_liq, rho_dot_liq):
 
     F_1 = solve_F_1(T, rho)
     F_2 = solve_F_2(T, rho)
@@ -97,22 +97,38 @@ def liq_phase_T_dot_liq(P, T, rho, Q_dot_net, m_dot_inj, m_dot_evap, h_evap, m, 
     cv_ideal_gas = (n2o.HeatCapacityGas.T_dependent_property(T)/MW) - (R_U/MW)
 
     #NOTE: FIRST TIMESTEP STARTS IN EQUILIBRIUM
-    V_dot = 0
-    P_dot = 0
-    rho_dot = 0
+    V_dot_liq = 0
+    P_dot_liq = 0
+    rho_dot_liq = 0
 
     V = m/rho
 
-    T_dot = (Q_dot_net - m_dot_inj*h - m_dot_evap*h_evap -(P*V_dot + P_dot*V) - m_dot_inj*u - m*F_2*rho_dot ) / (m*(F_1+cv_ideal_gas))
+    T_dot = (Q_dot_net - m_dot_inj*h - m_dot_evap*h_evap -(P*V_dot_liq + P_dot_liq*V) - m_dot_inj*u - m*F_2*rho_dot_liq ) / (m*(F_1+cv_ideal_gas))
 
     print("T_dot", T_dot)
+    return T_dot
+
+def solve_liq_phase_T_dot_vap(P, T, rho, Q_dot_net, m_dot_inj, m_dot_evap, h_evap, m, P_dot_vap, V_dot_vap, rho_dot_vap):
+
+
+    F_1 = solve_F_1(T, rho)
+    F_2 = solve_F_2(T, rho)
+
+    u = CP.PropsSI('U', 'T', T, 'P', rho, 'N2O') #J/kg
+
+    cv_ideal_gas = (n2o.HeatCapacityGas.T_dependent_property(T)/MW) - (R_U/MW)
+
+    V = m/rho
+
+    m_dot_vap = m_dot_evap #I am neglecting condensation for now, no tank pressurant gas!
+    T_dot = (Q_dot_net + m_dot_evap*h_evap -(P*V_dot_vap + P_dot_vap*V) - m_dot_inj*u - m*F_2*rho_dot_vap ) / (m*(F_1+cv_ideal_gas)) #NOTE: TAKE CARE W SIGNS HERE
+
     return T_dot
 
 
 
 
-
-def calculate_RHS( P:float, T:float, rho:float, m:float, P_dot:float, T_dot:float, rho_dot:float, m_dot:float, V_dot:float ):
+def calculate_RHS( P:float, T:float, rho:float, m:float, P_dot_liq:float, T_dot:float, rho_dot_liq:float, m_dot:float, V_dot_liq:float ):
 
     F_1 = solve_F_1(T, rho)
     F_2 = solve_F_2(T, rho)
@@ -123,20 +139,31 @@ def calculate_RHS( P:float, T:float, rho:float, m:float, P_dot:float, T_dot:floa
 
     V = m/rho #m^3
 
-    RHS = (P*V_dot + P_dot*V) + m_dot*u + m*(F_1 + cv_ig)*T_dot + m*F_2*rho_dot
+    RHS = (P*V_dot_liq + P_dot_liq*V) + m_dot*u + m*(F_1 + cv_ig)*T_dot + m*F_2*rho_dot_liq
     return RHS
 
 
 
 
+#TODO: what is the best way to handle the change? check states with coolprop??????
+def solve_latent_heat_evap(T,P): 
+    
+    phase = CP.PhaseSI("T", T, "P", P, "N2O")
 
-def latent_heat_vap(T,P): 
-    return (CP.PropsSI('H', 'T', T, 'P', P, "N2O") - CP.PropsSI('H', 'T', T, 'P', P, "N2O")) #J/kg
-#BUG: assuming equilibrium here, that seems wrong... #NOTE: YES BAD !!!
+    h_delta = (CP.PropsSI('H', 'T', T, 'Q', 1, "N2O") - CP.PropsSI('H', 'T', T, 'Q', 0, "N2O")) #J/kg
+
+    if phase == 0: #subcooled fluid 
+        h_evap = h_delta + (CP.PropsSI('H', 'T', T, 'Q', 0, "N2O") - CP.PropsSI('H', 'T', T, 'P', P, "N2O") ) #J/kg
+
+    if phase == 6: #sat liq vapor
+        h_evap = h_delta
+
+    return h_evap #J/kg
+
 
 def solve_Q_dot_evap(T, P, m_dot_evap):
     #print("m_dot_evap", m_dot_evap)
-    return m_dot_evap*latent_heat_vap(T, P) #J/s
+    return m_dot_evap*solve_latent_heat_evap(T, P) #J/s
 
 def solve_h_ls(T_1_l, P_1_l, rho_1_l, T_1_s):
     #NOTE: THIS MIGHT NOT APPLY TO NOS
@@ -180,7 +207,7 @@ def solve_m_dot_evaporated_liq(T_1_l, P_1_l, rho_1_l):
     h_lsb = E*h_ls
     
     #latent heat from ideal gas relation under model? #     T_1 and T_Liq same?
-    m_dot_evaporated_liq = h_lsb * (CS_AREA/latent_heat_vap(T_1_l, P_1_l))*(T_1_l-T_1_s)
+    m_dot_evaporated_liq = h_lsb * (CS_AREA/solve_latent_heat_evap(T_1_l, P_1_l))*(T_1_l-T_1_s)
     return m_dot_evaporated_liq
 
 
@@ -194,7 +221,7 @@ def calculate_LHS(P_1_l, T_1_l, rho_1_l, m_dot_inj):
     m_dot_evap = solve_m_dot_evaporated_liq(T_1_l, P_1_l, rho_1_l)
     Q_dot_evap = solve_Q_dot_evap(T_1_l, P_1_l, m_dot_evap)
 
-    h_evap = latent_heat_vap(T_1_l, P_1_l)
+    h_evap = solve_latent_heat_evap(T_1_l, P_1_l)
 
     Q_dot_ls = solve_Q_dot_ls(T_1_l, P_1_l, rho_1_l)
 
@@ -210,12 +237,8 @@ def calculate_LHS(P_1_l, T_1_l, rho_1_l, m_dot_inj):
 
 
 
-def system_of_odes(t, y, P_init, m_dot_inj, m_dot_evap, Q_dot_net, m, rho, rho_dot):
-    """
-    System of ODEs for T, P, V.
-    
-    y: State variables [T, P, V]
-    """
+def system_of_liq_odes(t, y, P_init, m_dot_inj, m_dot_evap, Q_dot_net, m, rho, rho_dot_liq):
+
     T, v = y  # Unpack state variables
 
     #print("before the crash: ", T, P_init, v)
@@ -223,20 +246,24 @@ def system_of_odes(t, y, P_init, m_dot_inj, m_dot_evap, Q_dot_net, m, rho, rho_d
 
     h_evap = (CP.PropsSI('H', 'T', T, 'D', rho, "N2O") - CP.PropsSI('H', 'T', T, 'D', rho, "N2O")) #J/kg
 
-    V_dot = liq_phase_V_dot_liq( (v*m), rho, rho_dot, m_dot_inj, m_dot_evap) 
+    V_dot_liq = solve_liq_phase_V_dot_liq( (v*m), rho, rho_dot_liq, m_dot_inj, m_dot_evap) 
 
-    P_dot = 0 #TODO: PASS THIS IN from previous P_dot
+    P_dot_liq = 0 #TODO: PASS THIS IN from previous P_dot_liq
+
     
-    T_dot = liq_phase_T_dot_liq(P_init, T, rho, Q_dot_net, m_dot_inj, m_dot_evap, h_evap, m, P_dot, 0, rho_dot)
+    T_dot_liq = solve_liq_phase_T_dot_liq(P_init, T, rho, Q_dot_net, m_dot_inj, m_dot_evap, h_evap, m, P_dot_liq, 0, rho_dot_liq) #NOTE: just to use previous val V_dot_liq = 0
     
-    print(V_dot, T_dot)
-    return [T_dot, V_dot]
+    print(V_dot_liq, T_dot_liq)
+    return [T_dot_liq, V_dot_liq]
 
 
 
 
 
-
+#### THIS WILL BECOME INIT
+Cd_spi = 0.425
+P_back = 1e5 #Pa
+A_inj = ???
 
 # Initial conditions NOTE: assuming tank starts at sat conditions
 TIMESTEP = 1e-4
@@ -244,11 +271,9 @@ convergence_percent = 0.001 #NOTE: ADJUST AS REQUIRED,
 
 P_init = 45e5 # Initial pressure in Pa
 #T_init = 286.5
-Tank_V = 0.0354
+V_tank = 0.0354
 m_nos = 20
-v_init = Tank_V/m_nos  # Initial volume in m^3
-
-
+v_init = V_tank/m_nos  # Initial volume in m^3
 
 rho_sat_vap = CP.PropsSI('D', 'P', P_init, 'Q', 1, "N2O")
 rho_sat_liq = CP.PropsSI('D', 'P', P_init, 'Q', 0, "N2O")
@@ -261,62 +286,123 @@ m_liq = m_nos-m_vap
 
 v_vap = 1/rho_sat_vap
 P_vap = P_init
-    
 
 v_liq = 1/rho_sat_liq
 P_liq = P_init
 
-rho_dot = 0
-P_dot = 0
-V_dot = 0
+rho_dot_liq = 0
+P_dot_liq = 0
+V_dot_liq = 0
 
 
 Q_dot_evap = 0
 m_dot_evap = 0
-m_dot_inj = 1 #NOTE: i think this sign is true, if it isnt the script is broken and it makes it appear true
-h_evap = (CP.PropsSI('H', 'P', P_init, 'Q', 1, "N2O") - CP.PropsSI('H', 'P', P_init, 'Q', 0, "N2O")) #J/kg
+m_dot_inj = 1 
         
 P_vap_prev = P_init
 P_liq_prev = P_init
 
+rho_vap_prev = 1/v_vap
+rho_liq_prev = 1/v_liq
 
 
-pr_eos = PR(P=P_init, V= (MW*v_liq), Tc=n2o.Tc, Pc=n2o.Pc, omega=n2o.omega)
-T_init = pr_eos.solve_T(P_init, (MW*v_liq) )
+#I THINK THIS IS JUST SETUP FOR TEST CASE BECAUSE THEY DIDNT MEASURE TEMPERATURE, MAY OR MAY NOT NEED IN ACTUAL SCRIPT INPUT
+pr_eos = PR(P=P_liq, V= (MW*v_liq), Tc=n2o.Tc, Pc=n2o.Pc, omega=n2o.omega)
+T_liq = pr_eos.solve_T(P_liq, (MW*v_liq) )
+T_vap = T_liq #starting at saturation
 
-print(T_init, P_init, v_liq)
+#### THIS WILL BECOME INST
 
-# Initial state
-y0 = [T_init, (v_liq*m_liq)]
+
+### SOLVE THE LIQUID CV:
+
+# Initial state setup
+y0_liq = [T_liq, (v_liq*m_liq)]
 
 # Solve the system
-print(m_liq)
-m_liq-=m_dot_inj*TIMESTEP
-print(m_liq)
 
-solution = solve_ivp(system_of_odes, [0, TIMESTEP], y0, args=(P_init, m_dot_inj, m_dot_evap, 0, m_liq, rho_sat_liq, rho_dot),
+m_liq-=m_dot_inj*TIMESTEP
+
+Q_dot_net_liq = Q_dot_evap #solve simple case to start
+solution = solve_ivp(system_of_liq_odes, [0, TIMESTEP], y0_liq, args=(P_liq, m_dot_inj, m_dot_evap, Q_dot_net_liq, m_liq, rho_sat_liq, rho_dot_liq),
                      method='RK45', rtol=1e-8, atol=1e-8)
 
 # Extract results
 t = solution.t
-y = solution.y
-pr_eos = PR(T=y[0, -1], V= (MW*y[1, -1]/m_liq), Tc=n2o.Tc, Pc=n2o.Pc, omega=n2o.omega)
+y_liq = solution.y
+pr_eos = PR(T=y_liq[0, -1], V= (MW*y_liq[1, -1]/m_liq), Tc=n2o.Tc, Pc=n2o.Pc, omega=n2o.omega)
 P_liq = pr_eos.P
-T_liq = y[0, -1]
-V_liq = y[1, -1]
+T_liq = y_liq[0, -1]
+V_liq = y_liq[1, -1]
 
-print(f"t = {t[-1]:.5f}, T = {y[0, -1]:.4f}, V = {y[1, -1]}, P = {P_liq}, rho = {1/y[1, -1]}") # P = {y[1, i]:.4f},
+#print(f"t = {t[-1]:.5f}, T = {y[0, -1]:.4f}, V = {y[1, -1]}, P = {P_liq}, rho = {1/y[1, -1]}") # P = {y[1, i]:.4f},
 
 
-# Print results
+# Print results (test code)
 for i in range(len(t)):
 
-    pr_eos = PR(T=y[0, -1], V= (MW*y[1, -1]/m_liq), Tc=n2o.Tc, Pc=n2o.Pc, omega=n2o.omega)
+    pr_eos = PR(T=y_liq[0, -1], V= (MW*y_liq[1, -1]/m_liq), Tc=n2o.Tc, Pc=n2o.Pc, omega=n2o.omega)
 
-    print(f"t = {t[i]:.8f}, T = {y[0, i]:.4f}, V = {y[1, i]}, P = {P_liq}, rho = {1/y[1, i]}") # P = {y[1, i]:.4f},
-
-
-
-#### NOW RESOLVE TIME DERIVATIVES FOR NEXT TIMESTEP
+    print(f"t = {t[i]:.8f}, T = {y_liq[0, i]:.4f}, V = {y_liq[1, i]}, P = {P_liq}, rho = {1/y_liq[1, i]}") # P = {y[1, i]:.4f},
 
 
+
+
+
+#### NOW RESOLVE LIQ TIME DERIVATIVES FOR VAPOR PHASE AND NEXT RUNGE KUTTA STEP
+
+#TODO: Fill in, these will be stored as attributes
+
+rho_liq = m_liq/V_liq
+
+m_dot_evap = solve_m_dot_evaporated_liq(T_liq, P_liq, rho_liq)
+Q_dot_evap = solve_Q_dot_evap(T_liq, P_liq, m_dot_evap)
+
+#NOTE: P_vap? P_liq?
+m_dot_inj = spi_model(Cd_spi, A_inj, P_vap, P_back, rho_liq) #TODO: FILL IN FOR TEST CASE THEY USED SPI AS WELL
+
+rho_dot_liq = (rho_liq - rho_liq_prev)/TIMESTEP
+V_dot_liq = solve_liq_phase_V_dot_liq(V_liq, rho_liq, rho_dot_liq, m_dot_inj, m_dot_evap)
+
+h_evap = solve_latent_heat_evap(T_liq, P_liq)
+
+Q_dot_net_liq = Q_dot_evap #simplified model just to get it to work at the start
+
+T_dot_liq = solve_liq_phase_T_dot_liq(P_liq, T_liq, rho_liq, Q_dot_net_liq, m_dot_inj, m_dot_evap, h_evap, m_liq, P_dot_liq, V_dot_liq, rho_dot_liq)
+P_dot_liq = (P_liq - P_liq_prev)/TIMESTEP
+
+
+
+### VAPOR CV
+V_dot_vap = (-V_dot_liq) #--> use this to solve rho_vap below!!!!!
+#P, T, rho, Q_dot_net, m_dot_inj, m_dot_evap, h_evap, m, P_dot_vap, V_dot_vap, rho_dot_vap
+solution = solve_ivp(solve_liq_phase_T_dot_vap, [0, TIMESTEP], T_vap, args=(P_liq, m_dot_inj, m_dot_evap, 0, m_liq, rho_sat_liq, rho_dot_liq),
+                     method='RK45', rtol=1e-8, atol=1e-8)
+
+
+
+
+P_dot_vap = (P_vap - P_vap_prev)/TIMESTEP
+
+V_vap = V_tank - V_liq
+rho_vap = m_vap/V_vap
+rho_dot_vap = (rho_vap - rho_vap_prev)/TIMESTEP
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#once we get here put inside criteria to switch to vapor phase
