@@ -49,9 +49,9 @@ def get_viscosity(T, P): #(dynamic viscosity)
 
 # Heat Transfer Functions and LHS
 
-def latent_heat_vap(T): #TODO: convert to coolprop
+def latent_heat_vap(T): 
     return (CP.PropsSI('H', 'T', T, 'Q', 1, "N2O") - CP.PropsSI('H', 'T', T, 'Q', 0, "N2O")) #J/kg
-#BUG: assuming equilibrium here, that seems wrong...
+#BUG: assuming equilibrium here, that seems wrong... #NOTE: YES BAD !!!
 
 def solve_Q_dot_evap(T, m_dot_evap):
     #print("m_dot_evap", m_dot_evap)
@@ -162,7 +162,7 @@ def solve_F_2(T, rho):
     return F_2
 
 
-def calculate_RHS(P:float, T:float, rho:float, m:float, P_dot:float, T_dot:float, rho_dot:float, m_dot:float): #BUG: need to pass in n2o
+def calculate_RHS(P:float, T:float, rho:float, m:float, P_dot:float, T_dot:float, rho_dot:float, m_dot:float, V_dot:float):
 
     F_1 = solve_F_1(T, rho)
     F_2 = solve_F_2(T, rho)
@@ -171,7 +171,6 @@ def calculate_RHS(P:float, T:float, rho:float, m:float, P_dot:float, T_dot:float
 
     u = CP.PropsSI('U', 'T', T, 'P', P, 'N2O') #J/kg
 
-    #V_dot = (-1/rho**2)*rho_dot #NOTE: CHECK THIS
 
     RHS = (P*V_dot + P_dot*(m/rho)) + m_dot*u + m*(F_1 + cv_ig)*T_dot + m*F_2*rho_dot
     return RHS
