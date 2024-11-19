@@ -377,8 +377,6 @@ h_evap = solve_latent_heat_evap(T_liq, P_liq)
 
 Q_dot_net_liq = Q_dot_evap #simplified model just to get it to work at the start
 
-#   huge error here vvvv
-
 
 print("INTO NEXT TIMESTEP T_DOT_LIQ: ", P_liq, T_liq, rho_liq, Q_dot_net_liq, m_dot_inj, m_dot_evap, h_evap, m_liq, P_dot_liq, V_dot_liq, rho_dot_liq)
 T_dot_liq = solve_liq_phase_T_dot_liq(P_liq, T_liq, rho_liq, Q_dot_net_liq, m_dot_inj, m_dot_evap, h_evap, m_liq, P_dot_liq, V_dot_liq, rho_dot_liq)
