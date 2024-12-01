@@ -107,20 +107,16 @@ def calculate_LHS(T_1_l, P_1_l, rho_1_l, m_dot):
 # Thermodynamic Functions and RHS
 
 def solve_F_1(T, Z, A, B, alpha):
-
     F_1 = ((R_U*T)/MW) * (np.log( (Z+2.414*B)/(Z-0.414*B) ) * (A/(5.657*B)) * (KAPPA/(n2o.Tc*alpha)) * (np.sqrt(alpha/T_REF) + KAPPA) )
     return F_1
 
 
 def solve_F_2(T, Z, rho, A, B, alpha):
-
     F_2 = ((R_U*T)/MW) * ( (-1)*(Z/rho) * (A/((Z**2)+2*B*Z-(B**2))) * (1+KAPPA*np.sqrt(T_REF/alpha)) )
     return F_2
 
 
 def calculate_RHS(P, T, rho, P_1, T_1, rho_1, m, m_dot, TIMESTEP):
-
-    #TODO: what is m_dot and u???? i think u would be internal energy at prev step
 
     V_m = MW/ rho
 
@@ -161,8 +157,8 @@ def calculate_RHS(P, T, rho, P_1, T_1, rho_1, m, m_dot, TIMESTEP):
 
     #print(f"RHS: P={P}, T={T}, rho={rho}")
 
-    print(f"RHS: P={P}, V_dot={V_dot}, P_dot={P_dot}, rho={rho}, m={m},m_dot={m_dot}, u={u}, F_1={F_1}, cv_ig={cv_ig}, T_dot={T_dot}, F_2={F_2}, rho_dot={rho_dot}")
-    print("RHS", P*V_dot, P_dot*(m/rho), m_dot*u, m*(F_1 + cv_ig)*T_dot, m*F_2*rho_dot)
+    #print(f"RHS: P={P}, V_dot={V_dot}, P_dot={P_dot}, rho={rho}, m={m},m_dot={m_dot}, u={u}, F_1={F_1}, cv_ig={cv_ig}, T_dot={T_dot}, F_2={F_2}, rho_dot={rho_dot}")
+    #print("RHS", P*V_dot, P_dot*(m/rho), m_dot*u, m*(F_1 + cv_ig)*T_dot, m*F_2*rho_dot)
 
     #print(m_dot*u, m_dot, u)
 

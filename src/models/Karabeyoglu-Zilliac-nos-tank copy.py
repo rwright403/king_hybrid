@@ -48,13 +48,13 @@ def solve_A_B_Z_alpha(T, rho):
     V_m = MW / rho
 
     
-    P = CP.PropsSI('P', 'T', T, 'D', rho, "N2O")
+    #P = CP.PropsSI('P', 'T', T, 'D', rho, "N2O")
 
     #print("before PR fails: ", P, T, rho)
     pr_eos_vap = PR(T=T, V=V_m, Tc=n2o.Tc, Pc=n2o.Pc, omega=n2o.omega) #TODO: check units
-    #P = pr_eos_vap.P #allegedly this is how pressure is solved (on init?)
+    P = pr_eos_vap.P #allegedly this is how pressure is solved (on init?)
     
-    #P = CP.PropsSI('P', 'T', T, 'D', rho, "N2O")
+    P = CP.PropsSI('P', 'T', T, 'D', rho, "N2O")
 
 
     Z = (P*V_m)/(R_U*T)
@@ -292,12 +292,11 @@ class model():
         self.V_liq = self.V_tank-self.V_vap
         self.P_liq = P_tank + 100 #NOTE: TESTING PERTURB
 
-        """
+    
         pr_eos = PR(P=self.P_vap, V= (MW*self.v_vap), Tc=n2o.Tc, Pc=n2o.Pc, omega=n2o.omega)
         self.T_vap = pr_eos.solve_T(self.P_vap, (MW*self.v_vap) )
-        """
 
-        self.T_vap = CP.PropsSI('T', 'P', P_tank, 'Q', 1, "N2O")  #NOTE: TESTING PERTURB
+        #self.T_vap = CP.PropsSI('T', 'P', P_tank, 'Q', 1, "N2O")  #NOTE: TESTING PERTURB
 
 
         self.rho_dot_liq = 0
@@ -357,9 +356,10 @@ class model():
             self.V_liq = solution.y[1, -1]
             self.rho_liq = solution.y[2, -1]
 
-            #pr_eos = PR(T=self.T_liq, V=(MW*self.V_liq/self.m_liq), Tc=n2o.Tc, Pc=n2o.Pc, omega=n2o.omega)
+            pr_eos = PR(T=self.T_liq, V=(MW*self.V_liq/self.m_liq), Tc=n2o.Tc, Pc=n2o.Pc, omega=n2o.omega)
+            self.P_liq = pr_eos.P
             #print(self.rho_dot_liq)
-            self.P_liq = CP.PropsSI("P","T", self.T_liq, "D", (self.m_liq/self.V_liq), "N2O") #pr_eos.P
+            #self.P_liq = CP.PropsSI("P","T", self.T_liq, "D", (self.m_liq/self.V_liq), "N2O") #pr_eos.P
             
             #print(self.V_liq, self.T_liq, self.rho_liq)
 
@@ -372,13 +372,13 @@ class model():
 
             #print(self.V_liq, self.T_liq, self.rho_liq, self.P_liq)
 
-
+            """
             print(self.t, self.TIMESTEP)
             if self.t == self.TIMESTEP:
                 self.rho_liq += 10 #TODO: PERTURB ON FIRST TIMESTEP!
                 self.T_liq = CP.PropsSI("T","P", self.P_liq, "D", self.rho_liq, "N2O")
             #self.P_liq = 4.5e6 + 500 #TODO: PERTURB ON FIRST TIMESTEP!
-
+            """
 
             #self.rho_liq += 8 #TODO: PERTURB ON FIRST TIMESTEP!
             #self.T_liq = CP.PropsSI("T","P", self.P_liq, "D", self.rho_liq, "N2O")
@@ -453,10 +453,10 @@ class model():
             #BUG
             #print("CHECKING PHASE BEFORE PR EOS: ",CP.PhaseSI("T", self.T_vap, "D", (1/(MW*self.V_vap/self.m_vap)), "NitrousOxide"))
 
-            """
+            
             pr_eos_vap = PR(T=self.T_vap, V=(MW*self.V_vap/self.m_vap), Tc=n2o.Tc, Pc=n2o.Pc, omega=n2o.omega)
             self.P_vap = pr_eos_vap.P
-            """
+            
             self.P_vap = CP.PropsSI('P', 'T', self.T_vap, 'D', (self.m_vap/self.V_vap), "N2O")
 
             ###resolve derivatives
@@ -499,7 +499,7 @@ class model():
 
 t = 0
 TIMESTEP = 1e-4
-T_atm = None #not used rn
+T_atm =286.5 
 m_nos = 20
 Cd_1 = 0.425
 A_inj_1 = 0.00003 #m^3 NOTE: GUESS
@@ -510,6 +510,8 @@ P_cc = 1.03e6
 all_error = None #unused
 inj_model = None #TODO: implement
 
+phase = CP.PhaseSI("T", T_atm, "P", P_tank, "N2O")
+print("start: ", phase)
 
 tank = model(TIMESTEP, T_atm, m_nos, Cd_1, A_inj_1, V_tank, Diam_tank, P_tank, P_cc, all_error, inj_model)
 while(t<5):

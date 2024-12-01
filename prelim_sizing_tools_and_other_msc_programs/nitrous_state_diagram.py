@@ -40,7 +40,9 @@ ax1.grid(True, which="both", ls="--")
 
 #ax1.axhline(y=CP.PropsSI('P', 'T', 282, 'Q', 1, substance), color='rebeccapurple', linestyle='--')
 ax1.axhline(y=(2.55e6 + CP.PropsSI('P', 'T', 282, 'Q', 1, substance)), color='rebeccapurple', linestyle='--')
-ax1.plot(1/786.6468204357301, 52e5, marker="o", markersize=10, color="red")
+#288.1145796254294 4480926.129652254
+ax1.plot( 1/CP.PropsSI('D', 'T', 288.1145796254294, 'P', 45e5+100, substance), 45e5+100, marker="o", markersize=10, color="red")
+ax1.plot( 1/CP.PropsSI('D', 'T', 288.1145796254294, 'P', 4480926.129652254, substance), 4480926.129652254, marker="o", markersize=10, color="rebeccapurple")
 #ax1.scatter(y = (2.55e6 + CP.PropsSI('P', 'T', T, 'Q', 282, 'N2O') ), )
 
 # Plot T-S diagram
