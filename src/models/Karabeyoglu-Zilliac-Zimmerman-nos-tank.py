@@ -54,7 +54,7 @@ def solve_latent_heat_evap(T,P):
     if phase == 0: #subcooled fluid 
         h_evap = h_delta + (CP.PropsSI('H', 'T', T, 'Q', 0, "N2O") - CP.PropsSI('H', 'T', T, 'P', P, "N2O") ) #J/kg
 
-    if phase == 5: #sat liq vapor
+    if phase == 6: #sat liq vapor
         h_evap = h_delta
 
 
@@ -186,6 +186,7 @@ def solve_thermo_properties(t, T_liq, T_gas, m_liq, m_gas, m_dot_liq, m_dot_gas,
         i+=1
 
     print(P_gas, rho_liq, rho_gas, V_liq_est, V_gas_est, V_dot_liq_guess, V_dot_gas, rho_dot_liq, rho_dot_gas)
+    print(volume_constraint, pressure_constraint)
     raise Exception("Failed to converge")
 
 
@@ -208,6 +209,10 @@ class LiquidTankODES:
         print(m_liq, m_gas)
         #solve thermo properties?
         P_tank, rho_liq, rho_gas, V_liq, V_gas, V_dot_liq, V_dot_gas, rho_dot_liq, rho_dot_gas = solve_thermo_properties(t, T_liq, T_gas, m_liq, m_gas, self.m_dot_liq_prev, self.m_dot_gas_prev, V_TANK, V_liq_prev, V_gas_prev, rho_liq_prev, rho_gas_prev)
+        
+        print("solved thermo properties liq: ", rho_liq, V_liq, T_liq, P_tank, CP.PhaseSI("T",T_liq,"P",P_tank,"N2O"))
+        print("solved thermo properties vap: ", rho_gas, V_gas, T_gas, P_tank, CP.PhaseSI("T",T_gas,"P",P_tank,"N2O"))
+        
         self.thermo_sol= [P_tank, rho_liq, rho_gas, V_liq, V_gas, V_dot_liq, V_dot_gas, rho_dot_liq, rho_dot_gas]
         #NOTE: ORDER LIKELY BADDDD,using prev values so solving thermo properties at end?
 
@@ -368,7 +373,7 @@ class model():
         self.m_dot_liq = 0
         self.m_dot_vap = 0
 
-        print(self.V_liq, self.T_liq, self.rho_liq, self.P_tank)
+        #print(self.V_liq, self.T_liq, self.rho_liq, self.P_tank)
         
 
         
@@ -390,7 +395,7 @@ class model():
             constants = [ self.V_tank, self.V_liq, self.V_vap, self.rho_liq, self.rho_vap, self.rho_wall, self.diam_out, self.diam_in, self.u_liq, self.u_vap, self.k_w, ((4*self.V_tank)/(np.pi*self.diam_in**2)), self.T_atm, self.P_atm, self.rho_atm ]
             y0 =  [self.T_liq, self.T_vap, self.m_liq, self.m_vap, self.T_wall_liq, self.T_wall_vap ]
 
-            print(self.P_tank, self.V_tank, self.V_liq, self.V_vap, self.rho_liq, self.rho_vap, self.rho_wall, self.diam_out, self.diam_in, self.u_liq, self.u_vap, self.k_w, ((4*self.V_tank)/(np.pi*self.diam_in**2)), self.T_atm, self.P_atm, self.rho_atm )
+            #print(self.P_tank, self.V_tank, self.V_liq, self.V_vap, self.rho_liq, self.rho_vap, self.rho_wall, self.diam_out, self.diam_in, self.u_liq, self.u_vap, self.k_w, ((4*self.V_tank)/(np.pi*self.diam_in**2)), self.T_atm, self.P_atm, self.rho_atm )
 
             #setup odes:
             odes = LiquidTankODES(self.m_dot_liq, self.m_dot_vap)
@@ -452,7 +457,7 @@ inj_model = None #TODO: implement
 
 #def __init__(self, TIMESTEP, T_atm, m_nos, Cd_1, A_inj_1, V_tank, diam_out, diam_in, rho_wall, k_w, P_tank, P_atm, inj_model)
 tank = model(TIMESTEP, m_nos, P_tank, V_tank, diam_out, diam_in, rho_wall, k_w, Cd_1, A_inj_1, P_cc, T_atm, P_atm, rho_atm, inj_model)
-while(t<2*TIMESTEP):
+while(t<5*TIMESTEP):
     tank.inst(P_cc)
     t+=TIMESTEP
     print(t, tank.P_tank, tank.V_liq,"\n")
