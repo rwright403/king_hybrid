@@ -282,7 +282,7 @@ def vap_phase_T_dot(T, rho, rho_dot, m, m_dot_prop, n2o, u_e, Q_dot_gas_wall):
 
     cv_ideal_gas = n2o.Cp_ideal_gas_mass()  - (R_u/(n2o.MW/1000))
 
-    T_dot =  (Q_dot_gas_wall - m_dot_prop*( (P/rho) + 0.5*(u_e**2) ) - m*F_2*rho_dot) / (m*(F_1+cv_ideal_gas))
+    T_dot = (Q_dot_gas_wall - m_dot_prop*( (P/rho) + 0.5*(u_e**2) ) - m*F_2*rho_dot) / (m*(F_1+cv_ideal_gas))
     return T_dot
 
 
