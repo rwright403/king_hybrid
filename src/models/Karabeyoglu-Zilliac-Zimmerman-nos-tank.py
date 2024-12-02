@@ -102,7 +102,7 @@ def solve_Q_natural_convection(T_fluid, T_2, P, rho_1, c, n, fluid):
 
     return Q_dot
 
-
+#NOTE: THIS EQN IS SETUP FOR LIQUID CV, MAKE SURE TO INPUT 0 FOR m_dot_inj WHEN SOLVING FOR GAS CV
 def solve_U_dot(T, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, V_dot_liq , Q_dot_net, T_for_enthalpy_of_form):
     U_dot = m_dot_inj*CP.PropsSI('H','P',P_tank,'T',T,'N2O') - m_dot_evap*solve_latent_heat_evap(T_for_enthalpy_of_form,P_tank) + m_dot_cond*solve_latent_heat_condens(T_for_enthalpy_of_form,P_tank) - P_tank*V_dot_liq + Q_dot_net
     
@@ -311,7 +311,7 @@ class LiquidTankODES:
         U_dot_liq = solve_U_dot(T_liq, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, V_dot_liq , (Q_dot_liq_wall_to_liq - Q_dot_liq_to_sat_surf), T_liq )
 
         #NOTE: for Q_dot_liq:   IN:(5)       OUT: (NONE)
-        U_dot_gas = solve_U_dot(T_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, V_dot_gas, Q_dot_gas_wall_to_gas, T_liq)
+        U_dot_gas = solve_U_dot(T_gas, P_tank, 0, m_dot_evap, m_dot_cond, V_dot_gas, Q_dot_gas_wall_to_gas, T_liq)
 
 
         T_dot_liq = solve_T_dot(t, T_liq, rho_liq, m_liq, u_prev_liq, U_dot_liq, rho_dot_liq, m_dot_liq)
