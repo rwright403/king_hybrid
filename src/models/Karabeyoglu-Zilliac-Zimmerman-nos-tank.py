@@ -58,7 +58,7 @@ def solve_latent_heat_evap(T,P):
 
     #print("PHASE: ", CP.PhaseSI("T", T, "P", P, "N2O"), "T", T, "P", P)
 
-    print("latent heat: ", h_evap)
+    #print("latent heat: ", h_evap)
     return h_evap #J/kg
 
 
@@ -107,9 +107,9 @@ def solve_U_dot(T, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, V_dot_liq , Q_dot_
     U_dot = m_dot_inj*CP.PropsSI('H','P',P_tank,'T',T,'N2O') - m_dot_evap*solve_latent_heat_evap(T_for_enthalpy_of_form,P_tank) + m_dot_cond*solve_latent_heat_condens(T_for_enthalpy_of_form,P_tank) - P_tank*V_dot_liq + Q_dot_net
     
 
-    print("m_dot_evap!", m_dot_evap)
-    print("inside solve U_dot", m_dot_inj*CP.PropsSI('H','P',P_tank,'T',T,'N2O') ,- m_dot_evap*solve_latent_heat_evap(T_for_enthalpy_of_form,P_tank) , + m_dot_cond*solve_latent_heat_condens(T_for_enthalpy_of_form,P_tank) ,- P_tank*V_dot_liq ,+ Q_dot_net)
-    print("first term? ", m_dot_inj, CP.PropsSI('H','P',P_tank,'T',T,'N2O') )
+    #print("m_dot_evap!", m_dot_evap)
+    #print("inside solve U_dot", m_dot_inj*CP.PropsSI('H','P',P_tank,'T',T,'N2O') ,- m_dot_evap*solve_latent_heat_evap(T_for_enthalpy_of_form,P_tank) , + m_dot_cond*solve_latent_heat_condens(T_for_enthalpy_of_form,P_tank) ,- P_tank*V_dot_liq ,+ Q_dot_net)
+    #print("first term? ", m_dot_inj, CP.PropsSI('H','P',P_tank,'T',T,'N2O') )
     return U_dot
 
 
@@ -121,7 +121,7 @@ def solve_T_dot(t, T, rho, m, u_prev, U_dot, rho_dot, m_dot):
     #estimate u!
     u = u_prev + (t*U_dot)/m #NOTE: I THINK THIS MAKES SENSE BUT DOUBLE CHECK
 
-    print("inside T_dot: ", (1/Cv)* (1/m) * (U_dot - u*m_dot) , U_dot , -u*m_dot)
+    #print("inside T_dot: ", (1/Cv)* (1/m) * (U_dot - u*m_dot) , U_dot , -u*m_dot)
     T_dot = (1/Cv)*( (1/m) * (U_dot - u*m_dot) - (partial_dP_drho_const_T* rho_dot) )
     return T_dot
 
@@ -144,8 +144,8 @@ def solve_thermo_properties(t, T_liq, T_gas, m_liq, m_gas, m_dot_liq, m_dot_gas,
     V_dot_liq_iter = -0.0000005
     
     volume_tolerance = 1e-4 
-    pressure_tolerance = 2e2
-    max_iterations = 4000 #TODO: define on max V_dot? can we thermodynamically figure out a maximum with some sort of hand calc assumption?
+    pressure_tolerance = 2e3
+    max_iterations = 12000 #TODO: define on max V_dot? can we thermodynamically figure out a maximum with some sort of hand calc assumption?
 
     for i in range(max_iterations):
         #print("V_DOT_LIQ_GUESS", V_dot_liq_guess)
@@ -207,7 +207,7 @@ def solve_thermo_properties(t, T_liq, T_gas, m_liq, m_gas, m_dot_liq, m_dot_gas,
     #print("solved thermo properties (fail) vap: ", rho_gas, V_gas_est, T_gas, P_tank, CP.PhaseSI("T",T_gas,"P",P_gas,"N2O"))
 
     print("fail to conv", P_gas, P_liq, rho_liq, rho_gas, V_liq_est, V_gas_est, V_dot_liq_guess, V_dot_gas, rho_dot_liq, rho_dot_gas)
-    #print(volume_constraint, pressure_constraint)
+    print(volume_constraint, pressure_constraint)
     raise Exception("Failed to converge")
 
 
@@ -234,7 +234,7 @@ class LiquidTankODES:
 
         P_tank, rho_liq, rho_gas, V_liq, V_gas, V_dot_liq, V_dot_gas, rho_dot_liq, rho_dot_gas = solve_thermo_properties(t, T_liq, T_gas, m_liq, m_gas, self.m_dot_liq_prev, self.m_dot_gas_prev, V_TANK, V_liq_prev, V_gas_prev, rho_liq_prev, rho_gas_prev, self.V_dot_liq_prev)
     
-        print("solved thermo prop: ", P_tank, rho_liq, rho_gas,)
+        #print("solved thermo prop: ", P_tank, rho_liq, rho_gas,)
         self.V_dot_liq_prev = V_dot_liq
         #print("solved thermo properties liq: ", rho_liq, V_liq, T_liq, P_tank, CP.PhaseSI("T",T_liq,"P",P_tank,"N2O"))
         #print("solved thermo properties vap: ", rho_gas, V_gas, T_gas, P_tank, CP.PhaseSI("T",T_gas,"P",P_tank,"N2O"))
@@ -319,9 +319,9 @@ class LiquidTankODES:
 
         T_dot_gas = solve_T_dot(t, T_gas, rho_gas, m_gas, u_prev_gas, U_dot_gas, rho_dot_gas, m_dot_gas)
 
-        print("Q dot: ", Q_dot_gas_wall_to_gas, (Q_dot_liq_wall_to_liq - Q_dot_liq_to_sat_surf))
-        print("U dot: ",U_dot_liq, U_dot_gas )
-        print("out derivs: ",T_dot_liq, T_dot_gas, m_dot_liq, m_dot_gas, T_dot_wall_liq, T_dot_wall_gas)
+        #print("Q dot: ", Q_dot_gas_wall_to_gas, (Q_dot_liq_wall_to_liq - Q_dot_liq_to_sat_surf))
+        #print("U dot: ",U_dot_liq, U_dot_gas )
+        #print("out derivs: ",T_dot_liq, T_dot_gas, m_dot_liq, m_dot_gas, T_dot_wall_liq, T_dot_wall_gas)
 
         return [T_dot_liq, T_dot_gas, m_dot_liq, m_dot_gas, T_dot_wall_liq, T_dot_wall_gas]
 
@@ -451,6 +451,8 @@ class model():
             #solve thermo properties or return them from ^ (latter prefered)
             #update tank properties!
 
+            print("passed a RK STEP")
+
 
             
             
@@ -495,6 +497,6 @@ inj_model = None #TODO: implement
 tank = model(TIMESTEP, m_nos, P_tank, V_tank, diam_out, diam_in, rho_wall, k_w, Cd_1, A_inj_1, P_cc, T_atm, P_atm, rho_atm, inj_model)
 while(t<5*TIMESTEP):
     tank.inst(P_cc)
-    t+=TIMESTEP
+    t+=TIMESTEP #NOTE: THIS IS WRONG, RUNGE KUTTA IS PICKING ITS OWN TIMESTEP
     print(t, tank.P_tank, tank.V_liq,"\n")
     #print("\n")
