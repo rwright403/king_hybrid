@@ -138,19 +138,18 @@ def solve_Q_dot_conduction(delta_T, h_tank, k_w, diam_in, diam_out):
 
 
 #NOTE: THIS WILL JUST RETURN PREV VALS IF t=0, which is good
-def solve_thermo_properties(t, T_liq, T_gas, m_liq, m_gas, m_dot_liq, m_dot_gas, V_TANK, V_liq_prev, V_gas_prev, rho_liq_prev, rho_gas_prev, V_dot_liq_prev, u_prev_liq, U_dot_prev_liq, u_prev_gas, U_dot_prev_gas,P_tank_prev):
+def solve_thermo_properties(t, T_liq, T_gas, m_liq, m_gas, m_dot_liq, m_dot_gas, V_TANK, V_liq_prev, V_gas_prev, rho_liq_prev, rho_gas_prev, V_dot_liq_prev, u_prev_liq, U_dot_prev_liq, u_prev_gas, U_dot_prev_gas):
 
     #testing
 
     # Initial guess for dV/dt_liq
     
     V_dot_liq_guess = V_dot_liq_prev
-    print("V_liq_prev", V_liq_prev)
     V_dot_liq_iter = -0.0000005
     
     volume_tolerance = 1e-4 
     pressure_tolerance = 2e3
-    max_iterations = 1000 #TODO: define on max V_dot? put thermodynamic constraints to solve a maximum to ensure we don't go past critical point
+    max_iterations = 20000 #TODO: define on max V_dot? put thermodynamic constraints to solve a maximum to ensure we don't go past critical point
 
 
     for i in range(max_iterations):
@@ -160,8 +159,8 @@ def solve_thermo_properties(t, T_liq, T_gas, m_liq, m_gas, m_dot_liq, m_dot_gas,
 
         #use initial guess to solve future V_liq and V_gas with fwd euler method:
         #print("time: ", t, TIMESTEP)
-        V_liq_est = V_liq_prev #+ t * V_dot_liq_guess
-        V_gas_est = V_gas_prev #+ t * V_dot_gas
+        V_liq_est = V_liq_prev + t * V_dot_liq_guess
+        V_gas_est = V_gas_prev + t * V_dot_gas
         #print("change in volume: ", V_liq_est, V_liq_prev, V_gas_est, V_gas_prev)
         
         # Calculate d_rho/dt for liquid and vapor
@@ -175,17 +174,17 @@ def solve_thermo_properties(t, T_liq, T_gas, m_liq, m_gas, m_dot_liq, m_dot_gas,
 
         """testing"""
         
-        T_dot_liq = solve_T_dot(t, T_liq, rho_liq_prev, m_liq, u_prev_liq, U_dot_prev_liq, rho_dot_liq, m_dot_liq)
-        T_dot_gas = solve_T_dot(t, T_gas, rho_gas_prev, m_gas, u_prev_gas, U_dot_prev_gas, rho_dot_gas, m_dot_gas)
+        T_dot_liq = solve_T_dot(t, T_liq, rho_liq, m_liq, u_prev_liq, U_dot_prev_liq, rho_dot_liq, m_dot_liq)
+        T_dot_gas = solve_T_dot(t, T_gas, rho_gas, m_gas, u_prev_gas, U_dot_prev_gas, rho_dot_gas, m_dot_gas)
 
 
-        partial_dP_dT_const_rho_liq = CP.PropsSI('d(P)/d(T)|D', 'T', T_liq, 'D', rho_liq_prev, 'N2O')
-        partial_dP_drho_const_T_liq = CP.PropsSI('d(P)/d(D)|T', 'T', T_liq, 'D', rho_liq_prev, 'N2O')
+        partial_dP_dT_const_rho_liq = CP.PropsSI('d(P)/d(T)|D', 'T', T_liq, 'D', rho_liq, 'N2O')
+        partial_dP_drho_const_T_liq = CP.PropsSI('d(P)/d(D)|T', 'T', T_liq, 'D', rho_liq, 'N2O')
 
         P_dot_liq = partial_dP_dT_const_rho_liq*T_dot_liq + partial_dP_drho_const_T_liq*rho_dot_liq
 
-        partial_dP_dT_const_rho_gas = CP.PropsSI('d(P)/d(T)|D', 'T', T_gas, 'D', rho_gas_prev, 'N2O')
-        partial_dP_drho_const_T_gas = CP.PropsSI('d(P)/d(D)|T', 'T', T_gas, 'D', rho_gas_prev, 'N2O')
+        partial_dP_dT_const_rho_gas = CP.PropsSI('d(P)/d(T)|D', 'T', T_gas, 'D', rho_gas, 'N2O')
+        partial_dP_drho_const_T_gas = CP.PropsSI('d(P)/d(D)|T', 'T', T_gas, 'D', rho_gas, 'N2O')
 
         P_dot_gas = partial_dP_dT_const_rho_gas*T_dot_gas + partial_dP_drho_const_T_gas*rho_dot_gas
 
@@ -243,19 +242,16 @@ def solve_thermo_properties(t, T_liq, T_gas, m_liq, m_gas, m_dot_liq, m_dot_gas,
         if volume_constraint < volume_tolerance and pressure_constraint < pressure_tolerance:
             #print("number of loops: ", i, rho_dot_liq, rho_dot_gas)
 
+            P_tank_prev = 45e5
+
             P_liq_2 = P_tank_prev + t * P_dot_liq
             P_gas_2 = P_tank_prev + t * P_dot_gas
-            print("pressures: ",P_liq_2,P_gas_2)
-            liq_phase =CP.PhaseSI("T",T_liq,"P",P_liq_2,"N2O")
-            gas_phase =CP.PhaseSI("T",T_gas,"P",P_gas_2,"N2O")
 
-            print("PHASES, ", liq_phase, gas_phase)
-
-            print("    ",P_dot_gas, P_dot_liq, "difference: ", P_dot_gas - P_dot_liq, volume_constraint)
-            print(  "Pressures from CP solve directly: ", P_liq, P_gas, "Pressures from trying to approx P with rk from deriv: ", P_liq_2, P_gas_2)
+            #print("    ",P_dot_gas, P_dot_liq, "difference: ", P_dot_gas - P_dot_liq, volume_constraint)
+            #print(  "Pressures from CP solve directly: ", P_liq, P_gas, "Pressures from trying to approx P with rk from deriv: ", P_liq_2, P_gas_2)
             #print("rho_dot_check! ", rho_dot_gas, rho_dot_liq)
 
-            return P_liq_2, rho_liq, rho_gas, V_liq_est, V_gas_est, V_dot_liq_guess, V_dot_gas, rho_dot_liq, rho_dot_gas #, V_dot_liq_guess
+            return P_gas, rho_liq, rho_gas, V_liq_est, V_gas_est, V_dot_liq_guess, V_dot_gas, rho_dot_liq, rho_dot_gas #, V_dot_liq_guess
 
         V_dot_liq_guess += V_dot_liq_iter
         i+=1
@@ -269,7 +265,7 @@ def solve_thermo_properties(t, T_liq, T_gas, m_liq, m_gas, m_dot_liq, m_dot_gas,
 
 
 class LiquidTankODES:
-    def __init__(self, m_dot_liq, m_dot_gas, u_liq, u_gas, P_tank_prev):
+    def __init__(self, m_dot_liq, m_dot_gas, u_liq, u_gas):
         # Initialize previous values
         self.m_dot_liq_prev = m_dot_liq
         self.m_dot_gas_prev = m_dot_gas
@@ -280,7 +276,6 @@ class LiquidTankODES:
         self.U_dot_prev_gas = 0
 
         self.V_dot_liq_prev = 0
-        self.P_tank_prev = P_tank_prev
 
         self.thermo_sol = []
 
@@ -295,10 +290,9 @@ class LiquidTankODES:
         #print(m_liq, m_gas)
         #solve thermo properties?
 
-        P_tank, rho_liq, rho_gas, V_liq, V_gas, V_dot_liq, V_dot_gas, rho_dot_liq, rho_dot_gas = solve_thermo_properties(t, T_liq, T_gas, m_liq, m_gas, self.m_dot_liq_prev, self.m_dot_gas_prev, V_TANK, V_liq_prev, V_gas_prev, rho_liq_prev, rho_gas_prev, self.V_dot_liq_prev, self.u_prev_liq,self.U_dot_prev_liq, self.u_prev_gas, self.U_dot_prev_gas, self.P_tank_prev)
+        P_tank, rho_liq, rho_gas, V_liq, V_gas, V_dot_liq, V_dot_gas, rho_dot_liq, rho_dot_gas = solve_thermo_properties(t, T_liq, T_gas, m_liq, m_gas, self.m_dot_liq_prev, self.m_dot_gas_prev, V_TANK, V_liq_prev, V_gas_prev, rho_liq_prev, rho_gas_prev, self.V_dot_liq_prev, self.u_prev_liq,self.U_dot_prev_liq, self.u_prev_gas, self.U_dot_prev_gas)
     
-
-        print("solved thermo prop: ", P_tank, rho_liq, rho_gas,)
+        #print("solved thermo prop: ", P_tank, rho_liq, rho_gas,)
         self.V_dot_liq_prev = V_dot_liq
         #print("solved thermo properties liq: ", rho_liq, V_liq, T_liq, P_tank, CP.PhaseSI("T",T_liq,"P",P_tank,"N2O"))
         #print("solved thermo properties vap: ", rho_gas, V_gas, T_gas, P_tank, CP.PhaseSI("T",T_gas,"P",P_tank,"N2O"))
@@ -403,7 +397,7 @@ class LiquidTankODES:
         #print("Q dot: ", Q_dot_gas_wall_to_gas, (Q_dot_liq_wall_to_liq - Q_dot_liq_to_sat_surf))
         #print("U dot: ",U_dot_liq, U_dot_gas )
 
-        print("out derivs: ",T_dot_liq, T_dot_gas, m_dot_liq, m_dot_gas, T_dot_wall_liq, T_dot_wall_gas)
+        #print("out derivs: ",T_dot_liq, T_dot_gas, m_dot_liq, m_dot_gas, T_dot_wall_liq, T_dot_wall_gas)
         return [T_dot_liq, T_dot_gas, m_dot_liq, m_dot_gas, T_dot_wall_liq, T_dot_wall_gas]
 
 
@@ -514,7 +508,7 @@ class model():
             #print(self.P_tank, self.V_tank, self.V_liq, self.V_vap, self.rho_liq, self.rho_vap, self.rho_wall, self.diam_out, self.diam_in, self.u_liq, self.u_vap, self.k_w, ((4*self.V_tank)/(np.pi*self.diam_in**2)), self.T_atm, self.P_atm, self.rho_atm )
 
             #setup odes:
-            odes = LiquidTankODES(self.m_dot_liq, self.m_dot_vap, self.u_liq, self.u_vap, self.P_tank)
+            odes = LiquidTankODES(self.m_dot_liq, self.m_dot_vap, self.u_liq, self.u_vap)
             solution = solve_ivp(odes.system_of_liq_odes, [0, self.TIMESTEP], y0, args=(constants,), method='RK45', rtol=1e-12, atol=1e-12) #NOTE: THIS IS PROBABLY TOO SLOW, I SET THIS HIGH TOLERANCE FOR THE LAST TRY
             
 
@@ -600,7 +594,7 @@ t = 1e-4
 #test.system_of_liq_odes(t, y, constants)
 
 
-while(t<3*TIMESTEP):
+while(t<2*TIMESTEP):
     tank.inst(P_cc)
     print("here")
     t+=TIMESTEP 
