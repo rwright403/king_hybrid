@@ -46,7 +46,7 @@ def get_viscosity(T, P): #(dynamic viscosity)
     n2o.P = P #P
     return n2o.ViscosityLiquid.calculate_P(T,P, "LUCAS")  #(Pa s)
 
-def solve_Q_dot_natural_convection(T_1, T_2, P, rho_2, c, n, tank_diam, g, fluid):
+def solve_Q_dot_natural_convection(T_1, T_2, P, rho_2, c, n, tank_diam, fluid):
 
     k_1 = get_thermal_conductivity(T_2, P) #(W/(m K))
     Cp_1 = CP.PropsSI('C', 'T', T_2, 'P', P, fluid) #J/(kg K)
@@ -118,10 +118,10 @@ def V_tank_error(P_guess, T_liq, T_gas, m_liq, m_gas, V_tank):
 
     return V_tank_est - V_tank 
 
-def solve_thermo_params(T_liq, T_gas, m_liq, m_gas, P_tank_prev, volume_err_tolerance):
+def solve_thermo_params(T_liq, T_gas, m_liq, m_gas, P_tank_prev, V_tank, volume_err_tolerance):
 
     P_tank = P_tank_prev #initial guess for pressure
-    while np.abs(V_tank_error(P_tank, T_liq, T_gas, m_liq, m_gas) ) > volume_err_tolerance:
+    while np.abs(V_tank_error(P_tank, T_liq, T_gas, m_liq, m_gas, V_tank) ) > volume_err_tolerance:
         P_tank = secant((lambda P: V_tank_error(P, T_liq, T_gas, m_liq, m_gas)), P_tank)
 
     rho_liq = CP.PropsSI('D', 'T', T_liq, 'P', P_tank, 'N2O')
@@ -169,7 +169,7 @@ def P_dot_error(V_dot_guess, m_liq, m_gas, T_liq, T_gas, rho_liq, rho_gas, P_tan
     T_dot_liq, T_dot_gas = single_solve_T_dot_liq_gas(V_dot_guess, m_liq, m_gas, T_liq, T_gas, rho_liq, rho_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas)
 
     rho_dot_liq = (1 / V_liq) * m_dot_liq - (m_liq / V_liq**2) *  V_dot_guess
-    rho_dot_gas = (1 / V_gas) * m_dot_gas - (m_gas / V_gas**2) * V_dot_guess (-1)  
+    rho_dot_gas = (1 / V_gas) * m_dot_gas - (m_gas / V_gas**2) * V_dot_guess*(-1)  
 
     partial_dP_dT_const_rho_liq = CP.PropsSI('d(P)/d(T)|D', 'T', T_liq, 'D', rho_liq, 'N2O')
     partial_dP_drho_const_T_liq = CP.PropsSI('d(P)/d(D)|T', 'T', T_liq, 'D', rho_liq, 'N2O')
@@ -203,7 +203,7 @@ def system_of_liq_odes(t, y, constants):
     T_atm, P_atm, rho_atm, height_tank, k_w, diam_in, diam_out, Cd_1, A_inj_1, P_cc, V_tank, rho_wall, P_tank_prev, V_dot_liq_prev, volume_err_tolerance, P_dot_err_tolerance = constants
 
     #solve thermodynamic properties with method of (4), since T, m will change so will the dependent thermodynamic properties!!!
-    rho_liq, rho_gas, P_tank = solve_thermo_params(T_liq, T_gas, m_liq, m_gas, P_tank_prev, volume_err_tolerance)
+    rho_liq, rho_gas, P_tank = solve_thermo_params(T_liq, T_gas, m_liq, m_gas, P_tank_prev, V_tank, volume_err_tolerance)
 
     #solve heat transfer terms
     T_sat = CP.PropsSI('T','P',P_tank,'Q',0,'N2O')
@@ -212,21 +212,21 @@ def system_of_liq_odes(t, y, constants):
 
     # (2) from saturated surface to gas
     #TODO: FIX NAMING ITS Q DOT 
-    Q_dot_sat_surf_to_gas = solve_Q_dot_natural_convection(T_sat, T_gas, P_tank, rho_gas, 0.15, 0.333, "N2O") #relative to gas cv
+    Q_dot_sat_surf_to_gas = solve_Q_dot_natural_convection(T_sat, T_gas, P_tank, rho_gas, 0.15, 0.333, diam_in, "N2O") #relative to gas cv
     # (3)  from liq to saturated surface
-    Q_dot_liq_to_sat_surf = solve_Q_dot_natural_convection(T_sat, T_liq, P_tank, rho_liq, 0.15, 0.333, "N2O") #relative to liq cv
+    Q_dot_liq_to_sat_surf = solve_Q_dot_natural_convection(T_sat, T_liq, P_tank, rho_liq, 0.15, 0.333, diam_in, "N2O") #relative to liq cv
     # (4) [natural convection] from liq wall to liq
-    Q_dot_liq_wall_to_liq = solve_Q_dot_natural_convection(T_wall_liq, T_liq, P_tank, rho_liq, 0.59, 0.25, "N2O") #relative to liq wall cv       
+    Q_dot_liq_wall_to_liq = solve_Q_dot_natural_convection(T_wall_liq, T_liq, P_tank, rho_liq, 0.59, 0.25, diam_in, "N2O") #relative to liq wall cv       
     # (5) [natural convection] from gas wall to gas
-    Q_dot_gas_wall_to_gas = solve_Q_dot_natural_convection(T_wall_gas, T_gas, P_tank, rho_gas, 0.59, 0.25, "N2O") #relative to gas wall cv
+    Q_dot_gas_wall_to_gas = solve_Q_dot_natural_convection(T_wall_gas, T_gas, P_tank, rho_gas, 0.59, 0.25, diam_in, "N2O") #relative to gas wall cv
 
     #print( Q_dot_sat_surf_to_gas, Q_dot_liq_to_sat_surf, Q_dot_liq_wall_to_liq, Q_dot_gas_wall_to_gas)
 
     #NOTE: USE ambient properties for air, T_2 will be respective wall temperature (RK var)
     # (6) [natural convection] from atm to liq wall
-    Q_dot_atm_to_liq_wall = solve_Q_dot_natural_convection(T_wall_liq, T_atm, P_atm, rho_atm, 0.59, 0.25, "air") #relative
+    Q_dot_atm_to_liq_wall = solve_Q_dot_natural_convection(T_wall_liq, T_atm, P_atm, rho_atm, 0.59, 0.25, diam_out, "air") #relative
     # (7) [natural convection] from atm to gas wall
-    Q_dot_atm_to_gas_wall = solve_Q_dot_natural_convection(T_wall_gas, T_atm, P_atm, rho_atm, 0.59, 0.25, "air")
+    Q_dot_atm_to_gas_wall = solve_Q_dot_natural_convection(T_wall_gas, T_atm, P_atm, rho_atm, 0.59, 0.25, diam_out, "air")
     # (8) [conduction] from liq wall to gas wall
     Q_dot_liq_wall_to_gas_wall = solve_Q_dot_conduction( (T_wall_gas-T_wall_liq), height_tank, k_w, diam_in, diam_out) #relative to liquid cv
 
@@ -280,10 +280,12 @@ def system_of_liq_odes(t, y, constants):
 
 class model():
 
-    def __init__(self, m_nos, P_tank, P_cc, P_atm, T_atm, rho_atm, V_tank, diam_out, diam_in, rho_wall, k_w, Cd_1, A_inj_1, volume_err_tolerance, P_dot_err_tolerance):
+    def __init__(self, timestep, m_nos, P_tank, P_cc, P_atm, T_atm, rho_atm, V_tank, diam_out, diam_in, rho_wall, k_w, Cd_1, A_inj_1, volume_err_tolerance, P_dot_err_tolerance):
         
         self.volume_err_tolerance = volume_err_tolerance
         self.P_dot_err_tolerance = P_dot_err_tolerance
+
+        self.timestep = timestep
 
         self.T_atm = T_atm
         self.P_atm = P_atm
@@ -342,9 +344,11 @@ class model():
 
         self.V_tank = self.V_liq+self.V_gas # "what are you going to do if the aluminum is too small? water it? give it sunlight? let it grow?"
         self.height_tank = self.V_tank/(0.25*np.pi*(diam_in**2))
+        self.P_tank_prev = self.P_tank
+        self.V_dot_liq_prev = 0
 
 
-    def inst(self, t, y, constants):
+    def inst(self, P_cc):
         
         #TODO: check for liquid phase!!!!
 
@@ -354,7 +358,7 @@ class model():
         y0 =  [self.T_liq, self.T_gas, self.m_liq, self.m_gas, self.T_wall_liq, self.T_wall_gas ]
 
         #solve with scipy
-        solution = solve_ivp(system_of_liq_odes, [0, self.TIMESTEP], y0, args=(constants,), method='RK45', rtol=1e-12, atol=1e-12) #NOTE: THIS IS PROBABLY TOO SLOW, I SET THIS HIGH TOLERANCE FOR THE LAST TRY
+        solution = solve_ivp(system_of_liq_odes, [0, self.timestep], y0, args=(constants,), method='RK45', rtol=1e-12, atol=1e-12) #NOTE: THIS IS PROBABLY TOO SLOW, I SET THIS HIGH TOLERANCE FOR THE LAST TRY
             
 
         # Extract the final state from the solution
@@ -364,10 +368,75 @@ class model():
         self.T_liq, self.T_gas, self.m_liq, self.m_gas, self.T_wall_liq, self.T_wall_gas = final_state
 
         # (4) iteratively solve P_tank to update thermodynamic properties in each node
-        self.rho_liq, self.rho_gas, self.P_tank = solve_thermo_params(self.T_liq, self.T_gas, self.m_liq, self.m_gas, self.P_tank_prev, self.volume_err_tolerance)
+        self.rho_liq, self.rho_gas, self.P_tank = solve_thermo_params(self.T_liq, self.T_gas, self.m_liq, self.m_gas, self.P_tank_prev, self.V_tank, self.volume_err_tolerance)
 
         #update stored vals for RK est and volumes
         self.P_tank_prev = self.P_tank
         self.V_dot_liq_prev = self.V_liq - self.m_liq/self.rho_liq
         self.V_liq = self.m_liq/self.rho_liq
         self.V_gas = self.V_tank - self.V_liq
+
+
+t = 0
+TIMESTEP = 1e-4
+
+P_atm = 1e5 #Pa
+T_atm = 273.15 + 15 #K
+rho_atm = 1.225 #kg/m^3
+
+m_nos = 20
+P_tank = 45e5
+V_tank = 0.0354
+
+diam_out = 0.230 #m #NOTE: thesis didn't provide tank geometry, estimated based off of G type nos dimensions (approx equivalent mass to Karabeyoglu run tank)
+diam_in = 0.215 #m
+rho_wall = 2770 #kg/m^3
+k_w = 237 #W/(m K)
+
+Cd_1 = 0.425
+A_inj_1 = 0.00003 #m^3 NOTE: GUESS
+P_cc = 1.03e6
+
+inj_model = None #TODO: implement
+
+#def __init__(self, TIMESTEP, T_atm, m_nos, Cd_1, A_inj_1, V_tank, diam_out, diam_in, rho_wall, k_w, P_tank, P_atm, inj_model)
+volume_err_tolerance = 1e-5
+P_dot_err_tolerance = 4e2
+tank = model(TIMESTEP, m_nos, P_tank, P_cc, P_atm, T_atm, rho_atm, V_tank, diam_out, diam_in, rho_wall, k_w, Cd_1, A_inj_1, volume_err_tolerance, P_dot_err_tolerance)
+
+v_liq_arr = []
+P_tank_arr = []
+v_vap_arr = []
+time_arr = []
+#try:
+
+
+TIMESTEP = 1e-4
+
+
+while(t<3*TIMESTEP):
+    tank.inst(P_cc)
+    print("here")
+    t+=TIMESTEP 
+    #print(t, tank.P_tank, tank.V_liq,"\n")
+
+    time_arr.append(t)
+    v_liq_arr.append(1/tank.rho_liq)
+    P_tank_arr.append(tank.P_tank)
+    v_vap_arr.append(1/tank.rho_gas)
+
+    #print("\n")
+
+print("done")
+
+
+
+
+plt.plot(time_arr,P_tank_arr)
+plt.xlabel('Time (s)')
+plt.ylabel('Pressure (Pa)')
+plt.title('Pressure vs. Time')
+plt.grid(True)
+plt.legend()
+plt.show()
+
