@@ -83,7 +83,7 @@ def solve_m_dot_condensed(T_gas, P, V_gas):
 
 
 
-def solve_Q_natural_convection(T_1, T_2, P, rho_2, c, n, fluid):
+def solve_Q_dot_natural_convection(T_1, T_2, P, rho_2, c, n, fluid):
 
     k_1 = get_thermal_conductivity(T_2, P) #(W/(m K))
     Cp_1 = CP.PropsSI('C', 'T', T_2, 'P', P, fluid) #J/(kg K)
@@ -327,8 +327,6 @@ class LiquidTankODES:
         #(3) mass transfer by evaporation
         m_dot_evap = (Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas) / (solve_latent_heat_evap(T_liq, P_tank)) #NOTE: P sure its T_liq but might be wrong
 
-        #print("checking m_dot_evap: ", m_dot_evap, (Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas) , (solve_latent_heat_evap(T_liq, P_tank)))
-
         m_dot_liq = m_dot_evap + m_dot_cond + m_dot_inj
         m_dot_gas = (-1)*(m_dot_evap - m_dot_cond) #convert sign convention from liq cv to gas cv
 
@@ -366,8 +364,7 @@ class LiquidTankODES:
         U_dot_gas = solve_U_dot(T_gas, P_tank, 0, (-1)*m_dot_evap, m_dot_cond, V_dot_gas, Q_dot_gas_wall_to_gas, T_liq)
 
         #updating U for next step
-        self.U_dot_prev_liq = U_dot_liq
-        self.U_dot_prev_gas = U_dot_gas
+
 
         T_dot_liq = solve_T_dot(t, T_liq, rho_liq, m_liq, u_prev_liq, U_dot_liq, rho_dot_liq, m_dot_liq)
 
@@ -497,7 +494,7 @@ class model():
             self.P_tank, self.rho_liq, self.rho_gas, self.V_liq, self.V_gas, V_dot_liq, V_dot_gas, rho_dot_liq, rho_dot_gas = odes.thermo_sol
             
             #print("checking volume and sum", self.V_liq, self.V_gas, self.V_liq+ self.V_gas)
-            #solve thermo properties or return them from ^ (latter prefered)
+            #solve thermo properties or return thesm from ^ (latter prefered)
             #update tank properties!
 
             print("passed an RK STEP", rho_dot_liq, rho_dot_gas, self.P_tank)
