@@ -39,27 +39,4 @@ I got some of the liquid stuff to work and accidentally broke the hybrid models.
 
 
 
-Ryan "king hybrid" Wright, From Calgary, Alberta, Canada --> University of Victoria, BC, Canada, 2023 --> forever (mech lab reference)
-
-```plaintext
-                                             &@&.                       
-                                          @@      /@                    
-                               %@@@@@@,  @&    @%   %(                  
-                           (@%         @@@        @                     
-              ,&@@@@@@@@@@@.         @@&         @#                     
-          *@@@@@@&      @/         @@,       ,&,  /@@@.                 
-         @@@@@%        @    &@@@@@@.                 @@%                
-        #@@@@@        @..@*    @@                     @@                
-        *@@@@@        @,    (@/                      &@,                
-         @@@@@@          @@.         *@@@@@,        #@#                 
-          @@@@@@    (@#           #@@      @       @@.                  
-            @@@@@@  .&@@@@@@    @@ @      @/     /@&                    
-             #@@@@@@.    #@   &@  @      @     @@/  #@,                 
-               .@@@@@@@. @@  @@@  @    @.   @@%     @@@%                
-               @  @@@@@@@@@ % @  ,   @%@@@*         #@@@                
-              @      %@@@@@@@@@.                    @@@@/                       
-             @           @@@@@@@@@@@@,           (@@@@@@                
-             @          *@.  *@@@@@@@@@@@@@@@@@@@@@@@@@                 
-            @/      .@@            ,@@@@@@@@@@@@@@@@                    
-           @    @@,                                                     
-          @@%                                                                              
+Ryan Wright, From Calgary, Alberta, Canada                                                        
