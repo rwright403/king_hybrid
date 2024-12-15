@@ -1,4 +1,5 @@
 from thermo.eos import PR
+from thermo import Chemical
 import CoolProp.CoolProp as CP
 
 # Define inputs
@@ -20,7 +21,8 @@ print(eos.phase)
 
 
 #rho_vap = 1/eos.V_g * molar_mass  # Get the specific volume (m^3/mol)
-rho_liq = 1/eos.V_l  * molar_mass # Get the specific volume (m^3/mol)
+n2o = Chemical('nitrous oxide')
+rho_liq = 1/eos.V_l_sat(T)  * molar_mass # Get the specific volume (m^3/mol)
     
 
 
