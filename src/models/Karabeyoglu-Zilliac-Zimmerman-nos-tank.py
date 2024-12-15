@@ -47,7 +47,7 @@ def get_viscosity(T, P): #(dynamic viscosity)
     n2o.P = P #P
     return n2o.ViscosityLiquid.calculate_P(T,P, "LUCAS")  #(Pa s)
 
-def solve_Q_dot_natural_convection(T_1, T_2, P, rho_2, c, n, tank_diam, fluid):
+def solve_Q_dot_natural_convection(T_1, T_2, P, rho_2, c, n, tank_diam, fluid): #BUG: potential mistake, solving _1 properties with _2 inputs, double check this is likely a mistake
 
     k_1 = get_thermal_conductivity(T_2, P) #(W/(m K))
     Cp_1 = CP.PropsSI('C', 'T', T_2, 'P', P, fluid) #J/(kg K)
@@ -82,7 +82,7 @@ def spi_model(Cd_hem_spi_dyer, A_inj_ox, P_1, P_2, rho_tank_exit):
 
 def solve_m_dot_condensed(T_gas, P, V_gas, t):
 
-    P_sat = CP.PropsSI('P','T',T_gas,'Q',0,"N2O")
+    P_sat = CP.PropsSI('P','T',T_gas,'Q',1,"N2O")
 
     if P > P_sat:
         return ((P-P_sat)*V_gas*MW)/( (R_U/MW)*T_gas*t)
@@ -190,7 +190,6 @@ def P_dot_error(V_dot_guess, m_liq, m_gas, T_liq, T_gas, rho_liq, rho_gas, P_tan
     #NOTE: RHO DOT GAS IS VERY SMALL?
     
     #print("rho dot", rho_dot_liq, rho_dot_gas) 
-
     partial_dP_dT_const_rho_liq = CP.PropsSI('d(P)/d(T)|D', 'T', T_liq, 'D', rho_liq, 'N2O')
     partial_dP_drho_const_T_liq = CP.PropsSI('d(P)/d(D)|T', 'T', T_liq, 'D', rho_liq, 'N2O')
 
@@ -237,7 +236,8 @@ def system_of_liq_odes(t, y, constants):
 
     #print("out of first solve thermo: ", rho_liq, rho_gas, P_tank)
     #solve heat transfer terms
-    T_sat = CP.PropsSI('T','P',P_tank,'Q',0,'N2O')
+    preos = PR(Tc=n2o.Tc, Pc=n2o.Pc, omega=n2o.omega, T=T_gas, P=P_tank)
+    T_sat = preos.Tsat(P_tank)
     print("note starting temps: ", T_liq, T_gas, T_sat)
 
     #NOTE: All heat transfer terms solved by solve_Q_dot_natural_convection have signs relative to the fluid cv not the surface
@@ -357,8 +357,10 @@ class model():
         self.V_tank = V_tank
         self.m_nos = m_nos
 
-        rho_sat_gas = CP.PropsSI('D', 'P', self.P_tank, 'Q', 1, "N2O")
-        rho_sat_liq = CP.PropsSI('D', 'P', self.P_tank, 'Q', 0, "N2O")
+        preos = PR(Tc=n2o.Tc, Pc=n2o.Pc, omega=n2o.omega, T=self.T_gas, P=self.P_tank)
+        rho_sat_gas = (1/preos.V_l_sat(self.T_gas))*MW
+        rho_sat_liq = (1/preos.V_l_sat(self.T_liq))*MW
+        
         rho_sat_tank = self.m_nos/V_tank
 
         x_tank = ( (1/rho_sat_tank)-(1/rho_sat_liq) ) / ( (1/rho_sat_gas)-(1/rho_sat_liq) )
@@ -366,21 +368,25 @@ class model():
         #gas cv
         self.m_gas = x_tank*self.m_nos
 
-        self.T_gas = CP.PropsSI('T', 'P', self.P_tank, 'Q', 1, "N2O") + 0.05 #Perturb to start close to equillibrium but as a gas
-        print("PHASE CHECK, ",CP.PhaseSI("T", self.T_gas, "P", self.P_tank, "N2O"))
+        self.T_gas = preos.Tsat(self.P_tank) + 0.05 #Perturb to start close to equillibrium but as a gas
+        #print("PHASE CHECK, ", CP.PhaseSI("T", self.T_gas, "P", self.P_tank, "N2O")) - this wont work anymore
         self.T_wall_gas = self.T_gas
 
-        self.rho_gas = CP.PropsSI('D','P',self.P_tank,'T',self.T_gas,"N2O")
+        preos = PR(Tc=n2o.Tc, Pc=n2o.Pc, omega=n2o.omega, T=self.T_gas, P=self.P_tank)
+        self.rho_gas = preos.rho_g*MW
         v_gas = 1/self.rho_gas
         self.V_gas = v_gas*self.m_gas
 
         #liquid cv
         self.m_liq = self.m_nos-self.m_gas
 
-        self.T_liq = CP.PropsSI('T', 'P', self.P_tank, 'Q', 0, "N2O") - 0.05 #Perturb to start close to equillibrium
+        preos = PR(Tc=n2o.Tc, Pc=n2o.Pc, omega=n2o.omega, T=self.T_gas, P=self.P_tank)
+        self.T_liq = preos.Tsat(self.P_tank) - 0.05 #Perturb to start close to equillibrium
         self.T_wall_liq = self.T_liq
 
-        self.rho_liq = CP.PropsSI('D','P',self.P_tank,'T',self.T_liq,"N2O")
+        #solve rho_liq!
+        preos = PR(Tc=n2o.Tc, Pc=n2o.Pc, omega=n2o.omega, T=self.T_liq, P=self.P_tank)
+        self.rho_liq = preos.rho_l*MW
         v_liq = 1/self.rho_liq
         self.V_liq = v_liq*self.m_liq
 
@@ -483,4 +489,3 @@ plt.title('Pressure vs. Time')
 plt.grid(True)
 plt.legend()
 plt.show()
-
