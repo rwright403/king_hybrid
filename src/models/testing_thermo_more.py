@@ -1,4 +1,5 @@
-from thermo.eos import PR
+from thermo.eos import PR, IG
+from thermo import Chemical
 import CoolProp.CoolProp as CP
 
 # Define inputs
@@ -15,12 +16,13 @@ molar_mass = 44.013/1000 # in kg/mol, for N2O it's ~44.013 g/mol
 #check phase with coolprop:
 #print(CP.PhaseSI('T', T, 'P', P, "N2O" ))
 # Initialize Peng-Robinson EOS
-eos = PR(T=T, P=P, Tc=Tc, Pc=Pc, omega=omega)
+eos = IG(T=T, P=P)#, Tc=Tc, Pc=Pc, omega=omega)
 print(eos.phase)
 
 
 #rho_vap = 1/eos.V_g * molar_mass  # Get the specific volume (m^3/mol)
-rho_liq = 1/eos.V_l  * molar_mass # Get the specific volume (m^3/mol)
+n2o = Chemical('nitrous oxide')
+rho_liq = 1/eos.V_l_sat(T)  * molar_mass # Get the specific volume (m^3/mol)
     
 
 
