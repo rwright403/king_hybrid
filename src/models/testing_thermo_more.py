@@ -1,4 +1,4 @@
-from thermo.eos import PR
+from thermo.eos import PR, IG
 from thermo import Chemical
 import CoolProp.CoolProp as CP
 
@@ -16,7 +16,7 @@ molar_mass = 44.013/1000 # in kg/mol, for N2O it's ~44.013 g/mol
 #check phase with coolprop:
 #print(CP.PhaseSI('T', T, 'P', P, "N2O" ))
 # Initialize Peng-Robinson EOS
-eos = PR(T=T, P=P, Tc=Tc, Pc=Pc, omega=omega)
+eos = IG(T=T, P=P)#, Tc=Tc, Pc=Pc, omega=omega)
 print(eos.phase)
 
 
