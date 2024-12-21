@@ -136,8 +136,6 @@ def V_tank_error(P_guess, T_liq, T_gas, m_liq, m_gas, V_tank):
 
     V_tank_est = (m_liq/rho_liq) + (m_gas/rho_gas)
 
-    #print("   V_tank_err: ", V_tank_est - V_tank )
-
     return V_tank_est - V_tank 
 
 def solve_thermo_params(T_liq, T_gas, m_liq, m_gas, P_tank_prev, V_tank, volume_err_tolerance):
@@ -146,8 +144,6 @@ def solve_thermo_params(T_liq, T_gas, m_liq, m_gas, P_tank_prev, V_tank, volume_
 
     while np.abs(V_tank_error(P_tank, T_liq, T_gas, m_liq, m_gas, V_tank) ) > volume_err_tolerance:
         P_tank = secant((lambda P: V_tank_error(P, T_liq, T_gas, m_liq, m_gas, V_tank)), P_tank)
-
-    #print("solved P_tank, ", P_tank, T_liq, T_gas)
 
     preos_l = PR(Tc=n2o.Tc, Pc=n2o.Pc, omega=n2o.omega, T=T_liq, P=P_tank)
     rho_liq = preos_l.rho_l*MW
@@ -164,11 +160,11 @@ def single_solve_T_dot_liq_gas(V_dot_liq, m_liq, m_gas, T_liq, T_gas, rho_liq, r
 
     V_dot_gas = -V_dot_liq
 
-    V_liq = m_liq/rho_liq
-    V_gas = m_gas/rho_gas
+    #V_liq = m_liq/rho_liq
+    #V_gas = m_gas/rho_gas
 
-    rho_dot_liq = (1 / V_liq) * m_dot_liq - (m_liq / V_liq**2) * V_dot_liq
-    rho_dot_gas = (1 / V_gas) * m_dot_gas - (m_gas / V_gas**2) * V_dot_gas  
+    #rho_dot_liq = (1 / V_liq) * m_dot_liq - (m_liq / V_liq**2) * V_dot_liq
+    #rho_dot_gas = (1 / V_gas) * m_dot_gas - (m_gas / V_gas**2) * V_dot_gas  
 
 
     #(T_liq, P_tank, m_dot_evap, m_dot_cond, V_dot_liq , Q_dot_net)
@@ -196,8 +192,8 @@ def single_solve_T_dot_liq_gas(V_dot_liq, m_liq, m_gas, T_liq, T_gas, rho_liq, r
 
 def P_dot_error(V_dot_guess, m_liq, m_gas, T_liq, T_gas, rho_liq, rho_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas):    
 
-    V_liq = m_liq/rho_liq
-    V_gas = m_gas/rho_gas
+    #V_liq = m_liq/rho_liq
+    #V_gas = m_gas/rho_gas
 
     V_dot_gas = -V_dot_guess
 
@@ -423,7 +419,7 @@ class model():
 
 
 t = 0
-TIMESTEP = 1e-4
+TIMESTEP = 1e-3
 
 P_atm = 1e5 #Pa
 T_atm = 273.15 + 15 #K
@@ -455,8 +451,6 @@ v_vap_arr = []
 time_arr = []
 #try:
 
-
-TIMESTEP = 1e-4
 
 
 while(t<1000*TIMESTEP):
