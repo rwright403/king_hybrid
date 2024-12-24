@@ -4,6 +4,7 @@ import CoolProp.CoolProp as CP
 from thermo.eos import PR
 from thermo import Chemical
 import matplotlib.pyplot as plt
+import traceback
 
 # Global Constants:
 R_U = 8.31446 #J/(mol K)
@@ -255,8 +256,8 @@ def system_of_liq_odes(t, y, constants):
     Q_dot_atm_to_liq_wall = (-1)* solve_Q_dot_natural_convection_gas(T_wall_liq, T_atm, P_atm, rho_atm, 0.59, 0.25, diam_out, "air") #relative to wall_liq
     # (7) [natural convection] from atm to gas wall
     Q_dot_atm_to_gas_wall = (-1)* solve_Q_dot_natural_convection_gas(T_wall_gas, T_atm, P_atm, rho_atm, 0.59, 0.25, diam_out, "air") #relative to wall_gas
-    # (8) [conduction] from liq wall to gas wall
-    Q_dot_liq_wall_to_gas_wall = solve_Q_dot_conduction( (T_wall_gas-T_wall_liq), height_tank, k_w, diam_in, diam_out) #relative to liquid cv
+    # (8) [conduction] from liq wall to gas wall #NOTE: EMPIRICAL FACTOR E = 2.1E4 HERE TO CORRECTLY MODEL HEAT TRANSFER
+    Q_dot_liq_wall_to_gas_wall = (2.1E4)*solve_Q_dot_conduction( (T_wall_gas-T_wall_liq), height_tank, k_w, diam_in, diam_out) #relative to liquid cv
 
     #print( Q_dot_atm_to_liq_wall, Q_dot_atm_to_gas_wall, Q_dot_liq_wall_to_gas_wall) #NOTE: in thermal eq, will need to check next rk step once solve this issue
 
@@ -270,7 +271,7 @@ def system_of_liq_odes(t, y, constants):
     preos_l = PR(Tc=n2o.Tc, Pc=n2o.Pc, omega=n2o.omega, T=T_liq, P=P_tank)
     latent_heat_evap = preos_l.Hvap(T_liq)
 
-    m_dot_evap = (Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas) / latent_heat_evap #NOTE: P sure its T_liq but might be wrong
+    m_dot_evap = (Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas) / latent_heat_evap 
 
     m_dot_liq = -m_dot_evap + m_dot_cond - m_dot_inj
     m_dot_gas = m_dot_evap - m_dot_cond #convert sign convention from liq cv to gas cv
@@ -419,7 +420,7 @@ class model():
 
 
 t = 0
-TIMESTEP = 1e-3
+TIMESTEP = 0.01
 
 P_atm = 1e5 #Pa
 T_atm = 273.15 + 15 #K
@@ -450,21 +451,20 @@ P_tank_arr = []
 v_vap_arr = []
 time_arr = []
 #try:
+print(tank.m_gas)
 
+try:
+    while(t<900*TIMESTEP):
+        tank.inst(P_cc)
+        t+=TIMESTEP 
 
-
-while(t<1000*TIMESTEP):
-    tank.inst(P_cc)
-    t+=TIMESTEP 
-
-    time_arr.append(t)
-    v_liq_arr.append(1/tank.rho_liq)
-    P_tank_arr.append(tank.P_tank)
-    v_vap_arr.append(1/tank.rho_gas)
-
-
-print("done")
-
+        time_arr.append(t)
+        #v_liq_arr.append(1/tank.rho_liq)
+        P_tank_arr.append(tank.P_tank)
+        #v_vap_arr.append(1/tank.rho_gas)
+        print(t, tank.m_liq, tank.m_dot_liq)
+except  Exception as e:
+    traceback.print_exc()
 
 
 
