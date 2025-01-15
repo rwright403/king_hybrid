@@ -1,3 +1,5 @@
+##Note: mostly broken code! do not use right now lol
+
 ### Rocket Engine Simulation 🚀
 
 This program was designed to be a framework for a user to combine and use different models to simulate a rocket engine.
