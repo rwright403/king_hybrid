@@ -32,8 +32,8 @@ I got some of the liquid stuff to work and accidentally broke the hybrid models.
 #Use at your own risk lol, I am still developing and debugging this program. When things are more stable I will do better at documentation
 
 ## Sources and Citations:
-| Number   | Source                                                                    | Contribution / Use Description      | Link to Source    |
-|----------|---------------------------------------------------------------------------|-------------------------------------|-------------------|
+| Number   | Source                            | Contribution / Use Description      | Link to Source    |
+|----------|-----------------------------------|------------------------------------------------|---------|
 | [1]      | NASA Chemical Equilibrium with Applications (CEA)                         | Used with the rocketcea library for combustion calculations | https://cearun.grc.nasa.gov/ |
 | [2]      | Ben Klammer, Hybrid Modelling: https://github.com/bklammer/HybridModeling | Translated equilibrium model used in this thesis into python and used it for analysis |https://github.com/bklammer/HybridModeling |
 | [3]      | Benjamin S. Waxman, Jonah E. Zimmerman, Brian J. Cantwell, Mass Flow Rate and Isolation Characteristics of Injectors for Use with Self-Pressurizing Oxidizers in Hybrid Rockets | Used to implement HEM and Dyer injector models, experimental data to validate Emerson + Mohammad injector model and understand nitrous physics. |https://ntrs.nasa.gov/api/citations/20190001326/downloads/20190001326.pdf |
