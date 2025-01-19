@@ -42,8 +42,8 @@ I got some of the liquid stuff to work and accidentally broke the hybrid models.
 | [6] | Tomasz Palacz, Jacek Cieslik. Experimental Study on the Mass Flow Rate of the Self Pressurizing Propellants in the Rocket Injector | Used experimental data to build a better understanding of model feed system | https://www.researchgate.net/publication/355773008_Experimental_Study_on_the_Mass_Flow_Rate_of_the_Self-Pressurizing_Propellants_in_the_Rocket_Injector  ~ DOI:10.3390/aerospace8110317 |
 | [7] | Zilliac, Gregory & Karabeyoglu, Arif. (2005). Modeling of Propellant Tank Pressurization. | Used to setup non-equilibrium tank model (1/2) | https://arc.aiaa.org/doi/10.2514/6.2005-3549 |
 | [8] | Review and Evaluation of Models for Self-Pressurizing Propellant Tank Dynamics, Jonah E. Zimmerman, Benjamin S. Waxman, Brian Cantwell and Greg Zilliac | Used to setup non-equilibrium tank model (2/2) | https://arc.aiaa.org/doi/10.2514/6.2013-4045 |
-| [9] | Michigan Aeronautical Science Association Liquid Bi-Propellant Rocket Team 37 Project Technical Report for the 2018 IREC | https://www.soundingrocket.org/uploads/9/0/6/4/9064598/37_project_report.pdf |
-| [10] | Technical report for Stanford SSI's rocket Project Olympus for the Spaceport America Cup Competition 2022 | https://purl.stanford.edu/tx770vm3347 |
+| [9] | Michigan Aeronautical Science Association Liquid Bi-Propellant Rocket Team 37 Project Technical Report for the 2018 IREC | Script Test Case | https://www.soundingrocket.org/uploads/9/0/6/4/9064598/37_project_report.pdf |
+| [10] | Technical report for Stanford SSI's rocket Project Olympus for the Spaceport America Cup Competition 2022 | Script Test Case | https://purl.stanford.edu/tx770vm3347 |
 
 
 
