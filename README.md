@@ -44,6 +44,8 @@ I got some of the liquid stuff to work and accidentally broke the hybrid models.
 | [8] | Review and Evaluation of Models for Self-Pressurizing Propellant Tank Dynamics, Jonah E. Zimmerman, Benjamin S. Waxman, Brian Cantwell and Greg Zilliac | Used to setup non-equilibrium tank model (2/2) | https://arc.aiaa.org/doi/10.2514/6.2013-4045 |
 | [9] | Michigan Aeronautical Science Association Liquid Bi-Propellant Rocket Team 37 Project Technical Report for the 2018 IREC | Script Test Case | https://www.soundingrocket.org/uploads/9/0/6/4/9064598/37_project_report.pdf |
 | [10] | Technical report for Stanford SSI's rocket Project Olympus for the Spaceport America Cup Competition 2022 | Script Test Case | https://purl.stanford.edu/tx770vm3347 |
+| [11] | Two-phase flow through pressure safety valves. Experimental investigation and model prediction, Gino Boccardi et al | explains omega model (part of [5]) | https://www.sciencedirect.com/science/article/pii/S0009250905003313 |
+| [12] | Effects of Injector Design and Impingement Techniques on the Atomization of Self-Pressurizing Oxidizers, Benjamin S. Waxman, Brian J. Cantwell, Greg Zilliac | nitrous injector | https://arc.aiaa.org/doi/10.2514/6.2012-3906 |
 
 
 
