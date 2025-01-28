@@ -6,7 +6,7 @@ This program was designed to be a framework for a user to combine and use differ
 
 ## RUNNING THE PROGRAM:
 
-In the directory this file is in:  #python3 -m src <filename without the .py>
+In the directory this file is in:  #python3 -m src <filename of a validation case without the .py>
 
 The inputs folder contains the input files where the user can update the inputs the program uses.
 
