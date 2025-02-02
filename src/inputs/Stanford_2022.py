@@ -99,7 +99,7 @@ all_error = 0.01
 # 2 --> HEM
 # 3 --> Dyer
 # 4 --> just use 4
-inj_model = 2
+inj_model = 1
 
 
 """awful liquid"""
@@ -144,7 +144,7 @@ exp_p_fuel_tank_file_path = r'./src/inputs/liquid_validation_data/Stanford_2022/
 
 
 ### Sensitivity Analysis:
-test_var_name = "Cd_2"
+test_var_name = "Cd_1"
 min_bound = 0.5
 max_bound = 0.7
 num_iterations = 3

@@ -23,7 +23,6 @@ TANK_DIAM = 0.0254*5.5 #m
 CS_AREA = 0.25*np.pi*(TANK_DIAM**2) #m^2
 g = 9.81 #m/s^2
 
-#this is failing because we are inputting zero here. (why x2-x1=0)
 def secant(func, x1):
     x_eps = x1 * 0.005  # Set the tolerance to be 0.5% of init guess
     x2 = x1 -x1 * 0.01  # Set a second point 1% away from the original guess
@@ -185,7 +184,7 @@ def single_solve_T_dot_liq_gas(V_dot_liq, m_liq, m_gas, T_liq, T_gas, P_tank, m_
 
     U_dot_liq = solve_U_dot_liq(T_liq, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, V_dot_liq , Q_dot_liq)
     U_dot_gas = solve_U_dot_gas(T_gas, P_tank, (-1)*m_dot_evap, (-1)*m_dot_cond, V_dot_gas, Q_dot_gas) #NOTE: convert evap and cond terms to gas cv
-    #print("U_dot: ", U_dot_liq, U_dot_gas)
+    print("U_dot: ", U_dot_liq, U_dot_gas)
 
     preos_g = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_gas, P=P_tank)
     partial_du_dv_const_T_gas = T_gas*preos_g.dP_dT_g - P_tank #NOTE: derivative is partial at constant volume
@@ -196,7 +195,6 @@ def single_solve_T_dot_liq_gas(V_dot_liq, m_liq, m_gas, T_liq, T_gas, P_tank, m_
 
     preos_l = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_liq, P=P_tank)
     partial_du_dv_const_T_liq = T_liq*preos_l.dP_dT_l - P_tank #NOTE: derivative is partial at constant volume
-    #BUG: IS THIS AN IDEAL GAS EQN?
     n2o_ig_l = Chemical('N2O', T=T_liq) 
 
     Cv_liq = preos_l.Cv_dep_l/MW + n2o_ig_l.Cvg
@@ -206,6 +204,8 @@ def single_solve_T_dot_liq_gas(V_dot_liq, m_liq, m_gas, T_liq, T_gas, P_tank, m_
     T_dot_liq = (1/Cv_liq)*( (1/m_liq) * (U_dot_liq - u_liq*m_dot_liq) - (partial_du_dv_const_T_liq* V_dot_liq) )
     T_dot_gas = (1/Cv_gas)*( (1/m_gas) * (U_dot_gas - u_gas*m_dot_gas) - (partial_du_dv_const_T_gas* V_dot_gas) )
 
+    return T_dot_liq, T_dot_gas #TODO: TRACE THROUGH T_DOT SOLVING
+
     #print(T_liq, P_tank, u_liq)
     #print("solve_T_dot_liq: ", T_dot_liq, Cv_liq, m_liq, (U_dot_liq - u_liq*m_dot_liq), - (partial_du_dv_const_T_liq* V_dot_liq))
     #print("solve T_dot_liq: ", T_dot_liq, (U_dot_liq - u_liq*m_dot_liq), - (partial_du_dv_const_T_liq* V_dot_liq), partial_du_dv_const_T_liq, V_dot_liq)
@@ -214,8 +214,6 @@ def single_solve_T_dot_liq_gas(V_dot_liq, m_liq, m_gas, T_liq, T_gas, P_tank, m_
     #print("\n")
     #print("V_dot_liq: ", V_dot_liq)
     #print("m_dot", m_dot_liq, m_dot_gas, u_gas)
-
-    return T_dot_liq, T_dot_gas #TODO: TRACE THROUGH T_DOT SOLVING
 
 def P_dot_error(V_dot_guess, m_liq, m_gas, T_liq, T_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas):    
     #print(V_dot_guess)
@@ -235,9 +233,11 @@ def P_dot_error(V_dot_guess, m_liq, m_gas, T_liq, T_gas, P_tank, m_dot_inj, m_do
 
     P_dot_gas = partial_dP_dT_const_v_gas*T_dot_gas + partial_dP_dv_const_T_gas*V_dot_gas
 
+    return P_dot_liq - P_dot_gas
+
+
     #print("difference in P_dot_error: ",P_dot_liq - P_dot_gas, P_dot_liq, P_dot_gas, T_dot_liq, T_dot_gas, V_dot_guess)
     #print("  difference in P_dot_error: ",P_dot_liq - P_dot_gas, V_dot_guess)
-    return P_dot_liq - P_dot_gas
 
 """
 def iteratively_solve_T_dot_liq_and_gas(m_liq, m_gas, T_liq, T_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas, V_dot_liq_prev, P_dot_err_tolerance):
@@ -316,9 +316,14 @@ def system_of_liq_odes(t, y, constants):
 
     V_dot_liq = V_dot_liq_prev #initial guess for dV_dt_liq
     #print("second P_dot_error", V_dot_liq)
-    print("m_liq,  m_gas,  T_liq,  T_gas,  P_tank,  m_dot_inj,  m_dot_evap,  m_dot_cond,  Q_dot_liq,  Q_dot_gas\n", m_liq, m_gas, T_liq, T_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas,"\n")
+    #print("m_liq,  m_gas,  T_liq,  T_gas,  P_tank,  m_dot_inj,  m_dot_evap,  m_dot_cond,  Q_dot_liq,  Q_dot_gas\n", m_liq, m_gas, T_liq, T_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas,"\n")
+    
+    
     while np.abs(P_dot_error(V_dot_liq, m_liq, m_gas, T_liq, T_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas) ) > P_dot_err_tolerance:
         V_dot_liq = secant((lambda V_dot: P_dot_error(V_dot, m_liq, m_gas, T_liq, T_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas )), V_dot_liq)
+    
+    
+    
     #print("end second p dot err (printing V_dot_liq here:)", V_dot_liq)
 
     delta_height = V_dot_liq / (0.25*np.pi*(diam_in**2))
@@ -494,8 +499,35 @@ T_gas_arr = []
 #v_vap_arr = []
 
 
+
+###TODO: try solving single solve different ways!
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 try:
-    while(t<10*TIMESTEP):
+    while(t<100*TIMESTEP):
         tank.inst(P_cc)
         t+=TIMESTEP 
 
@@ -509,7 +541,6 @@ try:
 
 except Exception as e:
     traceback.print_exc()
-
 
 plt.subplot(1,3,1)
 plt.scatter(time_arr,P_tank_arr)
@@ -596,13 +627,69 @@ V_dot_arr = np.linspace(1e-10, 1e-1, 100)
 P_dot_error_arr = np.array([])
 
 #NOTE: inputting V_dot_guess
-for i in V_dot_arr:
-    P_dot_error(i, m_liq, m_gas, T_liq, T_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas)
-    P_dot_error_arr = np.append(P_dot_error_arr, i)
+pt = 0
+while pt < 4:
+    if pt == 0:
+        m_liq = 18.406207917835648
+        m_gas = 1.5937920821643532
+        T_liq = 287.94493237008703
+        T_gas = 287.94493237008703
+        P_tank = 4500000.0
+        m_dot_inj = -0.9405973525424474
+        m_dot_evap = 0
+        m_dot_cond = 0
+        Q_dot_liq = 0
+        Q_dot_gas = 0
+
+    elif pt == 1:
+        m_liq = 18.191676519439664
+        m_gas = 1.5937920821643532 
+        T_liq = 281.7425130192451
+        T_gas = 287.88275327956984
+        P_tank = 4159380.7114885226
+        m_dot_inj = -0.9263192433082763
+        m_dot_evap = -2.2016418957922097
+        m_dot_cond = 0
+        Q_dot_liq = -69.43294058099202
+        Q_dot_gas = -0.01075874380289937 
+
+    elif pt == 2:
+        m_liq =  18.40611385540957
+        m_gas = 1.5937920852192562
+        T_liq = 287.942212869688
+        T_gas = 287.9449053987172
+        P_tank = 4499821.562928544
+        m_dot_inj = -0.940590071802295
+        m_dot_evap = -7.118075104972902e-05
+        m_dot_cond = 0
+        Q_dot_liq = -0.0016943844066170343
+        Q_dot_gas = -2.8522725141935474e-07
+
+    elif pt == 3:
+        m_liq =   18.405266698348967 
+        m_gas = 1.5937927405909187
+        T_liq = 287.91772397175913
+        T_gas = 287.9447219652313
+        P_tank = 4498218.581200586
+        m_dot_inj =  -0.9405249281617616
+        m_dot_evap =  -0.0015383701510544964
+        m_dot_cond = 0
+        Q_dot_liq = -0.04036248059563283
+        Q_dot_gas = -5.052822554686893e-06
 
 
-plt.scatter(V_dot_arr,P_dot_error_arr)
-#plt.axhline(P_dot_err_tolerance, label = 'threshold of error to select solution to secant method')
+
+    for i in V_dot_arr:
+        P_dot_error(i, m_liq, m_gas, T_liq, T_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas)
+        P_dot_error_arr = np.append(P_dot_error_arr, i)
+
+    plt.scatter(V_dot_arr,P_dot_error_arr, label = f'pt {pt}')
+    P_dot_error_arr = []
+    pt += 1
+
+
+#plt.scatter(V_dot_arr,P_dot_error_arr)
+#plt.axhline(P_dot_err_tolerance, label = 'threshold of error to select solution to secant method', color = 'r')
 plt.xlabel('V_dot')
 plt.ylabel('P_dot_error')
 plt.title('P_dot_error vs V_dot')

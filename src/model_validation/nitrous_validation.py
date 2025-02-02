@@ -74,7 +74,7 @@ def run_nitrous_validation(inputs):
     plt.plot(exp_time_p_ox_tank, exp_p_ox_tank, label = 'experimental NOS Tank')
     
     exp_time_p_cc, exp_p_cc = read_csv(inputs.exp_p_cc_file_path)
-    plt.plot(exp_time_p_cc, exp_p_cc, label = 'cc Pressure')
+    plt.plot(exp_time_p_cc, exp_p_cc, label = 'experimental NOS Tank Outlet Pressure')
 
     plt.xlabel('Time (s)')
     plt.ylabel('Pressure (Pa)')
@@ -103,7 +103,7 @@ def run_nitrous_validation(inputs):
     
     mass_flow_rate_path = r'./src/inputs/msc_test_cases/tomasz_test_case_m_dot.csv'
     exp_time_p_cc, exp_p_cc = read_csv(mass_flow_rate_path)
-    plt.plot(exp_time_p_cc, exp_p_cc, label = 'cc Pressure')
+    plt.plot(exp_time_p_cc, exp_p_cc, label = 'experimental NOS Tank')
     plt.xlabel('Time (s)')
     plt.ylabel('Mass Flow Rate (kg/s)')
     plt.title('Tank Mass Flow Rate')
