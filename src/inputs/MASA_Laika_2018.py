@@ -10,7 +10,7 @@
 analysis_mode = [2,1,3]
 
 timestep = 0.05 #s
-sim_time = 4 #s (time engine will be simulated over)
+sim_time = 3.4 #s (time engine will be simulated over)
 #NOTE: if this is too big and you are simulating over a range the script will break
 #is it really a leading edge simulation software if the ux is poor?
 
@@ -141,6 +141,14 @@ exp_p_fuel_tank_file_path = r'./src/inputs/liquid_validation_data/MASA_Laika/MAS
 
 ### Sensitivity Analysis:
 test_var_name = "P_tank"
-min_bound = 45e5
-max_bound = 60e5
-num_iterations = 4
+min_bound = 4.5e6
+max_bound = 6.0e6
+num_iterations = 3
+
+
+"""
+test_var_name = "A_inj_1"
+min_bound = 0.00007471705*.8
+max_bound = 0.00007471705*.2
+num_iterations = 3
+"""

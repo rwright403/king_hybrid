@@ -143,6 +143,7 @@ def hem_model(Cd_hem_spi_dyer, A_inj_ox, P_1, P_2, h_1):
     # HEM MODEL
     
     m_dot_hem = None
+
     downstream_pres_arr = np.linspace(P_2, P_1, 100)
     m_dot_hem_arr = []
 
@@ -157,12 +158,13 @@ def hem_model(Cd_hem_spi_dyer, A_inj_ox, P_1, P_2, h_1):
 
     m_dot_hem_crit = np.max(m_dot_hem_arr)
     P_crit = downstream_pres_arr[np.argmax(m_dot_hem_arr)]
-
+    
     if P_2 < P_crit: #flow is choked
         m_dot_hem = m_dot_hem_crit
         print("HEM PREDICT CHOKING!!!! ITS CHOKING!!!!")
 
     else: #flow is unchoked
+
         s_1 = CP.PropsSI('S', 'H', h_1, 'P', P_1, 'N2O')
         h_2_hem = CP.PropsSI('H', 'S', s_1, 'P', P_2, 'N2O')
         rho_2_hem = CP.PropsSI('D', 'S', s_1, 'P', P_2, 'N2O')
@@ -253,6 +255,7 @@ def modified_emerson_and_mohammad_model_inst(P_1, P_2, T_1, x_1, A_inj_1, rho_1,
         print("sat inlet choked")
 
     else: #Saturated Inlet Not Choked
+        print("sat inlet not choked")
         pratio = P_2/P_sat
         G_sat = np.sqrt(P_1*rho_1) *np.sqrt( -2*(omega_sat * np.log(pratio) + (omega_sat -1)*(1 - pratio)) ) / (omega_sat*((1/(pratio)) - 1) + 1)
 
@@ -266,6 +269,7 @@ def modified_emerson_and_mohammad_model_inst(P_1, P_2, T_1, x_1, A_inj_1, rho_1,
             k_cavitation_const = 1 #cavitation constant only valid for P_sat > P_2, otherwise K = 1
         Cd_twophase = 0.386 + 0.361*np.sqrt(k_cavitation_const)
         m_dot =  ( Cd_twophase *A_inj_1) * G_sat  
+        print("sat liq vap")
 
         
         #print("line 232", m_dot, rho_1, P_1, eta_crit_sat, omega_sat, x_1)
@@ -281,7 +285,7 @@ def modified_emerson_and_mohammad_model_inst(P_1, P_2, T_1, x_1, A_inj_1, rho_1,
 
         ### High subcooled
         if P_sat <= (eta_transition * P_1):
-            #print("HIGH SUBCOOLED")
+            print("HIGH SUBCOOLED")
 
             P_sat = 0.9*CP.PropsSI('P', 'T', T_1, 'Q', 0, 'N2O')
             #print("correction factor of 0.9")
@@ -304,6 +308,7 @@ def modified_emerson_and_mohammad_model_inst(P_1, P_2, T_1, x_1, A_inj_1, rho_1,
 
         ### Low subcooled
         else:
+            print("low subcooled")
             ###NOTE: this seemed to fix low subcooled choked flow case
             eta = P_2 / P_1
             eta_crit_sat = eta #initial guess for critical pressure ratio
