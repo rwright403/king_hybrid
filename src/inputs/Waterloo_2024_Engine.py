@@ -85,7 +85,7 @@ TIMESTEP = timestep
 oxName = oxidizer_name
 timestep = timestep 
 m_ox = 12 #NOTE: guess
-Cd_1 = 0.8 #guess, could be v wrong
+Cd_1 = 0.8 #guess, most likely v wrong
 A_inj_1 = 0.25*np.pi*(1.2*(0.0254*0.06793)**2)*6
 V_tank = 0.25*np.pi*( (0.0254*5.625)**2 - (0.0254*2.84)**2 ) * (0.0254*64)
 P_tank = 5.51581e6
@@ -96,7 +96,7 @@ all_error = all_error
 # 1 --> SPI 
 # 2 --> HEM
 # 3 --> Dyer
-inj_model = 3
+inj_model = 4
 
 
 """awful liquid"""

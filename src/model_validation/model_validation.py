@@ -107,7 +107,7 @@ def validate(inputs):
 
         plt.subplot(1,4,4)
         plt.plot(model_time_p_fuel_tank, model_p_fuel_tank, label='model output')
-        plt.plot(exp_time_p_fuel_tank, exp_p_fuel_tank, label='data')
+        plt.plot(exp_time_p_fuel_tank, exp_p_fuel_tank, label='experimental data')
         plt.xlabel('Time (s)')
         plt.ylabel('Fuel Tank Pressure (Pa)')
         plt.title('Fuel Tank Pressure Validation')

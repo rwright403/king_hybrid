@@ -43,7 +43,7 @@ class model():
     def __init__(self, pres_name, m_pres, fuel_name, m_fuel, P_tank, id_PROPTANK, V_tank_2, Cd_2, A_inj_2, T_amb, TIMESTEP):
         self.pres = pres_name
         self.m_fuel = m_fuel
-        self.fuel = fuel_name
+        self.fuel = fuel_name # 'Dodecane' --> for stanford case as approx for kerosene
         self.m_pres = m_pres
         self.P_tank = P_tank
         self.id_proptank = id_PROPTANK
@@ -61,11 +61,11 @@ class model():
 
         #setup!!!
         #NOTE: assuming fuel density at ambient temp!
-        self.rho_prop = CP.PropsSI('D', 'P', self.P_tank, 'T', self.T_amb, fuel_name)
+        self.rho_prop = CP.PropsSI('D', 'P', self.P_tank, 'T', self.T_amb, self.fuel)
 
         V_prop = self.m_fuel/self.rho_prop
 
-        self.T_prop = CP.PropsSI('T', 'P', self.P_tank, 'D', self.rho_prop, fuel_name)
+        self.T_prop = CP.PropsSI('T', 'P', self.P_tank, 'D', self.rho_prop, self.fuel)
 
         self.v_pres = (self.V_tank - V_prop)/self.m_pres
 
@@ -112,11 +112,11 @@ class model():
         
         #print(self.P_tank, P_downstream)
 
-        testing = self.P_tank-P_downstream
-        if testing < 0:
-            testing = 1
+        pressure_drop = self.P_tank-P_downstream
+        #if pressure_drop < 0:
+        #    pressure_drop = 1
 
-        self.m_dot_fuel = self.Cd_2 * self.A_inj_2 * np.sqrt( 2 * self.rho_prop * (testing) )
+        self.m_dot_fuel = self.Cd_2 * self.A_inj_2 * np.sqrt( 2 * self.rho_prop * pressure_drop )
 
         #TODO: TRY IMPLEMENT BELOW AND SEE IF THAT FIXES IT:
         
@@ -204,7 +204,3 @@ class model():
         #solve for parsing
         mu = CP.PropsSI('V', 'T', self.T_prop, 'P', self.P_tank, self.fuel)  # dynamic viscosity in Pa·s
         self.kinematic_visc_fuel = mu / self.rho_prop
-
-
-        
-
