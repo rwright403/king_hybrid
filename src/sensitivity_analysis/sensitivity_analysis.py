@@ -225,7 +225,8 @@ def produce_graphs(big_data,i_arr,It_arr):
             k=0
             for s in big_data:
                 plt.subplot(1,5,j)
-                plt.plot(s.time_arr_,s.thrust_arr_, label= f"Total Impulse: {It_arr[k]:.6}")
+                plt.plot(s.time_arr_,s.thrust_arr_)
+                #plt.plot(s.time_arr_,s.thrust_arr_, label= f"Total Impulse: {It_arr[k]:.6}")
                 k+=1
             plt.legend()
             plt.xlabel('Time (s)')
@@ -288,6 +289,7 @@ def run_sensitivity_analysis(inputs):
         setattr(inputs, inputs.test_var_name, inputs.min_bound)
 
         while(getattr(inputs,inputs.test_var_name)<=inputs.max_bound):
+            print("printing getattr", getattr(inputs,inputs.test_var_name))
             
             results = sensitivityAnalysis(inputs)
             big_data.append( results )
@@ -295,7 +297,7 @@ def run_sensitivity_analysis(inputs):
             total_impulse = np.trapz(results.thrust_arr_, results.time_arr_)
             It_arr.append(total_impulse)
 
-            i_arr.append(getattr(inputs,inputs.test_var_name) + (inputs.max_bound-inputs.min_bound)/(inputs.num_iterations -1) )
+            i_arr.append(getattr(inputs,inputs.test_var_name) )#+ (inputs.max_bound-inputs.min_bound)/(inputs.num_iterations -1) )
             
             #update variable
             i = (getattr(inputs,inputs.test_var_name) + (inputs.max_bound-inputs.min_bound)/(inputs.num_iterations -1) )
