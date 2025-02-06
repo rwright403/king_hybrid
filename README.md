@@ -1,4 +1,4 @@
-### Note: mostly broken code! do not use right now lol
+### Note: mostly broken code! do not use right now lol --> see DEV LRE Progress Update... for the most recent documentation and explaination for where this program is rn
 
 ### Rocket Engine Simulation 🚀
 
