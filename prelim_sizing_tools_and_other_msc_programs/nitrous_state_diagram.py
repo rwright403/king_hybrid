@@ -42,7 +42,8 @@ ax1.grid(True, which="both", ls="--")
 ax1.axhline(y=(2.55e6 + CP.PropsSI('P', 'T', 282, 'Q', 1, substance)), color='rebeccapurple', linestyle='--')
 #288.09160459664383 4480112.2381784525
 
-ax1.plot( 1/CP.PropsSI('D', 'T', 288.0145796254294, 'P',  4455100.477120162, substance),  4455100.477120162, marker="o", markersize=10, color="rebeccapurple")
+ax1.plot( 1/CP.PropsSI('D', 'T', 287.93156563369746, 'P', 4499863.051717204, substance),  4455100.477120162, marker="o", markersize=10, color="pink")
+ax1.plot( 1/CP.PropsSI('D', 'T', 287.9284541887653, 'P', 4495139.921186801, substance),  4455100.477120162, marker="o", markersize=10, color="rebeccapurple")
 
 
 
