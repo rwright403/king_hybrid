@@ -351,7 +351,7 @@ class model():
         # (7) [natural convection] from atm to gas wall
         Q_dot_atm_to_gas_wall = solve_Q_dot_natural_convection_gas(self.T_atm, T_wall_gas, self.T_atm, self.P_atm, self.rho_atm, 0.59, 0.25, self.diam_out, "air") #relative to wall_gas cv
         # (8) [conduction] from liq wall to gas wall 
-        Q_dot_liq_wall_to_gas_wall = solve_Q_dot_conduction( (T_wall_gas-T_wall_liq), self.height_tank, self.k_w, self.diam_in, self.diam_out) #relative to wall_liq cv
+        Q_dot_liq_wall_to_gas_wall = solve_Q_dot_conduction( (T_wall_liq-T_wall_gas), self.height_tank, self.k_w, self.diam_in, self.diam_out) #relative to wall_liq cv
 
         #(1) mass transfer from injector already solved
         m_dot_inj = spi_model(self.Cd_1, self.A_inj_1, P_tank, P_cc, rho_liq)
@@ -380,7 +380,7 @@ class model():
         #print(m_dot_evap, m_dot_cond, m_dot_inj)
 
         Q_dot_liq = Q_dot_liq_wall_to_liq -(2.1E4)*Q_dot_liq_to_sat_surf -m_dot_evap*latent_heat_evap_l
-        Q_dot_gas = Q_dot_gas_wall_to_gas +Q_dot_sat_surf_to_gas -m_dot_cond*latent_heat_cond_g
+        Q_dot_gas = Q_dot_gas_wall_to_gas -Q_dot_sat_surf_to_gas -m_dot_cond*latent_heat_cond_g
     
         #print("Q_dots: ", Q_dot_liq, Q_dot_gas,  Q_dot_gas_wall_to_gas ,Q_dot_sat_surf_to_gas ,-m_dot_cond*latent_heat_cond_g)
         V_dot_liq = self.V_dot_liq_prev #initial guess for dV_dt_liq
@@ -395,6 +395,8 @@ class model():
         m_dot_liq_wall = self.rho_wall*(0.25*np.pi*height_dot*((self.diam_out**2)-(self.diam_in**2)))  #BUG: this might be a bit unstable w runge kutta steps?
         m_dot_gas_wall = -m_dot_liq_wall
 
+        #print("m_dot_liq_wall should be - ", m_dot_liq_wall)
+
 
         #then solve the height of the gas wall
         h_gas_wall = V_gas / (0.25*np.pi*(self.diam_in**2))
@@ -406,13 +408,13 @@ class model():
         m_liq_wall = self.rho_wall*V_liq_wall
 
         #NOTE: for T_dot_wall_liq:  IN: (6)      OUT: (4) AND (8)
-        T_dot_wall_liq = ( Q_dot_atm_to_liq_wall - Q_dot_liq_wall_to_liq - Q_dot_liq_wall_to_gas_wall + m_dot_liq_wall*(0.15)*( T_wall_gas - T_wall_liq) ) / (0.15*m_liq_wall)
+        T_dot_wall_liq = ( Q_dot_atm_to_liq_wall - Q_dot_liq_wall_to_liq - Q_dot_liq_wall_to_gas_wall - m_dot_liq_wall*(0.15)*( T_wall_gas - T_wall_liq) ) / (0.15*m_liq_wall)
 
         #NOTE: for T_dot_wall_vap:  IN: (7) and (8)      OUT: (5)
-        T_dot_wall_gas = ( Q_dot_atm_to_gas_wall - Q_dot_gas_wall_to_gas + Q_dot_liq_wall_to_gas_wall + m_dot_gas_wall*(0.15)*(T_wall_liq - T_wall_gas) ) / (0.15*m_gas_wall)
+        T_dot_wall_gas = ( Q_dot_atm_to_gas_wall - Q_dot_gas_wall_to_gas + Q_dot_liq_wall_to_gas_wall - m_dot_gas_wall*(0.15)*(T_wall_liq - T_wall_gas) ) / (0.15*m_gas_wall)
 
-        #print("T_dot_wall_liq: ",  Q_dot_atm_to_liq_wall, - Q_dot_liq_wall_to_liq, - Q_dot_liq_wall_to_gas_wall, + m_dot_liq_wall*(0.15)*(T_wall_gas - T_wall_liq) )
-        #print("T_dot_wall_gas: ",  Q_dot_atm_to_gas_wall, - Q_dot_gas_wall_to_gas, + Q_dot_liq_wall_to_gas_wall, + m_dot_gas_wall*(0.15)*(T_wall_gas - T_wall_liq) )
+        print("T_dot_wall_liq: ",  Q_dot_atm_to_liq_wall, - Q_dot_liq_wall_to_liq, - Q_dot_liq_wall_to_gas_wall, - m_dot_liq_wall*(0.15)*(T_wall_gas - T_wall_liq) )
+        print("T_dot_wall_gas: ",  Q_dot_atm_to_gas_wall, - Q_dot_gas_wall_to_gas, + Q_dot_liq_wall_to_gas_wall, - m_dot_gas_wall*(0.15)*(T_wall_liq - T_wall_gas) )
 
         #print("T_dot_wall_liq,gas: ", T_dot_wall_liq, T_dot_wall_gas)
         #print("wall masses! ", m_dot_gas_wall, m_dot_cond)
@@ -421,7 +423,7 @@ class model():
 
 
         #print("sol derivs ", T_dot_liq, T_dot_gas, m_dot_liq, m_dot_gas, T_dot_wall_liq, T_dot_wall_gas)
-        print("heat transfer: ", Q_dot_liq, Q_dot_gas, (Q_dot_atm_to_liq_wall + Q_dot_liq_wall_to_liq - Q_dot_liq_wall_to_gas_wall + m_dot_liq_wall*(0.15)*( T_wall_gas - T_wall_liq)),(Q_dot_atm_to_gas_wall + Q_dot_gas_wall_to_gas + Q_dot_liq_wall_to_gas_wall + m_dot_gas_wall*(0.15)*(T_wall_liq - T_wall_gas)))
+        #print("heat transfer: ", Q_dot_liq, Q_dot_gas, (Q_dot_atm_to_liq_wall + Q_dot_liq_wall_to_liq - Q_dot_liq_wall_to_gas_wall + m_dot_liq_wall*(0.15)*( T_wall_gas - T_wall_liq)),(Q_dot_atm_to_gas_wall + Q_dot_gas_wall_to_gas + Q_dot_liq_wall_to_gas_wall + m_dot_gas_wall*(0.15)*(T_wall_liq - T_wall_gas)))
         #print("checking m_dot liq gas: ", m_dot_liq, m_dot_gas, m_dot_inj, m_dot_evap, m_dot_cond)
 
         return [T_dot_liq, T_dot_gas, m_dot_liq, m_dot_gas, T_dot_wall_liq, T_dot_wall_gas]
@@ -448,7 +450,8 @@ class model():
 
         self.T_liq, self.T_gas, self.m_liq, self.m_gas, self.T_wall_liq, self.T_wall_gas = y
 
-        print("final y: ",self.T_liq, self.T_gas, self.m_liq, self.m_gas, self.T_wall_liq, self.T_wall_gas, "\n")
+        #print("final y: ",self.T_liq, self.T_gas, self.m_liq, self.m_gas, self.T_wall_liq, self.T_wall_gas, "\n")
+        print("final y: (expect +)", self.T_wall_liq - self.T_wall_gas, "\n")
 
         # (4) iteratively solve P_tank to update thermodynamic properties in each node
         #NOTE: this is just to update vals for downstream graphs
@@ -473,25 +476,28 @@ m_nos = 20 #kg
 P_tank = 45e5 #Pa
 V_tank = 0.0354 #m^3
 
-diam_out = 0.230 #m #NOTE: thesis didn't provide tank geometry, estimated based off of G type nos dimensions (approx equivalent nos mass to Karabeyoglu run tank)
-diam_in = 0.215 #m
+diam_out = 0.25*0.230 #m #NOTE: thesis didn't provide tank geometry, estimated based off of G type nos dimensions (approx equivalent nos mass to Karabeyoglu run tank)
+diam_in = 0.25*0.215 #m
 rho_wall = 2770 #kg/m^3
 k_w = 237 #W/(m K)
 
 Cd_1 = 0.425
 A_inj_1 = 0.00003 #m^3 NOTE: GUESS
-P_cc = 1.03e6 #Pa
+P_cc = 3e6 #1.03e6 + 68947.6 #Pa
 
 inj_model = None #TODO: implement
 
 #def __init__(self, TIMESTEP, T_atm, m_nos, Cd_1, A_inj_1, V_tank, diam_out, diam_in, rho_wall, k_w, P_tank, P_atm, inj_model)
-volume_err_tolerance = 1e-9
-P_dot_err_tolerance = 1
+volume_err_tolerance = 1e-8
+P_dot_err_tolerance = 10
 tank = model(TIMESTEP, m_nos, P_tank, P_cc, P_atm, T_atm, rho_atm, V_tank, diam_out, diam_in, rho_wall, k_w, Cd_1, A_inj_1, volume_err_tolerance, P_dot_err_tolerance)
 
 time_arr = []
 P_tank_arr = []
 m_tank_arr = []
+m_liq_arr = []
+m_gas_arr = []
+
 T_liq_arr = []
 T_gas_arr = []
 T_sat_arr = []
@@ -510,7 +516,7 @@ T_gas_wall_arr = []
 
 
 try:
-    while(t<100*TIMESTEP):
+    while(t<250*TIMESTEP):
         tank.inst(P_cc)
         t+=TIMESTEP 
 
@@ -519,6 +525,11 @@ try:
         
         P_tank_arr.append(tank.P_tank)
         m_tank_arr.append( (tank.m_liq+tank.m_gas) )
+        m_liq_arr.append(tank.m_liq)
+        m_gas_arr.append(tank.m_gas)
+
+
+
         T_liq_arr.append(tank.T_liq)
         T_gas_arr.append(tank.T_gas)
 
@@ -547,7 +558,9 @@ plt.legend()
 plt.grid(True)
 
 plt.subplot(1,4,2)
-plt.scatter(time_arr,m_tank_arr)
+plt.scatter(time_arr,m_tank_arr, label = "total mass")
+plt.scatter(time_arr,m_liq_arr, label = "liquid")
+plt.scatter(time_arr,m_gas_arr, label = "gas")
 plt.xlabel('Time (s)')
 plt.ylabel('Mass (kg)')
 plt.title('Mass vs. Time')
