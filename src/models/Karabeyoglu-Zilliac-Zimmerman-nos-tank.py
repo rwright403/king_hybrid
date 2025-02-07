@@ -18,8 +18,7 @@ OMEGA = n2o_g.omega
 MW = (n2o_g.MW/1000) #n2o.MW in g/mol --> converted to kg/mol
 KAPPA = 0.37464 + 1.5422*n2o_g.omega - 0.26992*n2o_g.omega**2
 
-TANK_DIAM = 0.0254*5.5 #m
-CS_AREA = 0.25*np.pi*(TANK_DIAM**2) #m^2
+
 g = 9.81 #m/s^2
 
 def secant(func, x1):
@@ -43,50 +42,65 @@ def secant(func, x1):
     return x
 
 #NOTE: SIGN CONVENTION: Q_dot dir: (+) T_1 --> T_2 (f is fluid)
-def solve_Q_dot_natural_convection_liq(T_1, T_2, T_f, P_tank, rho_f, c, n, tank_diam, fluid):
+def solve_Q_dot_natural_convection_liq(T_1, T_2, T_f, P_tank, rho_f, c, n, L, Area, fluid):
 
-    n2o = Chemical('N2O', T=T_f, P=P_tank) 
-    k_f = n2o.kl #W/m/K
-    visc_f = n2o.mul #Pa s
+    if fluid == "N2O":
+        n2o = Chemical('N2O', T=T_f, P=P_tank) 
+        k_f = n2o.kl # Conductivity W/(m K)
+        visc_f = n2o.mul # Dynamic viscosity (Pa s)
 
-    preos_l = PR(Tc=n2o.Tc, Pc=n2o.Pc, omega=n2o.omega, T=T_f, P=P_tank)
-    Cp_2 = (preos_l.Cp_dep_l/MW + n2o.Cpg) #J/K #NOTE: should be fixed
+        preos_l = PR(Tc=n2o.Tc, Pc=n2o.Pc, omega=n2o.omega, T=T_f, P=P_tank)
+        Cp_2 = (preos_l.Cp_dep_l/MW + n2o.Cpg) #J/K #NOTE: should be fixed
 
-    dV_dT_P = preos_l.dV_dT_l #BUG! lib documentation "volume"
+        dV_dT_P = preos_l.dV_dT_l
+        beta = (1/preos_l.V_l)*dV_dT_P*(1/rho_f) # (1/preos_l.V_l) to convert from library molar volume mol/m^3 to kg/m^3
 
-    beta = dV_dT_P*rho_f 
+    elif fluid == "Air":
+        k_f = CP.PropsSI('L', 'T', T_atm, 'P', P_atm, 'Air')  # Conductivity W/(m K)
+        visc_f = CP.PropsSI('V', 'T', T_atm, 'P', P_atm, 'Air')  # Dynamic viscosity (Pa s)
+        
+        Cp_2 = CP.PropsSI("Cpmass", "T", T_atm, "P", P_atm, "Air")
+        beta = CP.PropsSI("ISOBARIC_EXPANSION_COEFFICIENT", "T", T_atm, "P", P_atm, "Air")
 
-    Gr = ((tank_diam**3)*(rho_f**2)*g*beta*np.abs(T_2 - T_1) ) / (visc_f**2)
+    Gr = ((L**3)*(rho_f**2)*g*beta*np.abs(T_2 - T_1) ) / (visc_f**2)
     Pr = (Cp_2*visc_f)/ k_f
 
     X = Gr*Pr
-    h = c * (k_f/tank_diam) * X**n
+    h = c * (k_f/L) * X**n
 
-    Q_dot = h*(0.25*np.pi*(tank_diam**2))*(T_1-T_2)
+    Q_dot = h*Area*(T_1-T_2)
 
     return Q_dot #NOTE: Q_dot + going into (2)
 
-#NOTE: SIGN CONVENTION: Q_dot dir: (+) T_1 --> T_2 (f is fluid)
-def solve_Q_dot_natural_convection_gas(T_1, T_2, T_f, P_tank, rho_2, c, n, tank_diam, fluid): #BUG: potential mistake, solving _1 properties with _2 inputs, double check this is likely a mistake
+#NOTE: SIGN CONVENTION: Q_dot dir: (+) T_1 --> T_2 
+def solve_Q_dot_natural_convection_gas(T_1, T_2, T_f, P_f, rho_f, c, n, L, Area, fluid): #BUG: potential mistake, solving _1 properties with _2 inputs, double check this is likely a mistake
 
-    n2o = Chemical('N2O', T=T_f, P=P_tank)  #TODO: units here!!!
-    k_f = n2o.kg
-    visc_f = n2o.mug
+    if fluid == "N2O":
+        n2o = Chemical('N2O', T=T_f, P=P_f)  #TODO: units here!!!
+        k_f = n2o.kg # Conductivity W/(m K)
+        visc_f = n2o.mug # Dynamic viscosity (Pa s)
 
-    preos_g = PR(Tc=n2o.Tc, Pc=n2o.Pc, omega=n2o.omega, T=T_f, P=P_tank)
-    Cp_2 = (preos_g.Cp_dep_g/MW + n2o.Cpg)
+        preos_g = PR(Tc=n2o.Tc, Pc=n2o.Pc, omega=n2o.omega, T=T_f, P=P_f)
+        Cp_2 = (preos_g.Cp_dep_g/MW + n2o.Cpg)
+        
+        dV_dT_P = preos_g.dV_dT_g 
+        beta = (1/preos_g.V_g)*dV_dT_P*(1/rho_f)  # (1/preos_g.V_g) to convert from library molar volume mol/m^3 to kg/m^3
 
-    dV_dT_P = preos_g.dV_dT_g
+    elif fluid == "Air":
+        k_f = CP.PropsSI('L', 'T', T_atm, 'P', P_atm, 'Air')  # Conductivity W/(m K)
+        visc_f = CP.PropsSI('V', 'T', T_atm, 'P', P_atm, 'Air')  # Dynamic viscosity (Pa s)
+        
+        Cp_2 = CP.PropsSI("Cpmass", "T", T_atm, "P", P_atm, "Air")
+        beta = CP.PropsSI("ISOBARIC_EXPANSION_COEFFICIENT", "T", T_atm, "P", P_atm, "Air")
 
-    beta = dV_dT_P*rho_2 
 
-    Gr = ((tank_diam**3)*(rho_2**2)*g*beta*np.abs(T_2 - T_1) ) / (visc_f**2)
+    Gr = ((L**3)*(rho_f**2)*g*beta*np.abs(T_2 - T_1) ) / (visc_f**2)
     Pr = (Cp_2*visc_f)/ k_f
 
     X = Gr*Pr
-    h = c * (k_f/tank_diam) * X**n
+    h = c * (k_f/L) * X**n
 
-    Q_dot = h*(0.25*np.pi*(tank_diam**2))*(T_1-T_2)
+    Q_dot = h*(Area)*(T_1-T_2)
 
     return Q_dot
 
@@ -325,43 +339,35 @@ class model():
 
         T_liq, T_gas, m_liq, m_gas, T_wall_liq, T_wall_gas = y  # Unpack state variables
 
-        
-
+        ### Solve thermo parameters!
         rho_liq, rho_gas, P_tank = solve_thermo_params(T_liq, T_gas, m_liq, m_gas, self.P_tank_prev, self.V_tank, self.volume_err_tolerance)
 
         preos = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_gas, P=P_tank)
         T_sat = preos.Tsat(P_tank)
+      
 
-
-        # (2) from saturated surface to gas                       (T_1, T_2, P_tank, rho_2, c, n, tank_diam, fluid)
-        Q_dot_sat_surf_to_gas = solve_Q_dot_natural_convection_gas(T_sat, T_gas, T_gas, P_tank, rho_gas, 0.15, 0.333, self.diam_in, "N2O") #relative to gas cv
-        # (3)  from liq to saturated surface (sat surface assumed to be a liquid with quality 0)
-        Q_dot_liq_to_sat_surf = solve_Q_dot_natural_convection_liq(T_liq, T_sat, T_liq, P_tank, rho_liq, 0.15, 0.333, self.diam_in, "N2O") #relative to liq cv
-        #print("Q_dot_liq_to_sat_surf: ", Q_dot_liq_to_sat_surf , T_liq, T_sat, T_liq-T_sat, P_tank, rho_liq)
-        
-        
-        # (4) [natural convection] from liq wall to liq
-        Q_dot_liq_wall_to_liq = solve_Q_dot_natural_convection_liq(T_wall_liq, T_liq, T_liq, P_tank, rho_liq, 0.021, 0.4, self.diam_in, "N2O") #relative to liq cv       
-        # (5) [natural convection] from gas to gas wall
-        Q_dot_gas_wall_to_gas = solve_Q_dot_natural_convection_gas(T_wall_gas, T_gas, T_gas, P_tank, rho_gas, 0.021, 0.4, self.diam_in, "N2O") #relative to gas cv
-
-        #NOTE: USE ambient properties for air, T_2 will be respective wall temperature (RK var)
-        # (6) [natural convection] from atm to liq wall
-        Q_dot_atm_to_liq_wall = solve_Q_dot_natural_convection_gas(self.T_atm, T_wall_liq, self.T_atm, self.P_atm, self.rho_atm, 0.59, 0.25, self.diam_out, "air") #relative to wall_liq cv
-        # (7) [natural convection] from atm to gas wall
-        Q_dot_atm_to_gas_wall = solve_Q_dot_natural_convection_gas(self.T_atm, T_wall_gas, self.T_atm, self.P_atm, self.rho_atm, 0.59, 0.25, self.diam_out, "air") #relative to wall_gas cv
-        # (8) [conduction] from liq wall to gas wall 
-        Q_dot_liq_wall_to_gas_wall = solve_Q_dot_conduction( (T_wall_liq-T_wall_gas), self.height_tank, self.k_w, self.diam_in, self.diam_out) #relative to wall_liq cv
-
-        #(1) mass transfer from injector already solved
+        # Mass transfer (1) from injector
         m_dot_inj = spi_model(self.Cd_1, self.A_inj_1, P_tank, P_cc, rho_liq)
-        #(2) mass transfer by condensation
+
+        # Mass transfer (2) by condensation
         V_gas = m_gas/rho_gas
+        V_liq = self.V_tank - V_gas
+
         m_dot_cond = solve_m_dot_condensed(T_gas, P_tank, V_gas, t)
 
-        #(3) mass transfer by evaporation #NOTE: EMPIRICAL FACTOR E = 2.1E4 HERE TO CORRECTLY MODEL HEAT TRANSFER ON Q_DOT_LIQ_TO_SAT_SURF
+
+
+        # Heat transfer (2) from saturated surface to gas                       (T_1, T_2, P_tank, rho_2, c, n, tank_diam, fluid)
+        # L = tank inner diam , Area of circle x section
+        #print(T_sat, T_gas, T_gas, P_tank, rho_gas, 0.15, 0.333, self.diam_in, (0.25*np.pi*(self.diam_in**2)), "N2O" ) 
+        Q_dot_sat_surf_to_gas = solve_Q_dot_natural_convection_gas(T_sat, T_gas, T_gas, P_tank, rho_gas, 0.15, 0.333, self.diam_in, (0.25*np.pi*(self.diam_in**2)), "N2O" ) #relative to gas cv
         
-        #NOTE: should be ok to just take the difference of the departure functions below
+        # Heat transfer (3)  from liq to saturated surface (sat surface assumed to be a liquid with quality 0)
+        Q_dot_liq_to_sat_surf = solve_Q_dot_natural_convection_liq(T_liq, T_sat, T_liq, P_tank, rho_liq, 0.15, 0.333, self.diam_in, (0.25*np.pi*(self.diam_in**2)), "N2O" ) #relative to liq cv
+        #print("Q_dot_liq_to_sat_surf: ", Q_dot_liq_to_sat_surf , T_liq, T_sat, T_liq-T_sat, P_tank, rho_liq)
+        
+
+        # Mass transfer (3) by evaporation #NOTE: EMPIRICAL FACTOR E = 2.1E4 HERE TO CORRECTLY MODEL HEAT TRANSFER ON Q_DOT_LIQ_TO_SAT_SURF
         preos_l = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_liq, P=P_tank)
         latent_heat_evap_l = preos_l.Hvap(T_liq)/MW
         h_liq = preos_l.H_dep_l/MW #+ n2o_ig.Cpg*(T_liq - T_REF)
@@ -369,35 +375,14 @@ class model():
         preos_sat = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_sat, P=P_tank)
         h_sat = preos_sat.H_dep_l/MW #+ n2o_ig.Cpg*(T_liq - T_REF)
 
-        m_dot_evap = ((2.1E4)*Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas) / (latent_heat_evap_l + (h_sat - h_liq) )
-        #^ denom is constant, numerator fluxes like crazy!
+        m_dot_evap = ((2.1E4)*Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas) / (latent_heat_evap_l + (h_sat - h_liq) ) #NOTE: should be ok to just take the difference of the departure functions below
         #print("m_dot_evap: ", ((2.1E4)*Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas), (2.1E4)*Q_dot_liq_to_sat_surf ,- Q_dot_sat_surf_to_gas)
 
-        preos_g = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_gas, P=P_tank)
-        latent_heat_cond_g = (-1)*preos_g.Hvap(T_gas)/MW
 
+        # Mass Transfer of Liquid and Gas CV
         m_dot_liq, m_dot_gas = solve_m_dot_liq_gas(m_dot_evap, m_dot_cond, m_dot_inj)
         #print(m_dot_evap, m_dot_cond, m_dot_inj)
-
-        Q_dot_liq = Q_dot_liq_wall_to_liq -(2.1E4)*Q_dot_liq_to_sat_surf -m_dot_evap*latent_heat_evap_l
-        Q_dot_gas = Q_dot_gas_wall_to_gas -Q_dot_sat_surf_to_gas -m_dot_cond*latent_heat_cond_g
-    
-        #print("Q_dots: ", Q_dot_liq, Q_dot_gas,  Q_dot_gas_wall_to_gas ,Q_dot_sat_surf_to_gas ,-m_dot_cond*latent_heat_cond_g)
-        V_dot_liq = self.V_dot_liq_prev #initial guess for dV_dt_liq
-        V_liq = self.V_tank - V_gas
-
-        while np.abs(P_dot_error(V_dot_liq, m_liq, m_gas, T_liq, T_gas, rho_liq, rho_gas, V_liq, V_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas)) > self.P_dot_err_tolerance:
-            V_dot_liq = secant((lambda V_dot: P_dot_error(V_dot, m_liq, m_gas, T_liq, T_gas, rho_liq, rho_gas, V_liq, V_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas )), V_dot_liq)
         
-        ###solving wall nodes:
-        height_dot = V_dot_liq / (0.25*np.pi*(self.diam_in**2))
-
-        m_dot_liq_wall = self.rho_wall*(0.25*np.pi*height_dot*((self.diam_out**2)-(self.diam_in**2)))  #BUG: this might be a bit unstable w runge kutta steps?
-        m_dot_gas_wall = -m_dot_liq_wall
-
-        #print("m_dot_liq_wall should be - ", m_dot_liq_wall)
-
-
         #then solve the height of the gas wall
         h_gas_wall = V_gas / (0.25*np.pi*(self.diam_in**2))
         V_gas_wall = 0.25*np.pi*((self.diam_out**2)-(self.diam_in**2))*h_gas_wall
@@ -406,6 +391,43 @@ class model():
         h_liq_wall = self.height_tank - h_gas_wall
         V_liq_wall = 0.25*np.pi*((self.diam_out**2)-(self.diam_in**2))*h_liq_wall
         m_liq_wall = self.rho_wall*V_liq_wall
+
+        
+        # Heat transfer (4) [natural convection] from liq wall to liq
+        Q_dot_liq_wall_to_liq = solve_Q_dot_natural_convection_liq(T_wall_liq, T_liq, T_liq, P_tank, rho_liq, 0.021, 0.4, h_liq_wall, (np.pi*self.diam_in*h_liq_wall), "N2O" ) #relative to liq cv       
+        # Heat transfer (5) [natural convection] from gas to gas wall
+        Q_dot_gas_wall_to_gas = solve_Q_dot_natural_convection_gas(T_wall_gas, T_gas, T_gas, P_tank, rho_gas, 0.021, 0.4, h_gas_wall, (np.pi*self.diam_in*h_gas_wall), "N2O" ) #relative to gas cv
+        
+        print("Q_dot wall check: ", Q_dot_liq_wall_to_liq, Q_dot_gas_wall_to_gas)
+        # Net Heat Transfer of Liq and Gas CV
+        preos_g = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_gas, P=P_tank)
+        latent_heat_cond_g = (-1)*preos_g.Hvap(T_gas)/MW
+
+        Q_dot_liq = Q_dot_liq_wall_to_liq -(2.1E4)*Q_dot_liq_to_sat_surf -m_dot_evap*latent_heat_evap_l
+        Q_dot_gas = Q_dot_gas_wall_to_gas -Q_dot_sat_surf_to_gas -m_dot_cond*latent_heat_cond_g
+
+
+
+        #NOTE: USE ambient properties for air, T_2 will be respective wall temperature (RK var)
+        # (6) [natural convection] from atm to liq wall
+        Q_dot_atm_to_liq_wall = solve_Q_dot_natural_convection_gas(self.T_atm, T_wall_liq, self.T_atm, self.P_atm, self.rho_atm, 0.59, 0.25, h_liq_wall, (np.pi*self.diam_out*h_liq_wall), "Air") #relative to wall_liq cv
+        # (7) [natural convection] from atm to gas wall
+        Q_dot_atm_to_gas_wall = solve_Q_dot_natural_convection_gas(self.T_atm, T_wall_gas, self.T_atm, self.P_atm, self.rho_atm, 0.59, 0.25, h_gas_wall, (np.pi*self.diam_out*h_gas_wall), "Air") #relative to wall_gas cv
+        # (8) [conduction] from liq wall to gas wall 
+        Q_dot_liq_wall_to_gas_wall = solve_Q_dot_conduction( (T_wall_liq-T_wall_gas), self.height_tank, self.k_w, self.diam_in, self.diam_out) #relative to wall_liq cv
+
+
+
+        # Iteratively solve change in CV Volume
+        V_dot_liq = self.V_dot_liq_prev #initial guess for dV_dt_liq
+        while np.abs(P_dot_error(V_dot_liq, m_liq, m_gas, T_liq, T_gas, rho_liq, rho_gas, V_liq, V_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas)) > self.P_dot_err_tolerance:
+            V_dot_liq = secant((lambda V_dot: P_dot_error(V_dot, m_liq, m_gas, T_liq, T_gas, rho_liq, rho_gas, V_liq, V_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas )), V_dot_liq)
+        
+        ### Wall nodes:
+        height_dot = V_dot_liq / (0.25*np.pi*(self.diam_in**2))
+
+        m_dot_liq_wall = self.rho_wall*(0.25*np.pi*height_dot*((self.diam_out**2)-(self.diam_in**2)))  #BUG: this might be a bit unstable w runge kutta steps?
+        m_dot_gas_wall = -m_dot_liq_wall
 
         #NOTE: for T_dot_wall_liq:  IN: (6)      OUT: (4) AND (8)
         T_dot_wall_liq = ( Q_dot_atm_to_liq_wall - Q_dot_liq_wall_to_liq - Q_dot_liq_wall_to_gas_wall - m_dot_liq_wall*(0.15)*( T_wall_gas - T_wall_liq) ) / (0.15*m_liq_wall)
