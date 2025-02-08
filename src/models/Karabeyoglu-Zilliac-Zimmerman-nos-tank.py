@@ -65,7 +65,10 @@ def solve_Q_dot_natural_convection_liq(T_1, T_2, T_f, P_tank, rho_f, c, n, L, Ar
     Gr = ((L**3)*(rho_f**2)*g*beta*np.abs(T_2 - T_1) ) / (visc_f**2)
     Pr = (Cp_2*visc_f)/ k_f
 
+    print(L, rho_f,)
+
     X = Gr*Pr
+    print(Gr, Pr, g, beta)
     h = c * (k_f/L) * X**n
 
     Q_dot = h*Area*(T_1-T_2)
@@ -330,11 +333,13 @@ class model():
 
         self.V_tank = self.V_liq+self.V_gas # "what are you going to do if the aluminum is too small? water it? give it sunlight? let it grow?"
         self.height_tank = self.V_tank/(0.25*np.pi*(diam_in**2))
+
+        print("tank height: ",self.height_tank)
         self.P_tank_prev = self.P_tank
         self.V_dot_liq_prev = 1e-9 #NOTE: close to zero, but off zero
 
 
-        print("starting temps!!! ", self.T_atm, self.T_liq, self.T_gas)
+        #print("starting temps!!! ", self.T_atm, self.T_liq, self.T_gas)
         self.T_atm = self.T_liq
 
 
@@ -351,6 +356,7 @@ class model():
       
 
         # Mass transfer (1) from injector
+        #print("rho_liq input to m_dot_inj: ", rho_liq)
         m_dot_inj = spi_model(self.Cd_1, self.A_inj_1, P_tank, P_cc, rho_liq)
 
         # Mass transfer (2) by condensation
@@ -368,7 +374,7 @@ class model():
         
         # Heat transfer (3)  from liq to saturated surface (sat surface assumed to be a liquid with quality 0)
         Q_dot_liq_to_sat_surf = (2.1E4)*solve_Q_dot_natural_convection_liq(T_liq, T_sat, T_liq, P_tank, rho_liq, 0.15, 0.333, self.diam_in, (0.25*np.pi*(self.diam_in**2)), "N2O" ) #relative to liq cv
-        #NOTE:CORRECTION FACTOR HERE!
+        #NOTE:CORRECTION FACTOR for nitrous oxide heat transfer E = (2.1E4) HERE!
         #print("Q_dot_liq_to_sat_surf: ", Q_dot_liq_to_sat_surf , T_liq, T_sat, T_liq-T_sat, P_tank, rho_liq)
         
 
@@ -413,7 +419,7 @@ class model():
         Q_dot_liq = Q_dot_liq_wall_to_liq -Q_dot_liq_to_sat_surf -m_dot_evap*latent_heat_evap_l #shouldnt Q_dot_evap be +?
         Q_dot_gas = Q_dot_gas_wall_to_gas -Q_dot_sat_surf_to_gas -m_dot_cond*latent_heat_cond_g
 
-        print("Checking Q_dot_gas: ",Q_dot_gas , Q_dot_gas_wall_to_gas ,-Q_dot_sat_surf_to_gas ,-m_dot_cond*latent_heat_cond_g)
+        #print("Checking Q_dot_gas: ",Q_dot_gas , Q_dot_gas_wall_to_gas ,-Q_dot_sat_surf_to_gas ,-m_dot_cond*latent_heat_cond_g)
 
 
 
@@ -444,11 +450,11 @@ class model():
         #NOTE: for T_dot_wall_vap:  IN: (7) and (8)      OUT: (5)
         T_dot_wall_gas = ( Q_dot_atm_to_gas_wall - Q_dot_gas_wall_to_gas + Q_dot_liq_wall_to_gas_wall + m_dot_gas_wall*(0.15)*( T_wall_liq - T_wall_gas) ) / (0.15*m_gas_wall)
 
-        print("T_dot_wall_liq: ",  Q_dot_atm_to_liq_wall, - Q_dot_liq_wall_to_liq, - Q_dot_liq_wall_to_gas_wall, - m_dot_liq_wall*(0.15)*(T_wall_gas - T_wall_liq) )
-        print("T_dot_wall_gas: ",  Q_dot_atm_to_gas_wall, - Q_dot_gas_wall_to_gas, + Q_dot_liq_wall_to_gas_wall, + m_dot_gas_wall*(0.15)*(T_wall_liq - T_wall_gas) )
+        print("T_dot_wall_liq: ",  Q_dot_atm_to_liq_wall, - Q_dot_liq_wall_to_liq, - Q_dot_liq_wall_to_gas_wall, + m_dot_liq_wall*(0.15)*(T_wall_gas - T_wall_liq) )
+        #print("T_dot_wall_gas: ",  Q_dot_atm_to_gas_wall, - Q_dot_gas_wall_to_gas, + Q_dot_liq_wall_to_gas_wall, + m_dot_gas_wall*(0.15)*(T_wall_liq - T_wall_gas) )
 
         #print("T_dot_wall_liq,gas: ", T_dot_wall_liq, T_dot_wall_gas)
-        print("m_dot_wall! ", m_dot_gas_wall, m_dot_liq_wall, V_liq_wall, V_gas_wall)
+        #print("m_dot_wall! ", m_dot_gas_wall, m_dot_liq_wall, V_liq_wall, V_gas_wall)
 
         T_dot_liq, T_dot_gas = single_solve_T_dot_liq_gas(V_dot_liq, m_liq, m_gas, T_liq, T_gas, rho_liq, rho_gas, V_liq, V_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas)
 
@@ -505,6 +511,9 @@ P_atm = 1e5 #Pa
 T_atm = 286.5 #K
 rho_atm = 1.225 #kg/m^3
 
+
+### Karabeyoglu test case inputs ~ don't know injector used well!
+"""
 m_nos = 20 #kg
 P_tank = 45e5 #Pa
 V_tank = 0.0354 #m^3
@@ -514,11 +523,26 @@ diam_in = 0.215 #m
 rho_wall = 2770 #kg/m^3
 k_w = 237 #W/(m K)
 
-Cd_1 = 0.6
-A_inj_1 = 0.00003 #m^3 NOTE: GUESS
+Cd_1 = 0.425
+A_inj_1 = 0.0003 #m^3 NOTE: GUESS
 P_cc = 1.03e6 #Pa
 
 inj_model = None #TODO: implement
+"""
+
+m_nos = 0.180 #kg
+P_tank = 5.2e6 #Pa
+
+diam_in = (40e-3) #m
+diam_out = (47.5e-3) #m #bit of a guess
+V_tank = 0.25*np.pi*( (40e-3)**2 )*(220e-3)
+
+rho_wall = 2770 #kg/m^3
+k_w = 237 #W/(m K)
+
+Cd_1 = 0.45 #SPI discharge coeff for inj #2
+A_inj_1 = 0.25*np.pi*((1.5e-3)**2) #m^2
+P_cc = P_atm
 
 #def __init__(self, TIMESTEP, T_atm, m_nos, Cd_1, A_inj_1, V_tank, diam_out, diam_in, rho_wall, k_w, P_tank, P_atm, inj_model)
 volume_err_tolerance = 1e-8
@@ -546,10 +570,8 @@ T_gas_wall_arr = []
 
 
 ###TODO: try solving single solve different ways!
-
-
 try:
-    while(t<5000*TIMESTEP):
+    while(t < 5000*TIMESTEP):
         
         tank.inst(P_cc)
         t+=TIMESTEP 
@@ -561,6 +583,7 @@ try:
         m_tank_arr.append( (tank.m_liq+tank.m_gas) )
         m_liq_arr.append(tank.m_liq)
         m_gas_arr.append(tank.m_gas)
+
 
 
 
