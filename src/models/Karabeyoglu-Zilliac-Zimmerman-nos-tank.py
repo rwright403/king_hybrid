@@ -127,7 +127,7 @@ def solve_m_dot_condensed(T_gas, P_tank, V_gas, t):
     P_sat = preos_g.Psat(T_gas)
 
     if (P_tank > P_sat):
-        m_dot_cond = ((P_tank-P_sat)*V_gas*MW)/( preos_g.Z_g*(R_U/MW)*T_gas*(t) )  
+        m_dot_cond = ((P_tank-P_sat)*V_gas*MW)/( preos_g.Z_g*(R_U/MW)*T_gas*(TIMESTEP) )  
 
 
     return m_dot_cond
@@ -228,8 +228,11 @@ def single_solve_T_dot_liq_gas(V_dot_liq, m_liq, m_gas, T_liq, T_gas, rho_liq, r
     T_dot_liq = (1/Cv_liq)*( (1/m_liq) * (U_dot_liq - u_liq*m_dot_liq) - (partial_du_d_rho_const_T_liq* d_rho_dt_liq) )
     T_dot_gas = (1/Cv_gas)*( (1/m_gas) * (U_dot_gas - u_gas*m_dot_gas) - (partial_du_d_rho_const_T_gas* d_rho_dt_gas) )
 
-    print("T_dot_liq! ", T_dot_liq, U_dot_liq, - u_liq, m_dot_liq, -partial_du_d_rho_const_T_liq,-d_rho_dt_liq) 
-    print("T_dot_gas! ", T_dot_gas, U_dot_gas, - u_gas, m_dot_gas, -partial_du_d_rho_const_T_gas,-d_rho_dt_gas) 
+
+    print("T_dot_liq! ", T_dot_liq, (1/m_liq) * (U_dot_liq - u_liq*m_dot_liq), -(partial_du_d_rho_const_T_liq* d_rho_dt_liq) )
+    print("T_dot_gas! ", T_dot_gas, (1/m_gas) * (U_dot_gas - u_gas*m_dot_gas), -(partial_du_d_rho_const_T_gas* d_rho_dt_gas) )
+    #print("T_dot_liq! ", T_dot_liq, U_dot_liq, - u_liq, m_dot_liq, -partial_du_d_rho_const_T_liq,-d_rho_dt_liq) 
+    #print("T_dot_gas! ", T_dot_gas, U_dot_gas, - u_gas, m_dot_gas, -partial_du_d_rho_const_T_gas,-d_rho_dt_gas) 
     #print("T_dot_gas! ", (U_dot_gas - u_gas*m_dot_gas),U_dot_gas, - u_gas*m_dot_gas, u_gas, m_dot_gas)
 
 
@@ -372,7 +375,7 @@ class model():
         # L = tank inner diam , Area of circle x section
         #print(T_sat, T_gas, T_gas, P_tank, rho_gas, 0.15, 0.333, self.diam_in, (0.25*np.pi*(self.diam_in**2)), "N2O" ) 
         Q_dot_sat_surf_to_gas = solve_Q_dot_natural_convection_gas(T_sat, T_gas, T_gas, P_tank, rho_gas, 0.15, 0.333, self.diam_in, (0.25*np.pi*(self.diam_in**2)), "N2O" ) #relative to gas cv
-        
+    
         # Heat transfer (3)  from liq to saturated surface (sat surface assumed to be a liquid with quality 0)
         Q_dot_liq_to_sat_surf = (2.1E4)*solve_Q_dot_natural_convection_liq(T_liq, T_sat, T_liq, P_tank, rho_liq, 0.15, 0.333, self.diam_in, (0.25*np.pi*(self.diam_in**2)), "N2O" ) #relative to liq cv
         #NOTE:CORRECTION FACTOR for nitrous oxide heat transfer E = (2.1E4) HERE!
@@ -419,7 +422,6 @@ class model():
 
         Q_dot_liq = Q_dot_liq_wall_to_liq -Q_dot_liq_to_sat_surf -m_dot_evap*latent_heat_evap_l #shouldnt Q_dot_evap be +?
         Q_dot_gas = Q_dot_gas_wall_to_gas -Q_dot_sat_surf_to_gas -m_dot_cond*latent_heat_cond_g
-        #NOTE SWITCHED SIGN ON M_DOT_COND HERE!!! ^^^
 
         #print("Checking Q_dot_gas: ",Q_dot_gas , Q_dot_gas_wall_to_gas ,-Q_dot_sat_surf_to_gas ,-m_dot_cond*latent_heat_cond_g)
 
@@ -460,7 +462,7 @@ class model():
 
         #print("T_dot_wall_liq,gas: ", T_dot_wall_liq, T_dot_wall_gas)
         #print("m_dot_wall! ", m_dot_gas_wall, m_dot_liq_wall, V_liq_wall, V_gas_wall)
-
+        print(f"\nat t = {t-TIMESTEP},last single solve T_dot liq gas below:")
         T_dot_liq, T_dot_gas = single_solve_T_dot_liq_gas(V_dot_liq, m_liq, m_gas, T_liq, T_gas, rho_liq, rho_gas, V_liq, V_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas)
 
 
@@ -518,7 +520,7 @@ rho_atm = 1.225 #kg/m^3
 
 
 ### Karabeyoglu test case inputs ~ don't know injector used well!
-"""
+
 m_nos = 20 #kg
 P_tank = 45e5 #Pa
 V_tank = 0.0354 #m^3
@@ -529,13 +531,14 @@ rho_wall = 2770 #kg/m^3
 k_w = 237 #W/(m K)
 
 Cd_1 = 0.425
-A_inj_1 = 0.0003 #m^3 NOTE: GUESS
+A_inj_1 = 0.00003 #m^3 NOTE: GUESS
 P_cc = 1.03e6 #Pa
 
 inj_model = None #TODO: implement
-"""
+
 
 #Tomacz run tank inputs
+"""
 m_nos = 0.180 #kg
 P_tank = 5.2e6 #Pa
 
@@ -549,7 +552,7 @@ k_w = 237 #W/(m K)
 Cd_1 = 0.45 #SPI discharge coeff for inj #2
 A_inj_1 = 0.25*np.pi*((1.5e-3)**2) #m^2
 P_cc = P_atm
-
+"""
 #def __init__(self, TIMESTEP, T_atm, m_nos, Cd_1, A_inj_1, V_tank, diam_out, diam_in, rho_wall, k_w, P_tank, P_atm, inj_model)
 volume_err_tolerance = 1e-8
 P_dot_err_tolerance = 10
