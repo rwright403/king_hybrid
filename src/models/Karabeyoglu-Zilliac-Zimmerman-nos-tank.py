@@ -65,10 +65,10 @@ def solve_Q_dot_natural_convection_liq(T_1, T_2, T_f, P_tank, rho_f, c, n, L, Ar
     Gr = ((L**3)*(rho_f**2)*g*beta*np.abs(T_2 - T_1) ) / (visc_f**2)
     Pr = (Cp_2*visc_f)/ k_f
 
-    print(L, rho_f,)
+    #print(L, rho_f,)
 
     X = Gr*Pr
-    print(Gr, Pr, g, beta)
+    #print(Gr, Pr, g, beta)
     h = c * (k_f/L) * X**n
 
     Q_dot = h*Area*(T_1-T_2)
@@ -110,7 +110,7 @@ def solve_Q_dot_natural_convection_gas(T_1, T_2, T_f, P_f, rho_f, c, n, L, Area,
 
 def solve_Q_dot_conduction(delta_T, h_tank, k_w, diam_in, diam_out):
 
-    L_w_cond = 0.3*h_tank
+    L_w_cond = 0.5*h_tank
     Q_dot_conduction = k_w *(delta_T)*(0.25*np.pi*((diam_out**2)-(diam_in**2)))/L_w_cond
     
     return Q_dot_conduction
@@ -127,8 +127,9 @@ def solve_m_dot_condensed(T_gas, P_tank, V_gas, t):
     P_sat = preos_g.Psat(T_gas)
 
     if (P_tank > P_sat):
-        m_dot_cond = ((P_tank-P_sat)*V_gas*MW)/( preos_g.Z_g*(R_U/MW)*T_gas*(TIMESTEP+t) )  
-    
+        m_dot_cond = ((P_tank-P_sat)*V_gas*MW)/( preos_g.Z_g*(R_U/MW)*T_gas*(t) )  
+
+
     return m_dot_cond
 
 
@@ -227,8 +228,8 @@ def single_solve_T_dot_liq_gas(V_dot_liq, m_liq, m_gas, T_liq, T_gas, rho_liq, r
     T_dot_liq = (1/Cv_liq)*( (1/m_liq) * (U_dot_liq - u_liq*m_dot_liq) - (partial_du_d_rho_const_T_liq* d_rho_dt_liq) )
     T_dot_gas = (1/Cv_gas)*( (1/m_gas) * (U_dot_gas - u_gas*m_dot_gas) - (partial_du_d_rho_const_T_gas* d_rho_dt_gas) )
 
-    #print("T_dot_liq! ", T_dot_liq, (1/m_liq) * (U_dot_liq - u_liq*m_dot_liq), -(partial_du_d_rho_const_T_liq* d_rho_dt_liq) )
-    #print("T_dot_gas! ", T_dot_gas, (1/m_gas) * (U_dot_gas - u_gas*m_dot_gas), -(partial_du_d_rho_const_T_gas* d_rho_dt_gas) )
+    print("T_dot_liq! ", T_dot_liq, U_dot_liq, - u_liq, m_dot_liq, -partial_du_d_rho_const_T_liq,-d_rho_dt_liq) 
+    print("T_dot_gas! ", T_dot_gas, U_dot_gas, - u_gas, m_dot_gas, -partial_du_d_rho_const_T_gas,-d_rho_dt_gas) 
     #print("T_dot_gas! ", (U_dot_gas - u_gas*m_dot_gas),U_dot_gas, - u_gas*m_dot_gas, u_gas, m_dot_gas)
 
 
@@ -334,7 +335,7 @@ class model():
         self.V_tank = self.V_liq+self.V_gas # "what are you going to do if the aluminum is too small? water it? give it sunlight? let it grow?"
         self.height_tank = self.V_tank/(0.25*np.pi*(diam_in**2))
 
-        print("tank height: ",self.height_tank)
+        #print("tank height: ",self.height_tank)
         self.P_tank_prev = self.P_tank
         self.V_dot_liq_prev = 1e-9 #NOTE: close to zero, but off zero
 
@@ -418,6 +419,7 @@ class model():
 
         Q_dot_liq = Q_dot_liq_wall_to_liq -Q_dot_liq_to_sat_surf -m_dot_evap*latent_heat_evap_l #shouldnt Q_dot_evap be +?
         Q_dot_gas = Q_dot_gas_wall_to_gas -Q_dot_sat_surf_to_gas -m_dot_cond*latent_heat_cond_g
+        #NOTE SWITCHED SIGN ON M_DOT_COND HERE!!! ^^^
 
         #print("Checking Q_dot_gas: ",Q_dot_gas , Q_dot_gas_wall_to_gas ,-Q_dot_sat_surf_to_gas ,-m_dot_cond*latent_heat_cond_g)
 
@@ -445,12 +447,15 @@ class model():
         m_dot_gas_wall = -m_dot_liq_wall
 
         #NOTE: for T_dot_wall_liq:  IN: (6)      OUT: (4) AND (8)
-        T_dot_wall_liq = ( Q_dot_atm_to_liq_wall - Q_dot_liq_wall_to_liq - Q_dot_liq_wall_to_gas_wall - m_dot_liq_wall*(0.15)*(T_wall_gas - T_wall_liq) ) / (0.15*m_liq_wall)
+        T_dot_wall_liq = ( Q_dot_atm_to_liq_wall - Q_dot_liq_wall_to_liq - Q_dot_liq_wall_to_gas_wall + m_dot_liq_wall*(0.15)*(T_wall_gas - T_wall_liq) ) / (0.15*m_liq_wall)
 
         #NOTE: for T_dot_wall_vap:  IN: (7) and (8)      OUT: (5)
         T_dot_wall_gas = ( Q_dot_atm_to_gas_wall - Q_dot_gas_wall_to_gas + Q_dot_liq_wall_to_gas_wall + m_dot_gas_wall*(0.15)*( T_wall_liq - T_wall_gas) ) / (0.15*m_gas_wall)
+        #NOTE: CHECK SIGN ON T_DOT_WALL_gAS!
 
-        print("T_dot_wall_liq: ",  Q_dot_atm_to_liq_wall, - Q_dot_liq_wall_to_liq, - Q_dot_liq_wall_to_gas_wall, + m_dot_liq_wall*(0.15)*(T_wall_gas - T_wall_liq) )
+
+
+        #print("T_dot_wall_liq: ",  Q_dot_atm_to_liq_wall, - Q_dot_liq_wall_to_liq, - Q_dot_liq_wall_to_gas_wall, + m_dot_liq_wall*(0.15)*(T_wall_gas - T_wall_liq) )
         #print("T_dot_wall_gas: ",  Q_dot_atm_to_gas_wall, - Q_dot_gas_wall_to_gas, + Q_dot_liq_wall_to_gas_wall, + m_dot_gas_wall*(0.15)*(T_wall_liq - T_wall_gas) )
 
         #print("T_dot_wall_liq,gas: ", T_dot_wall_liq, T_dot_wall_gas)
@@ -530,6 +535,7 @@ P_cc = 1.03e6 #Pa
 inj_model = None #TODO: implement
 """
 
+#Tomacz run tank inputs
 m_nos = 0.180 #kg
 P_tank = 5.2e6 #Pa
 
@@ -571,7 +577,7 @@ T_gas_wall_arr = []
 
 ###TODO: try solving single solve different ways!
 try:
-    while(t < 5000*TIMESTEP):
+    while(t < 1000*TIMESTEP):
         
         tank.inst(P_cc)
         t+=TIMESTEP 
