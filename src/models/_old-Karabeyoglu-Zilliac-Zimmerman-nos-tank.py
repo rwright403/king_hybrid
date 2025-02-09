@@ -380,7 +380,7 @@ class model():
         #print(m_dot_evap, m_dot_cond, m_dot_inj)
 
         Q_dot_liq = Q_dot_liq_wall_to_liq -(2.1E4)*Q_dot_liq_to_sat_surf -m_dot_evap*latent_heat_evap_l
-        Q_dot_gas = Q_dot_gas_wall_to_gas -Q_dot_sat_surf_to_gas -m_dot_cond*latent_heat_cond_g
+        Q_dot_gas = Q_dot_gas_wall_to_gas +Q_dot_sat_surf_to_gas -m_dot_cond*latent_heat_cond_g
     
         #print("Q_dots: ", Q_dot_liq, Q_dot_gas,  Q_dot_gas_wall_to_gas ,Q_dot_sat_surf_to_gas ,-m_dot_cond*latent_heat_cond_g)
         V_dot_liq = self.V_dot_liq_prev #initial guess for dV_dt_liq
