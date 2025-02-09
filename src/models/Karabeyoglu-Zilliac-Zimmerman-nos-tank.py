@@ -229,8 +229,8 @@ def single_solve_T_dot_liq_gas(V_dot_liq, m_liq, m_gas, T_liq, T_gas, rho_liq, r
     T_dot_gas = (1/Cv_gas)*( (1/m_gas) * (U_dot_gas - u_gas*m_dot_gas) - (partial_du_d_rho_const_T_gas* d_rho_dt_gas) )
 
 
-    print("T_dot_liq! ", T_dot_liq, (1/m_liq) * (U_dot_liq - u_liq*m_dot_liq), -(partial_du_d_rho_const_T_liq* d_rho_dt_liq) )
-    print("T_dot_gas! ", T_dot_gas, (1/m_gas) * (U_dot_gas - u_gas*m_dot_gas), -(partial_du_d_rho_const_T_gas* d_rho_dt_gas) )
+    #print("T_dot_liq! ", T_dot_liq, (1/m_liq) * (U_dot_liq - u_liq*m_dot_liq), -(partial_du_d_rho_const_T_liq* d_rho_dt_liq) )
+    #print("T_dot_gas! ", T_dot_gas, (1/m_gas) * (U_dot_gas - u_gas*m_dot_gas), -(partial_du_d_rho_const_T_gas* d_rho_dt_gas) )
     #print("T_dot_liq! ", T_dot_liq, U_dot_liq, - u_liq, m_dot_liq, -partial_du_d_rho_const_T_liq,-d_rho_dt_liq) 
     #print("T_dot_gas! ", T_dot_gas, U_dot_gas, - u_gas, m_dot_gas, -partial_du_d_rho_const_T_gas,-d_rho_dt_gas) 
     #print("T_dot_gas! ", (U_dot_gas - u_gas*m_dot_gas),U_dot_gas, - u_gas*m_dot_gas, u_gas, m_dot_gas)
@@ -421,9 +421,9 @@ class model():
         latent_heat_cond_g = (-1)*preos_g.Hvap(T_gas)/MW
 
         Q_dot_liq = Q_dot_liq_wall_to_liq -Q_dot_liq_to_sat_surf -m_dot_evap*latent_heat_evap_l #shouldnt Q_dot_evap be +?
-        Q_dot_gas = Q_dot_gas_wall_to_gas -Q_dot_sat_surf_to_gas -m_dot_cond*latent_heat_cond_g
+        Q_dot_gas = Q_dot_gas_wall_to_gas +Q_dot_sat_surf_to_gas -m_dot_cond*latent_heat_cond_g
 
-        #print("Checking Q_dot_gas: ",Q_dot_gas , Q_dot_gas_wall_to_gas ,-Q_dot_sat_surf_to_gas ,-m_dot_cond*latent_heat_cond_g)
+        print("Checking Q_dot_gas: ",Q_dot_gas , Q_dot_gas_wall_to_gas ,Q_dot_sat_surf_to_gas ,-m_dot_cond*latent_heat_cond_g)
 
 
 
@@ -462,7 +462,8 @@ class model():
 
         #print("T_dot_wall_liq,gas: ", T_dot_wall_liq, T_dot_wall_gas)
         #print("m_dot_wall! ", m_dot_gas_wall, m_dot_liq_wall, V_liq_wall, V_gas_wall)
-        print(f"\nat t = {t-TIMESTEP},last single solve T_dot liq gas below:")
+        #solve_m_dot_cond
+        #print(f"\nat t = {t},last single solve T_dot liq gas below:")
         T_dot_liq, T_dot_gas = single_solve_T_dot_liq_gas(V_dot_liq, m_liq, m_gas, T_liq, T_gas, rho_liq, rho_gas, V_liq, V_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas)
 
 
@@ -478,7 +479,7 @@ class model():
     def inst(self, P_cc):
 
         #TODO: check for liquid phase!!!!
-        t = self.TIMESTEP
+        t = 0
         y0 = [self.T_liq, self.T_gas, self.m_liq, self.m_gas, self.T_wall_liq, self.T_wall_gas]
 
         # NOTE: y is a vector, k1-k4 are derivatives of sol!
@@ -580,7 +581,7 @@ T_gas_wall_arr = []
 
 ###TODO: try solving single solve different ways!
 try:
-    while(t < 1000*TIMESTEP):
+    while(t < 250*TIMESTEP):
         
         tank.inst(P_cc)
         t+=TIMESTEP 
