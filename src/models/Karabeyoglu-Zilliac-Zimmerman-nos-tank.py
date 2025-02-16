@@ -198,7 +198,7 @@ def solve_U_dot_liq(T_liq, T_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, V_d
 
     n2o_ig_g = Chemical('N2O', T=T_gas, P=P_tank) 
     preos_g = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_gas, P=P_tank)
-    h_gas = (preos_l.H_dep_g/MW +n2o_ig_g.Cpg*(T_gas - T_REF))  
+    h_gas = (preos_g.H_dep_g/MW +n2o_ig_g.Cpg*(T_gas - T_REF))  
 
     #delta_h_evap = ( (h_sat_gas - h_sat_l) + (h_gas-h_liq) )
 
@@ -218,7 +218,7 @@ def solve_U_dot_gas(T_liq, T_gas, P_tank, m_dot_evap, m_dot_cond, V_dot_gas, Q_d
 
     n2o_ig_g = Chemical('N2O', T=T_gas, P=P_tank) 
     preos_g = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_gas, P=P_tank)
-    h_gas = (preos_l.H_dep_g/MW +n2o_ig_g.Cpg*(T_gas - T_REF))  
+    h_gas = (preos_g.H_dep_g/MW +n2o_ig_g.Cpg*(T_gas - T_REF))  
 
 
     U_dot_gas = m_dot_evap*( h_gas ) - m_dot_cond*( h_liq ) - P_tank*V_dot_gas + Q_dot_net 
@@ -284,7 +284,7 @@ def single_solve_T_dot_liq_gas(V_dot_liq, m_liq, m_gas, T_liq, T_gas, rho_liq, r
     preos_g = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_gas, P=P_tank)
     partial_du_d_rho_const_T_gas = solve_du_drho_const_T_gas(rho_gas,T_gas,P_tank)
     
-    Cv_gas = preos_g.Cv_dep_g/MW + n2o_ig_g.Cvg 
+    Cv_gas = preos_g.Cv_dep_g/MW + n2o_ig_g.Cvg
     u_gas = preos_g.U_dep_g/MW + (n2o_ig_g.H - (R_U*T_gas/MW) )
 
     n2o_ig_l = Chemical('N2O', T=T_liq) 
@@ -301,11 +301,13 @@ def single_solve_T_dot_liq_gas(V_dot_liq, m_liq, m_gas, T_liq, T_gas, rho_liq, r
 
     if debug_mode == True:
         a = 1
+        print("Both T_dot: ", T_dot_liq, T_dot_gas)
         #print("U_dot_liq, U_dot_gas: ", U_dot_liq, U_dot_gas)
         #print("T_dot_liq! ", (1/m_liq) * (U_dot_liq - u_liq*m_dot_liq), - (partial_du_d_rho_const_T_liq* d_rho_dt_liq))
         #print("T_dot_liq: T_dot_liq, Cv_liq, m_liq, U_dot_liq, u_liq, m_dot_liq, partial_du_d_rho_const_T_liq, d_rho_dt_liq")
         #print("T_dot_liq! ", T_dot_liq, Cv_liq, m_liq, U_dot_liq, u_liq, m_dot_liq, partial_du_d_rho_const_T_liq, d_rho_dt_liq,"\n")
 
+        
         #print("T_dot_gas! ", (1/m_gas) * (U_dot_gas - u_gas*m_dot_gas), - (partial_du_d_rho_const_T_gas* d_rho_dt_gas) )
         #print("T_dot_gas! , T_dot_gas, Cv_gas, m_gas, U_dot_gas, u_gas, m_dot_gas, partial_du_d_rho_const_T_gas, d_rho_dt_liq")
         #print("T_dot_gas! ", T_dot_gas, Cv_gas, m_gas, U_dot_gas, u_gas, m_dot_gas, partial_du_d_rho_const_T_gas, d_rho_dt_liq)
@@ -314,6 +316,13 @@ def single_solve_T_dot_liq_gas(V_dot_liq, m_liq, m_gas, T_liq, T_gas, rho_liq, r
         #print("T_dot_liq! ", T_dot_liq, U_dot_liq, u_liq, m_dot_liq, partial_du_d_rho_const_T_liq, d_rho_dt_liq) 
         #print("T_dot_gas! ", T_dot_gas, U_dot_gas, - u_gas, m_dot_gas, -partial_du_d_rho_const_T_gas,-d_rho_dt_gas) 
         #print("T_dot_gas! ", (U_dot_gas - u_gas*m_dot_gas),U_dot_gas, - u_gas*m_dot_gas, u_gas, m_dot_gas)
+
+        #print("looking at u_liq terms: ", preos_l.U_dep_l/MW , n2o_ig_l.H, - (R_U*(T_liq)/MW) )
+        """
+        n2o_ig_l_ref = Chemical('N2O', T=T_REF) 
+        u_liq_test_w_ref = preos_l.U_dep_l/MW + ( (n2o_ig_l.H- n2o_ig_l_ref.H) - (R_U*(T_liq-T_REF)/MW) )
+        print("try: T_ref: ", u_liq_test_w_ref)
+        """
 
 
     return T_dot_liq, T_dot_gas 
@@ -775,7 +784,7 @@ init_U_inj = tank.U_inj
 
 ###TODO: try solving single solve different ways!
 try:
-    while(t <= 10000*TIMESTEP): #1000*TIMESTEP
+    while(t <= 0.5): #1000*TIMESTEP
         
         tank.inst(P_cc)
         t+=TIMESTEP 
