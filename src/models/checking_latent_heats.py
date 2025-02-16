@@ -83,7 +83,7 @@ h_gas = preos_g.H_dep_g/MW #departure
 
 lv_current = ( (h_sat_gas - h_sat_l) + (h_gas-h_liq) )
 
-
+"""
 ###latent heat of vaporization!
 
 #method 1:
@@ -116,16 +116,85 @@ h_gas_3 = preos_g_3.H_dep_g/MW + ( n2o_ig_g_3.Cpg*(T_gas - T_REF) )
 
 h_lv_3 = ( h_gas_3 - h_liq_3 )
 
-
-
-
-
 ### solve latent heat of condensation
 #def solve_latent_heat_cond():
 
 
 print("current: ", lv_current, "1: ", h_lv_1, "2: ", h_lv_2, "3: ", h_lv_3)
 
+"""
+
+#### NIST inputs
+
+R_U = 8.31446 #J/(mol K)
+T_atm = 298.15 #K
+P_atm = 101325 #Pa
+T_crit = 309.52#K
+P_crit = 7.2450
+T_REF = T_crit
+P_REF = P_crit
+T_liq = 283
+P_tank = 5e6
 
 
-###latent heat of condensation
+
+
+
+try:
+    #current method: in sscript
+    n2o_ig_l_1 = Chemical('N2O', T=T_liq) 
+    preos_l_1 = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_liq, P=P_tank)
+    u_liq_1 = preos_l_1.U_dep_l/MW + n2o_ig_l_1.H - (R_U*(T_liq)/MW)
+except Exception as e:
+    u_liq_1 = 0
+
+try:
+    #method 2: including T_REF
+    n2o_ig_l_2 = Chemical('N2O', T=T_liq) 
+    preos_l_2 = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_liq, P=P_tank)
+    u_liq_2 = preos_l_2.U_dep_l/MW + ( n2o_ig_l_2.H - (R_U*(T_liq-T_REF)/MW) )
+except Exception as e:
+    u_liq_2 = 0
+
+try:
+    #method 3: try difference of ideal gas enthalpy as well?
+    n2o_ig_l_3 = Chemical('N2O', T=T_liq) 
+    n2o_ig_l_ref_3 = Chemical('N2O', T=T_REF) 
+    preos_l_3 = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_liq, P=P_tank)
+    u_liq_3 = preos_l_3.U_dep_l/MW + ( (n2o_ig_l_3.H- n2o_ig_l_3.H )- (R_U*(T_liq-T_REF)/MW) )
+except Exception as e:
+    u_liq_3 = 0
+
+#method 4: this makes more sense than 3? 
+try:
+    n2o_ig_l_ref_4 = Chemical('N2O', T=T_REF) 
+    preos_l_4 = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_REF, P=P_REF)
+    u_4_ref = preos_l_4.U_dep_l/MW + n2o_ig_l_ref_4.H - (R_U*(T_REF)/MW)
+
+    n2o_ig_l_4 = Chemical('N2O', T=T_liq) 
+    preos_l_4 = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_liq, P=P_REF)
+    u_4 = preos_l_4.U_dep_l/MW + n2o_ig_l_ref_4.H - (R_U*(T_liq)/MW)
+
+    u_liq_4 = u_4 - u_4_ref
+except Exception as e:
+    u_liq_4 = 0
+
+try:
+    #method 5: mixing up signs?
+    n2o_ig_l_ref_5 = Chemical('N2O', T=T_REF) 
+    preos_l_5 = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_REF, P=P_REF)
+    u_5_ref = preos_l_5.U_dep_l/MW + n2o_ig_l_ref_5.H - (R_U*(T_REF)/MW)
+
+    n2o_ig_l_5 = Chemical('N2O', T=T_liq) 
+    preos_l_5 = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_liq, P=P_tank)
+    u_5 = preos_l_5.U_dep_l/MW + n2o_ig_l_ref_5.H - (R_U*(T_liq)/MW)
+
+    u_liq_5 = u_5_ref - u_5
+except Exception as e:
+    u_liq_5 = 0
+
+print("testing internal energy: ", u_liq_1, u_liq_2, u_liq_3, u_liq_4, u_liq_5 )
+u_NIST_WEBBOOK = 179.84 *1000 #J/kg
+print("expecting: ", u_NIST_WEBBOOK )
+
+#NOTE: FROM NIST WEBBOOK ENTHALPY CONVENTION H=0 AT the normal boiling point T = 184.68
