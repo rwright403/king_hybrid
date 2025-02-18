@@ -193,16 +193,16 @@ def solve_U_dot_liq(T_liq, T_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, V_d
     n2o_ig_l = Chemical('N2O', T=T_liq) 
     preos_l = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_liq, P=P_tank)
     T_sat = preos_l.Tsat(P_tank)
-    h_liq = preos_l.H_dep_l/MW + n2o_ig_l.Cpg*(T_liq-T_REF)
+    h_liq = preos_l.H_dep_l/MW + n2o_ig_l.H
 
 
-    n2o_ig_g = Chemical('N2O', T=T_gas, P=P_tank) 
+    n2o_ig_g = Chemical('N2O', T=T_gas) 
     preos_g = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_gas, P=P_tank)
-    h_gas = (preos_g.H_dep_g/MW +n2o_ig_g.Cpg*(T_gas - T_REF))  
+    h_gas = preos_g.H_dep_g/MW +n2o_ig_g.H 
 
     #delta_h_evap = ( (h_sat_gas - h_sat_l) + (h_gas-h_liq) )
 
-    U_dot_liq = -m_dot_inj*(h_liq + n2o_ig_l.H) - m_dot_evap*( h_gas) + m_dot_cond*( (-1)*h_liq )- P_tank*V_dot_liq + Q_dot_net
+    U_dot_liq = -m_dot_inj*(h_liq ) - m_dot_evap*( h_gas) + m_dot_cond*( (-1)*h_liq )- P_tank*V_dot_liq + Q_dot_net
                                     #using departure for difference in enthalpy calcs so need to add ideal gas reference here!
     #print("U_dot_liq: ", U_dot_liq , -m_dot_inj*h_liq ,- m_dot_evap* delta_h_evap  ,+ m_dot_cond*(delta_h_evap ) , Q_dot_net )
 
@@ -213,12 +213,12 @@ def solve_U_dot_gas(T_liq, T_gas, P_tank, m_dot_evap, m_dot_cond, V_dot_gas, Q_d
     n2o_ig_l = Chemical('N2O', T=T_liq) 
     preos_l = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_liq, P=P_tank)
     T_sat = preos_l.Tsat(P_tank)
-    h_liq = preos_l.H_dep_l/MW + n2o_ig_l.Cpg*(T_liq-T_REF)
+    h_liq = preos_l.H_dep_l/MW + n2o_ig_l.H
 
 
-    n2o_ig_g = Chemical('N2O', T=T_gas, P=P_tank) 
+    n2o_ig_g = Chemical('N2O', T=T_gas) 
     preos_g = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_gas, P=P_tank)
-    h_gas = (preos_g.H_dep_g/MW +n2o_ig_g.Cpg*(T_gas - T_REF))  
+    h_gas = preos_g.H_dep_g/MW +n2o_ig_g.H
 
 
     U_dot_gas = m_dot_evap*( h_gas ) - m_dot_cond*( h_liq ) - P_tank*V_dot_gas + Q_dot_net 
