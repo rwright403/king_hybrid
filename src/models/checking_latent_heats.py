@@ -139,7 +139,7 @@ P_tank = 5e6
 
 
 
-
+"""
 try:
     #current method: in sscript
     n2o_ig_l_1 = Chemical('N2O', T=T_liq) 
@@ -196,5 +196,13 @@ except Exception as e:
 print("testing internal energy: ", u_liq_1, u_liq_2, u_liq_3, u_liq_4, u_liq_5 )
 u_NIST_WEBBOOK = 179.84 *1000 #J/kg
 print("expecting: ", u_NIST_WEBBOOK )
-
+"""
 #NOTE: FROM NIST WEBBOOK ENTHALPY CONVENTION H=0 AT the normal boiling point T = 184.68
+
+# u = h + Pv
+
+n2o_ig_l = Chemical('N2O', T=TC) 
+preos_l = PR(Tc=TC, Pc=PC, omega=OMEGA, T=TC, P=P_tank)
+h_ref = preos_l.H_dep_l + n2o_ig_l.H
+
+print("checking h_ref! ", h_ref, preos_l.H_dep_l, n2o_ig_l.H)
