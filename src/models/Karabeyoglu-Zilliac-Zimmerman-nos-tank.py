@@ -285,7 +285,7 @@ def single_solve_T_dot_liq_gas(V_dot_liq, m_liq, m_gas, T_liq, T_gas, rho_liq, r
     partial_du_d_rho_const_T_gas = solve_du_drho_const_T_gas(rho_gas,T_gas,P_tank)
     
     Cv_gas = preos_g.Cv_dep_g/MW + n2o_ig_g.Cvg
-    u_gas = preos_g.U_dep_g/MW + (n2o_ig_g.H - (R_U*T_gas/MW) )
+    u_gas = preos_g.U_dep_g/MW + n2o_ig_g.U #(n2o_ig_g.H - (R_U*T_gas/MW) )
 
     n2o_ig_l = Chemical('N2O', T=T_liq) 
     preos_l = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_liq, P=P_tank)
@@ -293,7 +293,7 @@ def single_solve_T_dot_liq_gas(V_dot_liq, m_liq, m_gas, T_liq, T_gas, rho_liq, r
     partial_du_d_rho_const_T_liq = solve_du_drho_const_T_gas(rho_liq,T_liq,P_tank)
 
     Cv_liq = preos_l.Cv_dep_l/MW + n2o_ig_l.Cvg
-    u_liq = preos_l.U_dep_l/MW + (n2o_ig_l.H - (R_U*T_liq/MW) )
+    u_liq = preos_l.U_dep_l/MW + n2o_ig_l.U #(n2o_ig_l.H - (R_U*T_liq/MW) )
    
 
     T_dot_liq = (1/Cv_liq)*( (1/m_liq) * (U_dot_liq - u_liq*m_dot_liq) - (partial_du_d_rho_const_T_liq* d_rho_dt_liq) )
@@ -784,7 +784,7 @@ init_U_inj = tank.U_inj
 
 ###TODO: try solving single solve different ways!
 try:
-    while(t <= 0.5): #1000*TIMESTEP
+    while(t <= 600*TIMESTEP): #1000*TIMESTEP
         
         tank.inst(P_cc)
         t+=TIMESTEP 
