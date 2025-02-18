@@ -39,13 +39,10 @@ def convert_enthalpy_to_nist_convention(T, P):
     return h - h_ref
 
 # Example: Calculate enthalpy at T = 250 K and P = 1 atm with the adjusted reference
-T_example = T_REF  # K
-P_example = P_REF # Pa
+T_example = 290  # K
+P_example = 2.5 # Pa
 h_adjusted = convert_enthalpy_to_nist_convention(T_example, P_example)
 print(f"Adjusted enthalpy at T = {T_example} K and P = {P_example} Pa: {h_adjusted} J/kg")
-
-print("ideal gas enthalpy reference state check: ", n2o_global.H)
-
 ### checking thermo departure reference enthalpy!!!!
 
 
