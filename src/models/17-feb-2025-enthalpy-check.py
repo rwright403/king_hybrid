@@ -53,7 +53,7 @@ def convert_int_energy_to_nist_convention(u, T, P):
 
 
 
-T_1 = 290 #K
+T_1 = 298.15 #K
 P_1 = 2.5e6 #Pa
 h_NIST = 416.64e3 #J/kg
 
@@ -61,12 +61,11 @@ h_NIST = 416.64e3 #J/kg
 T_1 = 184.68
 P_1 = 101325
 h_NIST = 0.0067
-
-
+"""
+"""
 T_1 = 270
 P_1 = 2e6
 h_NIST = 417.21e3
-
 
 T_1 = 290 #K
 P_1 = 2e6 #Pa
@@ -89,30 +88,30 @@ h_dep = preos.H_dep_g/MW # J/kg
 h_ideal = n2o_ig.H #J/kg
 h_1 = h_ideal + h_dep
 
-print("h_1 before converting to nist convention: ", h_1)
+#print("h_1 before converting to nist convention: ", h_1)
 print("h_1 components! ", h_1, " = ", h_ideal, " + ", h_dep)
-
+"""
 h_1 = convert_enthalpy_to_nist_convention(h_1, T_1, P_1)
 
 print("checking enthalpies: ", h_1, h_NIST, "difference: ", h_1 - h_NIST)
 print("note phase: ", preos.phase)
 
-
 h_cool = CP.PropsSI('H', 'T', T_1, 'P', P_1, fluid)
 print("coolprop: ", h_cool)
-
+"""
 
 u_dep = preos.U_dep_g/MW # J/kg
 u_ideal = n2o_ig.U #J/kg
 u_1 = u_ideal + u_dep
+print("u_1 components! ", u_1, " = ", u_ideal, " + ", u_dep)
 
-
+"""
 u_cool = CP.PropsSI('U', 'T', T_1, 'P', P_1, fluid)
 
 print("checking internal energy: ", u_1, u_cool)
 u_1 = convert_int_energy_to_nist_convention(u_1, T_1, P_1)
 print("converted u_1 ", u_1)
-"""
+
 n2o_ig_g = Chemical('N2O', T=T_1, P=P_1) 
 preos_g = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_1, P=P_1)
 h_gas = (preos_g.H_dep_g/MW +n2o_ig_g.Cpg*(T_1 - T_REF))  
