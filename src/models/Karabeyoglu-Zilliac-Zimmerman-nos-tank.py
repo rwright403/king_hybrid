@@ -52,21 +52,23 @@ def solve_du_drho_const_T_liq(rho,T,P):
 
     vm = MW/rho
 
-    #n2o = Chemical('N2O', T=T, P=P) 
+    n2o = Chemical('N2O', T=T, P=P) 
     preos_l = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T, P=P)
 
     #solve a_alpha
     a_alpha = preos_l.a_alpha_pure(T)
 
     #if this fails try w gas constant instead of R_U
-    dA_dV_const_T_l = ( (R_U*T)/(vm) ) + ( (R_U*T)/(vm - b) ) - (a_alpha /( 2*sqrt_two*b) )*( (1/(vm+(1+sqrt_two)*b)) - (1/(vm+(1-sqrt_two)*b)) )
+    dA_dV_const_T_l_dep = ( (R_U*T)/(vm) ) + ( (R_U*T)/(vm - b) ) - (a_alpha /( 2*sqrt_two*b) )*( (1/(vm+(1+sqrt_two)*b)) - (1/(vm+(1-sqrt_two)*b)) )
 
-    du_dvm_const_T_l = dA_dV_const_T_l + P + vm*preos_l.dP_dV_l
+    du_dvm_const_T_l_dep = dA_dV_const_T_l_dep + P + vm*preos_l.dP_dV_l
 
     #convert to du_drho_const_T
-    du_drho_const_T_l = (-MW)/(rho**2)*(du_dvm_const_T_l)
+    du_drho_const_T_l_dep = (-MW)/(rho**2)*(du_dvm_const_T_l_dep)
 
-    return du_drho_const_T_l
+    du_drho_const_T_l = du_drho_const_T_l_dep + n2o.Cvg/rho #NOTE: since ideal gas using Cvg??
+
+    return du_drho_const_T_l 
 
 
 
@@ -75,21 +77,23 @@ def solve_du_drho_const_T_gas(rho,T,P):
 
     vm = MW/rho
 
-    #n2o = Chemical('N2O', T=T, P=P) 
+    n2o = Chemical('N2O', T=T, P=P) 
     preos_g = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T, P=P)
 
     #solve a_alpha
     a_alpha = preos_g.a_alpha_pure(T)
 
     #if this fails try w gas constant instead of R_U
-    dA_dV_const_T_g = ( (R_U*T)/(vm) ) + ( (R_U*T)/(vm - b) ) - (a_alpha /( 2*sqrt_two*b) )*( (1/(vm+(1+sqrt_two)*b)) - (1/(vm+(1-sqrt_two)*b)) )
+    dA_dV_const_T_g_dep = ( (R_U*T)/(vm) ) + ( (R_U*T)/(vm - b) ) - (a_alpha /( 2*sqrt_two*b) )*( (1/(vm+(1+sqrt_two)*b)) - (1/(vm+(1-sqrt_two)*b)) )
 
-    du_dvm_const_T_g = dA_dV_const_T_g + P + vm*preos_g.dP_dV_g
+    du_dvm_const_T_g_dep = dA_dV_const_T_g_dep + P + vm*preos_g.dP_dV_g
 
     #convert to du_drho_const_T
-    du_drho_const_T_g = (-MW)/(rho**2)*(du_dvm_const_T_g)
+    du_drho_const_T_g_dep = (-MW)/(rho**2)*(du_dvm_const_T_g_dep)
 
-    return du_drho_const_T_g
+    du_drho_const_T_g = du_drho_const_T_g_dep + n2o.Cvg/rho
+
+    return du_drho_const_T_g 
 
 
 
@@ -773,7 +777,7 @@ init_U_inj = tank.U_inj
 
 ###TODO: try solving single solve different ways!
 try:
-    while(t <= 600*TIMESTEP): #1000*TIMESTEP
+    while(t <= 75*TIMESTEP): #1000*TIMESTEP
         
         tank.inst(P_cc)
         t+=TIMESTEP 
