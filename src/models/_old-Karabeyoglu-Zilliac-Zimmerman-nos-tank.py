@@ -52,8 +52,8 @@ def solve_du_drho_const_T_liq(rho,T,P):
 
     vm = MW/rho
 
-    #n2o = Chemical('N2O', T=T, P=P) 
-    preos_l = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T, P=P)
+    n2o = Chemical('N2O', T=T, P=P) 
+    preos_l = PR(Tc=n2o.Tc, Pc=n2o.Pc, omega=n2o.omega, T=T, P=P)
 
     #solve a_alpha
     a_alpha = preos_l.a_alpha_pure(T)
@@ -75,8 +75,8 @@ def solve_du_drho_const_T_gas(rho,T,P):
 
     vm = MW/rho
 
-    #n2o = Chemical('N2O', T=T, P=P) 
-    preos_g = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T, P=P)
+    n2o = Chemical('N2O', T=T, P=P) 
+    preos_g = PR(Tc=n2o.Tc, Pc=n2o.Pc, omega=n2o.omega, T=T, P=P)
 
     #solve a_alpha
     a_alpha = preos_g.a_alpha_pure(T)
@@ -87,9 +87,9 @@ def solve_du_drho_const_T_gas(rho,T,P):
     du_dvm_const_T_g = dA_dV_const_T_g + P + vm*preos_g.dP_dV_g
 
     #convert to du_drho_const_T
-    du_drho_const_T_g = (-MW)/(rho**2)*(du_dvm_const_T_g)
+    du_drho_const_T_l = (-MW)/(rho**2)*(du_dvm_const_T_g)
 
-    return du_drho_const_T_g
+    return du_drho_const_T_l
 
 
 
@@ -101,11 +101,11 @@ def solve_Q_dot_natural_convection_liq(T_1, T_2, T_f, P_f, rho_f, c, n, L, Area,
         k_f = n2o.kl # Conductivity W/(m K)
         visc_f = n2o.mul # Dynamic viscosity (Pa s)
 
-        preos_l = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_f, P=P_f)
+        preos_l = PR(Tc=n2o.Tc, Pc=n2o.Pc, omega=n2o.omega, T=T_f, P=P_f)
         Cp_2 = (preos_l.Cp_dep_l/MW + n2o.Cpg) #J/K #NOTE: should be fixed
 
         dV_dT_P = preos_l.dV_dT_l
-        beta = (1/preos_l.V_l)*dV_dT_P
+        beta = (1/preos_l.V_l)*dV_dT_P*(1/rho_f) # (1/preos_l.V_l) to convert from library molar volume mol/m^3 to kg/m^3
 
     elif fluid == "Air":
         k_f = CP.PropsSI('L', 'T', T_f, 'P', P_f, 'Air')  # Conductivity W/(m K)
@@ -137,11 +137,11 @@ def solve_Q_dot_natural_convection_gas(T_1, T_2, T_f, P_f, rho_f, c, n, L, Area,
         k_f = n2o.kg # Conductivity W/(m K)
         visc_f = n2o.mug # Dynamic viscosity (Pa s)
 
-        preos_g = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_f, P=P_f)
+        preos_g = PR(Tc=n2o.Tc, Pc=n2o.Pc, omega=n2o.omega, T=T_f, P=P_f)
         Cp_2 = (preos_g.Cp_dep_g/MW + n2o.Cpg)
         
         dV_dT_P = preos_g.dV_dT_g 
-        beta = (1/preos_g.V_g)*dV_dT_P
+        beta = (1/preos_g.V_g)*dV_dT_P*(1/rho_f)  # (1/preos_g.V_g) to convert from library molar volume mol/m^3 to kg/m^3
 
     elif fluid == "Air":
         k_f = CP.PropsSI('L', 'T', T_f, 'P', P_f, 'Air')  # Conductivity W/(m K)
@@ -175,13 +175,11 @@ def solve_Q_dot_conduction(delta_T, h_tank, k_w, diam_in, diam_out):
 #TODO: update with other injector model once we get this thing up
 def spi_model(Cd_hem_spi_dyer, A_inj_ox, P_1, P_2, rho_tank_exit):
 
-    """
     pipe_inj_time = [ 0, 0.25, 1.1, 1.5,4]
     pipe_inj_m_dot = [ (-50/1000), (-43/1000), (-41.8/1000), (-36/1000), (-22/1000)]
 
     m_dot_spi = np.interp(LOOKUP_TIME, pipe_inj_time , pipe_inj_m_dot)
-    """
-    m_dot_spi = -3.75
+
     return m_dot_spi
 
 
@@ -349,7 +347,7 @@ def P_dot_error(V_dot_guess, m_liq, m_gas, T_liq, T_gas, rho_liq, rho_gas, V_liq
 
 
     preos_l = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_liq, P=P_tank)
-    partial_dP_dT_const_rho_liq = preos_l.dP_dT_l  #- (MW/(rho_liq**2))*preos_l.dP_dV_l #NOTE: deriv wrt Vm != deriv wrt rho ???
+    partial_dP_dT_const_rho_liq = preos_l.dP_dT_l #NOTE: deriv wrt Vm = deriv wrt rho
 
     partial_dP_drho_const_T_liq = (preos_l.dP_dV_l)*(-MW/(rho_liq**2)) #converting deriv wrt Vm --> wrt rho
 
@@ -358,9 +356,9 @@ def P_dot_error(V_dot_guess, m_liq, m_gas, T_liq, T_gas, rho_liq, rho_gas, V_liq
 
 
     preos_g = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_gas, P=P_tank)
-    partial_dP_dT_const_rho_gas = preos_g.dP_dT_g  #- (MW/(rho_gas**2))*preos_g.dP_dV_g #NOTE: deriv wrt Vm != deriv wrt rho ???
+    partial_dP_dT_const_rho_gas = preos_g.dP_dT_g #NOTE: deriv wrt Vm = deriv wrt rho
 
-    partial_dP_drho_const_T_gas = (preos_g.dP_dV_g)*(-MW/(rho_gas**2))  #converting deriv wrt Vm --> wrt rho
+    partial_dP_drho_const_T_gas = (preos_g.dP_dV_g)*(-MW/(rho_gas**2)) #converting deriv wrt Vm --> wrt rho
 
     P_dot_gas = partial_dP_dT_const_rho_gas*T_dot_gas + partial_dP_drho_const_T_gas*d_rho_dt_gas
 
@@ -478,8 +476,8 @@ class model():
         ### Solve thermo parameters!
         rho_liq, rho_gas, P_tank = solve_thermo_params(T_liq, T_gas, m_liq, m_gas, self.P_tank_prev, self.V_tank, self.volume_err_tolerance)
 
-        preos_g = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_gas, P=P_tank)
-        T_sat = preos_g.Tsat(P_tank)
+        preos = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_gas, P=P_tank)
+        T_sat = preos.Tsat(P_tank)
 
 
         # Mass transfer (1) from injector
@@ -492,10 +490,9 @@ class model():
 
         m_dot_cond = solve_m_dot_condensed(T_gas, T_liq, P_tank, V_gas, t)
 
-        """
         if m_dot_cond != 0:
-            P_tank = preos_g.Psat(T_gas)
-        """
+            P_tank = preos.Psat(T_gas)
+
 
 
         # Heat transfer (2) from saturated surface to gas                       (T_1, T_2, P_tank, rho_2, c, n, tank_diam, fluid)
@@ -552,23 +549,23 @@ class model():
         #print("Q_dot wall check: ", Q_dot_liq_wall_to_liq, Q_dot_gas_wall_to_gas)
         # Net Heat Transfer of Liq and Gas CV
         preos_g = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_gas, P=P_tank)
-        #latent_heat_cond_g = (-1)*preos_g.Hvap(T_gas)/MW
         h_gas = preos_g.H_dep_g/MW #departure
 
 
         ###solve sensible heat terms!
         
         #sign convention from liquid to gas!
-        #n2o_l = Chemical('N2O', T=T_liq, P=P_tank) 
+        n2o_l = Chemical('N2O', T=T_liq, P=P_tank) 
         preos_l = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_liq, P=P_tank)
 
         #sign convention from gas to liquid!
-        #n2o_g = Chemical('N2O', T=T_gas, P=P_tank) 
+        n2o_g = Chemical('N2O', T=T_gas, P=P_tank) 
         preos_g = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_gas, P=P_tank)
         
 
         #highly certain of this at this stage! Do not touch!
         Q_dot_liq = Q_dot_liq_wall_to_liq -Q_dot_liq_to_sat_surf + m_dot_evap*(preos_l.Hvap(T_liq)/MW)
+#BUG: where is mass transfer term here?
         Q_dot_gas = Q_dot_gas_wall_to_gas +Q_dot_sat_surf_to_gas + m_dot_cond*(preos_g.Hvap(T_gas)/MW)
 
         #print("evap and condense heat transfer: ", m_dot_evap*preos_l.Hvap(T_liq), m_dot_cond*preos_g.Hvap(T_gas))
@@ -702,7 +699,7 @@ rho_atm = 1.225 #kg/m^3
 
 
 ### Karabeyoglu test case inputs ~ don't know injector used well!
-
+"""
 m_nos = 20 #kg
 P_tank = 45e5 #Pa
 V_tank = 0.0354 #m^3
@@ -716,10 +713,11 @@ Cd_1 = 0.425
 A_inj_1 = 0.00003 #m^3 NOTE: GUESS
 P_cc = 1.03e6 #Pa
 
-
+inj_model = None #TODO: implement
+"""
 
 #Tomacz run tank inputs
-"""
+
 m_nos = 0.180 #kg
 P_tank = 5.2e6 #Pa
 
@@ -733,7 +731,7 @@ k_w = 237 #W/(m K)
 Cd_1 = 0.45 #SPI discharge coeff for inj #2
 A_inj_1 = 0.25*np.pi*((1.5e-3)**2) #m^2
 P_cc = P_atm
-"""
+
 #def __init__(self, TIMESTEP, T_atm, m_nos, Cd_1, A_inj_1, V_tank, diam_out, diam_in, rho_wall, k_w, P_tank, P_atm, inj_model)
 volume_err_tolerance = 1e-8
 P_dot_err_tolerance = 10
@@ -856,7 +854,6 @@ plt.scatter(time_arr,m_gas_arr, label = "gas")
 plt.xlabel('Time (s)')
 plt.ylabel('Mass (kg)')
 plt.title('Mass vs. Time')
-plt.legend()
 plt.grid(True)
 
 plt.subplot(1,3,3)
