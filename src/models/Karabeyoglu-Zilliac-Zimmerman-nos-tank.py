@@ -191,6 +191,34 @@ def spi_model(Cd_hem_spi_dyer, A_inj_ox, P_1, P_2, rho_tank_exit):
     return m_dot_spi
 
 
+def solve_m_dot_evap( T_gas, T_liq, P_tank, Q_dot_liq_to_sat_surf, Q_dot_sat_surf_to_gas):
+    m_dot_evap = 0
+
+    n2o_ig_l = Chemical('N2O', T=T_liq) 
+    preos_l = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_liq, P=P_tank)
+    h_liq = preos_l.H_dep_l/MW + n2o_ig_l.H #NOTE: expect this to be specific enthalpy in kg
+
+    T_sat = preos_l.Tsat(P_tank)
+    n2o_ig_sat_l = Chemical('N2O', T=T_sat) 
+    preos_sat = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_sat, P=P_tank)
+    h_sat_l = preos_sat.H_dep_l/MW + n2o_ig_sat_l.H
+
+    preos_g = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_gas, P=P_tank)
+
+    delta_h_evap = ( (h_sat_l-h_liq) + preos_g.Hvap(T_sat)/MW )
+
+
+    P_sat_l = preos_l.Psat(T_liq)
+
+    #check criteria with chat after
+    if (P_tank <= P_sat_l ) and (np.abs(Q_dot_liq_to_sat_surf) > np.abs(Q_dot_sat_surf_to_gas)):
+        m_dot_evap = (Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas) / delta_h_evap
+
+
+    #print("evap sign convention: ", Q_dot_liq_to_sat_surf, Q_dot_sat_surf_to_gas)
+    
+    return m_dot_evap
+
 
 def solve_m_dot_condensed(T_gas, T_liq, P_tank, V_gas, t):
     m_dot_cond = 0
@@ -202,7 +230,7 @@ def solve_m_dot_condensed(T_gas, T_liq, P_tank, V_gas, t):
     if (P_tank > P_sat_g):
         m_dot_cond = ((P_tank-P_sat_g)*V_gas*MW)/( preos_g.Z_g*(R_U/MW)*T_gas*(TIMESTEP) )  #preos_g.Z_g
 
-        print("\nw vs w/out compressiblity: ", ((P_tank-P_sat_g)*V_gas*MW)/( preos_g.Z_g*(R_U/MW)*T_gas*(TIMESTEP) ) , ((P_tank-P_sat_g)*V_gas*MW)/( (R_U/MW)*T_gas*(TIMESTEP) ), "\n" )
+        #print("\nw vs w/out compressiblity: ", ((P_tank-P_sat_g)*V_gas*MW)/( preos_g.Z_g*(R_U/MW)*T_gas*(TIMESTEP) ) , ((P_tank-P_sat_g)*V_gas*MW)/( (R_U/MW)*T_gas*(TIMESTEP) ), "\n" )
 
 
     return m_dot_cond
@@ -500,16 +528,16 @@ class model():
         #print("rho_liq input to m_dot_inj: ", rho_liq)
         m_dot_inj = spi_model(self.Cd_1, self.A_inj_1, P_tank, P_cc, rho_liq)
 
+
+
+
         # Mass transfer (2) by condensation
         V_gas = m_gas/rho_gas
         V_liq = self.V_tank - V_gas
 
         m_dot_cond = solve_m_dot_condensed(T_gas, T_liq, P_tank, V_gas, t)
 
-        """
-        if m_dot_cond != 0:
-            P_tank = preos_g.Psat(T_gas)
-        """
+
 
 
         # Heat transfer (2) from saturated surface to gas                       (T_1, T_2, P_tank, rho_2, c, n, tank_diam, fluid)
@@ -524,33 +552,10 @@ class model():
         
 
         # Mass transfer (3) by evaporation 
-        preos_l = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_liq, P=P_tank)
-        h_liq = preos_l.H_dep_l/MW # n2o_ig.Cpg*(T_liq - T_REF)
-
-        preos_sat = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_sat, P=P_tank)
-        h_sat_l = preos_sat.H_dep_l/MW #+ n2o_ig.Cpg*(T_liq - T_REF)
-        #h_sat_g = preos_sat.H_dep_g/MW
-        #print(latent_heat_evap_g, latent_heat_evap_l)
-
-        preos_g = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_gas, P=P_tank)
-        #h_gas = preos_g.H_dep_g/MW #departure
-
-        delta_h_evap = ( (h_sat_l-h_liq) + preos_g.Hvap(T_sat)/MW)
-
-        m_dot_evap = 0
-        m_dot_evap_2 = 0
-
-        if np.abs(Q_dot_liq_to_sat_surf) > np.abs(Q_dot_sat_surf_to_gas):
-            m_dot_evap = (Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas) / ( delta_h_evap ) #NOTE: should be ok to just take the difference of the departure functions below
-
-            m_dot_evap_2 = Q_dot_liq_to_sat_surf /(preos_g.Hvap(T_sat)/MW)
-
-        print("evap sign convention: ", Q_dot_liq_to_sat_surf, Q_dot_sat_surf_to_gas)
-        
-        #print("m_dot_evap: ", ((E)*Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas), (E)*Q_dot_liq_to_sat_surf ,- Q_dot_sat_surf_to_gas)
+        m_dot_evap = solve_m_dot_evap( T_gas, T_liq, P_tank, Q_dot_liq_to_sat_surf, Q_dot_sat_surf_to_gas)
 
 
-        # Mass Transfer of Liquid and Gas CV
+        # Net Mass Transfer of Liquid and Gas CV
         m_dot_liq, m_dot_gas = solve_m_dot_liq_gas(m_dot_evap, m_dot_cond, m_dot_inj)
         #print(m_dot_evap, m_dot_cond, m_dot_inj)
         
@@ -586,8 +591,8 @@ class model():
         Q_dot_gas = Q_dot_gas_wall_to_gas + Q_dot_sat_surf_to_gas + m_dot_cond*(preos_g.Hvap(T_gas)/MW)
 
         print("m_dot: ", m_dot_liq, m_dot_gas, m_dot_evap, m_dot_cond, m_dot_inj)
-        print("Q_dot_liq! ", Q_dot_liq, Q_dot_liq_wall_to_liq, - Q_dot_liq_to_sat_surf , - m_dot_evap*(preos_l.Hvap(T_liq)/MW) )
-        print("Q_dot_gas! ", Q_dot_gas, Q_dot_gas_wall_to_gas, + Q_dot_sat_surf_to_gas, + m_dot_cond*(preos_g.Hvap(T_gas)/MW), "\n" )
+        #print("Q_dot_liq! ", Q_dot_liq, Q_dot_liq_wall_to_liq, - Q_dot_liq_to_sat_surf , - m_dot_evap*(preos_l.Hvap(T_liq)/MW) )
+        #print("Q_dot_gas! ", Q_dot_gas, Q_dot_gas_wall_to_gas, + Q_dot_sat_surf_to_gas, + m_dot_cond*(preos_g.Hvap(T_gas)/MW), "\n" )
 
 
 
@@ -784,7 +789,7 @@ init_U_inj = tank.U_inj
 
 ###TODO: try solving single solve different ways!
 try:
-    while(t <= 5*TIMESTEP): #1000*TIMESTEP
+    while(t <= 40*TIMESTEP): #1000*TIMESTEP
         
         tank.inst(P_cc)
         t+=TIMESTEP 
