@@ -223,7 +223,7 @@ def solve_U_dot_liq(T_liq, T_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, V_d
 
     U_dot_liq = -m_dot_inj*(h_liq ) - m_dot_evap*( h_gas) + m_dot_cond*( h_liq ) -P_tank*V_dot_liq + Q_dot_net
 
-    print("U_dot_liq: ",  U_dot_liq , - m_dot_evap*( h_gas), + m_dot_cond*( h_liq ) ,- P_tank*V_dot_liq, Q_dot_net,  -m_dot_inj*(h_liq ), )
+    #print("U_dot_liq: ",  U_dot_liq , - m_dot_evap*( h_gas), + m_dot_cond*( h_liq ) ,- P_tank*V_dot_liq, Q_dot_net,  -m_dot_inj*(h_liq ), )
 
     return U_dot_liq
 
@@ -243,8 +243,8 @@ def solve_U_dot_gas(T_liq, T_gas, P_tank, m_dot_evap, m_dot_cond, V_dot_gas, Q_d
 
     U_dot_gas = m_dot_evap*( h_gas ) - m_dot_cond*( h_liq ) - P_tank*V_dot_gas + Q_dot_net 
 
-    print("U_dot_gas: ",  U_dot_gas , m_dot_evap*( h_gas ), - m_dot_cond*( h_liq ), - P_tank*V_dot_gas, + Q_dot_net)
-    print("enthalpy sign: ", h_liq, h_gas, "\n")
+    #print("U_dot_gas: ",  U_dot_gas , m_dot_evap*( h_gas ), - m_dot_cond*( h_liq ), - P_tank*V_dot_gas, + Q_dot_net)
+    #print("enthalpy sign: ", h_liq, h_gas, "\n")
 
     return U_dot_gas
 
@@ -323,14 +323,14 @@ def single_solve_T_dot_liq_gas(V_dot_liq, m_liq, m_gas, T_liq, T_gas, rho_liq, r
 
     if debug_mode == True:
         a = 1
-        print("Both T_dot: ", T_dot_liq, T_dot_gas)
+        #print("Both T_dot: ", T_dot_liq, T_dot_gas)
         #print("U_dot_liq, U_dot_gas: ", U_dot_liq, U_dot_gas)
-        print("T_dot_liq! ", (1/m_liq) * (U_dot_liq - u_liq*m_dot_liq), - (partial_du_d_rho_const_T_liq* d_rho_dt_liq))
+        #print("T_dot_liq! ", (1/m_liq) * (U_dot_liq - u_liq*m_dot_liq), - (partial_du_d_rho_const_T_liq* d_rho_dt_liq))
         #print("T_dot_liq: T_dot_liq, Cv_liq, m_liq, U_dot_liq, u_liq, m_dot_liq, partial_du_d_rho_const_T_liq, d_rho_dt_liq")
         #print("T_dot_liq! ", T_dot_liq, Cv_liq, m_liq, U_dot_liq, u_liq, m_dot_liq, partial_du_d_rho_const_T_liq, d_rho_dt_liq,"\n")
 
         
-        print("T_dot_gas! ", (1/m_gas) * (U_dot_gas - u_gas*m_dot_gas), - (partial_du_d_rho_const_T_gas* d_rho_dt_gas) )
+        #print("T_dot_gas! ", (1/m_gas) * (U_dot_gas - u_gas*m_dot_gas), - (partial_du_d_rho_const_T_gas* d_rho_dt_gas) )
         #print("T_dot_gas! , T_dot_gas, Cv_gas, m_gas, U_dot_gas, u_gas, m_dot_gas, partial_du_d_rho_const_T_gas, d_rho_dt_liq")
         #print("T_dot_gas! ", T_dot_gas, Cv_gas, m_gas, U_dot_gas, u_gas, m_dot_gas, partial_du_d_rho_const_T_gas, d_rho_dt_liq)
         #print("specific heat const vol (J/ (kg K)): ", Cv_liq, Cv_gas)
@@ -529,17 +529,24 @@ class model():
 
         preos_sat = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_sat, P=P_tank)
         h_sat_l = preos_sat.H_dep_l/MW #+ n2o_ig.Cpg*(T_liq - T_REF)
-        h_sat_g = preos_sat.H_dep_g/MW
+        #h_sat_g = preos_sat.H_dep_g/MW
         #print(latent_heat_evap_g, latent_heat_evap_l)
 
         preos_g = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_gas, P=P_tank)
-        h_gas = preos_g.H_dep_g/MW #departure
+        #h_gas = preos_g.H_dep_g/MW #departure
 
-        delta_h_evap = ( (h_sat_g- h_sat_l) + (h_gas-h_liq) )
+        delta_h_evap = ( (h_sat_l-h_liq) + preos_g.Hvap(T_sat)/MW)
 
         m_dot_evap = 0
+        m_dot_evap_2 = 0
+
         if np.abs(Q_dot_liq_to_sat_surf) > np.abs(Q_dot_sat_surf_to_gas):
             m_dot_evap = (Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas) / ( delta_h_evap ) #NOTE: should be ok to just take the difference of the departure functions below
+
+            m_dot_evap_2 = Q_dot_liq_to_sat_surf /(preos_g.Hvap(T_sat)/MW)
+
+        print("evap sign convention: ", Q_dot_liq_to_sat_surf, Q_dot_sat_surf_to_gas)
+        
         #print("m_dot_evap: ", ((E)*Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas), (E)*Q_dot_liq_to_sat_surf ,- Q_dot_sat_surf_to_gas)
 
 
@@ -646,7 +653,7 @@ class model():
         h_gas = preos_g.H_dep_g/MW #departure
 
 
-        delta_h_evap = ( (h_sat_l-h_liq) + preos_g.Hvap(T_gas)/MW )
+        #delta_h_evap = ( (h_sat_l-h_liq) + preos_g.Hvap(T_gas)/MW )
 
         U_dot_inj = m_dot_inj*(h_liq + n2o_ig.H)
 
@@ -777,7 +784,7 @@ init_U_inj = tank.U_inj
 
 ###TODO: try solving single solve different ways!
 try:
-    while(t <= 75*TIMESTEP): #1000*TIMESTEP
+    while(t <= 5*TIMESTEP): #1000*TIMESTEP
         
         tank.inst(P_cc)
         t+=TIMESTEP 
