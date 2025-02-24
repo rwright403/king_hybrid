@@ -1,5 +1,3 @@
-### I had a revelation recently, I did this all wrong. A choked flow injector characterized through testing and a steady state spreadsheet is all you need for a hobby size engine I am trying to build (with an external pressurant, no self-pressurizing nos). Even if the code worked lol, this entire repository is redundant. I suppose I will leave it here, at the current moment I feel like a huge idiot and recognize that serious mistakes were made.
-
 ### Note: mostly broken code! do not use right now lol --> see DEV LRE Progress Update... for the most recent documentation and explaination for where this program is rn
 
 ### Rocket Engine Simulation 🚀
@@ -14,6 +12,7 @@ The inputs folder contains the input files where the user can update the inputs 
 
 the analysis_mode vector selects the types of models used by the program.
 [TODO: DOCUMENT MODELS IN EACH FILE]
+
 
 
 
