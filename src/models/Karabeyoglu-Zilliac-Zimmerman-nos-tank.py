@@ -83,15 +83,14 @@ def solve_du_drho_const_T_gas(rho,T,P):
     #solve a_alpha
     a_alpha = preos_g.a_alpha_pure(T)
 
-    #if this fails try w gas constant instead of R_U
     dA_dV_const_T_g_dep = ( (R_U*T)/(vm) ) + ( (R_U*T)/(vm - b) ) - (a_alpha /( 2*sqrt_two*b) )*( (1/(vm+(1+sqrt_two)*b)) - (1/(vm+(1-sqrt_two)*b)) )
 
     du_dvm_const_T_g_dep = dA_dV_const_T_g_dep + P + vm*preos_g.dP_dV_g
 
-    #convert to du_drho_const_T
+    #convert departure derivative under PR to du_drho_const_T
     du_drho_const_T_g_dep = (-MW)/(rho**2)*(du_dvm_const_T_g_dep)
 
-    du_drho_const_T_g = du_drho_const_T_g_dep + n2o.Cvg/rho
+    du_drho_const_T_g = du_drho_const_T_g_dep + n2o.Cvg/rho #add ideal gas term to get entire derivative for real gas
 
     return du_drho_const_T_g 
 
@@ -251,8 +250,6 @@ def solve_U_dot_liq(T_liq, T_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, V_d
 
     U_dot_liq = -m_dot_inj*(h_liq ) - m_dot_evap*( h_gas) + m_dot_cond*( h_liq ) -P_tank*V_dot_liq + Q_dot_net
 
-    #print("U_dot_liq: ",  U_dot_liq , - m_dot_evap*( h_gas), + m_dot_cond*( h_liq ) ,- P_tank*V_dot_liq, Q_dot_net,  -m_dot_inj*(h_liq ), )
-
     return U_dot_liq
 
 
@@ -270,9 +267,6 @@ def solve_U_dot_gas(T_liq, T_gas, P_tank, m_dot_evap, m_dot_cond, V_dot_gas, Q_d
 
 
     U_dot_gas = m_dot_evap*( h_gas ) - m_dot_cond*( h_liq ) - P_tank*V_dot_gas + Q_dot_net 
-
-    #print("U_dot_gas: ",  U_dot_gas , m_dot_evap*( h_gas ), - m_dot_cond*( h_liq ), - P_tank*V_dot_gas, + Q_dot_net)
-    #print("enthalpy sign: ", h_liq, h_gas, "\n")
 
     return U_dot_gas
 
@@ -513,7 +507,7 @@ class model():
     def system_of_liq_odes(self, t, y, P_cc):
 
         #NOTE: EMPIRICAL FACTOR E:
-        E = 2.1e4#2.1e4 #FOR HEAT TRANSFER
+        E = 2.1e4 #2.1e4 #FOR HEAT TRANSFER
 
         T_liq, T_gas, m_liq, m_gas, T_wall_liq, T_wall_gas, a, b, c, d = y  # Unpack state variables
 
@@ -586,11 +580,11 @@ class model():
         preos_g = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_gas, P=P_tank)
         
 
-        #highly certain of this at this stage! Do not touch!
-        Q_dot_liq = Q_dot_liq_wall_to_liq - Q_dot_liq_to_sat_surf - m_dot_evap*(preos_l.Hvap(T_liq)/MW)
-        Q_dot_gas = Q_dot_gas_wall_to_gas + Q_dot_sat_surf_to_gas + m_dot_cond*(preos_g.Hvap(T_gas)/MW)
+        Q_dot_liq = Q_dot_liq_wall_to_liq - Q_dot_liq_to_sat_surf - m_dot_evap*( preos_l.Hvap(T_liq)/MW  )
+        Q_dot_gas = Q_dot_gas_wall_to_gas + Q_dot_sat_surf_to_gas - m_dot_cond*( ((-1)*preos_g.Hvap(T_gas)/MW) )
 
-        print("m_dot: ", m_dot_liq, m_dot_gas, m_dot_evap, m_dot_cond, m_dot_inj)
+        print( "latent heat of evap and condensation: ", preos_l.Hvap(T_liq)/MW, ((-1)*preos_g.Hvap(T_gas)/MW) )
+        #print("m_dot: ", m_dot_liq, m_dot_gas, m_dot_evap, m_dot_cond, m_dot_inj)
         #print("Q_dot_liq! ", Q_dot_liq, Q_dot_liq_wall_to_liq, - Q_dot_liq_to_sat_surf , - m_dot_evap*(preos_l.Hvap(T_liq)/MW) )
         #print("Q_dot_gas! ", Q_dot_gas, Q_dot_gas_wall_to_gas, + Q_dot_sat_surf_to_gas, + m_dot_cond*(preos_g.Hvap(T_gas)/MW), "\n" )
 
@@ -613,7 +607,6 @@ class model():
         while np.abs(P_dot_error(V_dot_liq, m_liq, m_gas, T_liq, T_gas, rho_liq, rho_gas, V_liq, V_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas)) > self.P_dot_err_tolerance:
             V_dot_liq = secant((lambda V_dot: P_dot_error(V_dot, m_liq, m_gas, T_liq, T_gas, rho_liq, rho_gas, V_liq, V_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas )), V_dot_liq)
         
-
 
         ### Wall nodes:
         height_dot = V_dot_liq / (0.25*np.pi*(self.diam_in**2))
@@ -789,7 +782,7 @@ init_U_inj = tank.U_inj
 
 ###TODO: try solving single solve different ways!
 try:
-    while(t <= 40*TIMESTEP): #1000*TIMESTEP
+    while(t <= 10*TIMESTEP): #1000*TIMESTEP
         
         tank.inst(P_cc)
         t+=TIMESTEP 
