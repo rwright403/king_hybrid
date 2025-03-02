@@ -47,6 +47,20 @@ def secant(func, x1):
 
 
 
+### ig polynomials here!!!!
+
+
+
+
+
+
+
+
+
+
+
+
+
 def solve_du_drho_const_T_liq(rho,T,P):
     sqrt_two = np.sqrt(2)
 
