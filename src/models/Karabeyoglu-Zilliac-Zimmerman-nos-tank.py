@@ -624,14 +624,7 @@ class model():
 
 
 
-        # Mass transfer (2) by condensation
-        V_gas = m_gas/rho_gas
-        V_liq = self.V_tank - V_gas
-
-        m_dot_cond = solve_m_dot_condensed(T_gas, T_liq, P_tank, V_gas, t)
-
-
-
+        
 
         # Heat transfer (2) from saturated surface to gas                       (T_1, T_2, P_tank, rho_2, c, n, tank_diam, fluid)
         # L = tank inner diam , Area of circle x section
@@ -643,9 +636,20 @@ class model():
         #NOTE:CORRECTION FACTOR for nitrous oxide heat transfer E = (E) HERE!
         #print("Q_dot_liq_to_sat_surf: ", Q_dot_liq_to_sat_surf , T_liq, T_sat, T_liq-T_sat, P_tank, rho_liq)
         
+        
 
         # Mass transfer (3) by evaporation 
         m_dot_evap = solve_m_dot_evap( T_gas, T_liq, P_tank, Q_dot_liq_to_sat_surf, Q_dot_sat_surf_to_gas)
+
+        # Mass transfer (2) by condensation
+        V_gas = m_gas/rho_gas
+        V_liq = self.V_tank - V_gas
+        m_dot_cond = 0
+
+        if m_dot_evap <= 0.0:
+            m_dot_cond = solve_m_dot_condensed(T_gas, T_liq, P_tank, V_gas, t)
+            preos_g = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_gas, P=P_tank)
+            P_tank = preos_g.Psat(T_gas)
 
 
         # Net Mass Transfer of Liquid and Gas CV
@@ -882,7 +886,7 @@ init_U_inj = tank.U_inj
 
 ###TODO: try solving single solve different ways!
 try:
-    while(t < 500*TIMESTEP): #1000*TIMESTEP
+    while(t < 5000*TIMESTEP): #1000*TIMESTEP
         
         tank.inst(P_cc)
         t+=TIMESTEP 
