@@ -305,11 +305,11 @@ def solve_U_dot_liq(T_liq, T_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, V_d
     preos_l = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_liq, P=P_tank)
     h_liq = preos_l.H_dep_l/MW + h_ig_liq
 
-    """
+    
     h_ig_inj = analytical_integration_ig_enthalpy(T_REF, T_atm)
-    preos_inj = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_atm, P=P_atm)
+    preos_inj = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_atm, P= 2.4e6)
     h_downstream_inj = preos_inj.H_dep_g/MW + h_ig_inj
-    """
+    
 #NOTE: h_downstream_inj likely ok approx for testing but should be integrated with real injector enthalpy once integrated w rest of script
 #NOTE: use either injector inlet or chamber depending on fidelity of model
 
@@ -319,10 +319,10 @@ def solve_U_dot_liq(T_liq, T_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, V_d
     h_gas = preos_g.H_dep_g/MW + h_ig_gas
 
 
-    U_dot_liq = -m_dot_inj*( (h_liq-h_liq_prev ) ) - m_dot_evap*( (h_gas-h_gas_prev) ) + m_dot_cond*( (h_liq-h_liq_prev) ) -P_tank*V_dot_liq + Q_dot_net
+    U_dot_liq = -m_dot_inj*( (h_liq-h_downstream_inj ) ) - m_dot_evap*( (h_gas-h_gas_prev) ) + m_dot_cond*( (h_liq-h_liq_prev) ) -P_tank*V_dot_liq + Q_dot_net
     #NOTE: m_dot_inj is currently wrong, should be a spatial difference in enthalpy
     #print("inside u dot liq: ",  -m_dot_inj*( (h_liq-h_liq_prev) ) , - m_dot_evap*( (h_gas-h_gas_prev) ) , + m_dot_cond*( (h_liq-h_liq_prev) ) , -P_tank*V_dot_liq , + Q_dot_net )
-    print("looking at u_dot_liq: ", (h_liq-h_liq_prev), P_tank*V_dot_liq )
+    #print("looking at u_dot_liq: ", (h_liq-h_liq_prev), P_tank*V_dot_liq )
 
     return U_dot_liq
 
@@ -437,14 +437,14 @@ def single_solve_T_dot_liq_gas(V_dot_liq, m_liq, m_gas, T_liq, T_gas, rho_liq, r
         
         #print("spec int energy rate of change: ",  U_dot_gas, - u_gas*m_dot_gas,  U_dot_liq, -u_liq*m_dot_liq)
         #print("T_dot_liq: T_dot_liq, Cv_liq, m_liq, U_dot_liq, u_liq, m_dot_liq, partial_du_d_rho_const_T_liq, d_rho_dt_liq")
-        print("T_dot_liq! ",T_dot_liq,",",Cv_liq,",",m_liq,",",U_dot_liq,",",u_liq,",", m_dot_liq,",", partial_du_d_rho_const_T_liq,",", d_rho_dt_liq,",","\n")
+        #print("T_dot_liq! ",T_dot_liq,",",Cv_liq,",",m_liq,",",U_dot_liq,",",u_liq,",", m_dot_liq,",", partial_du_d_rho_const_T_liq,",", d_rho_dt_liq,",","\n")
 
         
         #print("T_dot_gas! ", T_dot_gas, (1/m_gas) * (U_dot_gas - u_gas*m_dot_gas), - (partial_du_d_rho_const_T_gas* d_rho_dt_gas) )
 
         #print("deeper look at T_dot_gas: ", (1/m_gas), U_dot_gas,  u_gas*m_dot_gas )
         #print("T_dot_gas! , T_dot_gas, Cv_gas, m_gas, U_dot_gas, u_gas, m_dot_gas, partial_du_d_rho_const_T_gas, d_rho_dt_liq")
-        print("T_dot_gas! ", T_dot_gas,",", Cv_gas,",", m_gas,",", U_dot_gas,",", u_gas,",", m_dot_gas,",", partial_du_d_rho_const_T_gas,",", d_rho_dt_liq)
+        #print("T_dot_gas! ", T_dot_gas,",", Cv_gas,",", m_gas,",", U_dot_gas,",", u_gas,",", m_dot_gas,",", partial_du_d_rho_const_T_gas,",", d_rho_dt_liq)
         #print("specific heat const vol (J/ (kg K)): ", Cv_liq, Cv_gas)
         #print("inside T_dot_gas: ", U_dot_gas, -u_gas*m_dot_gas ,partial_du_d_rho_const_T_gas, d_rho_dt_gas)
         #print("T_dot_liq! ", T_dot_liq, U_dot_liq, u_liq, m_dot_liq, partial_du_d_rho_const_T_liq, d_rho_dt_liq) 
@@ -624,33 +624,37 @@ class model():
 
 
 
-        # Mass transfer (2) by condensation
-        V_gas = m_gas/rho_gas
-        V_liq = self.V_tank - V_gas
-
-        m_dot_cond = 0 #solve_m_dot_condensed(T_gas, T_liq, P_tank, V_gas, t)
-
-
-
+        
 
         # Heat transfer (2) from saturated surface to gas                       (T_1, T_2, P_tank, rho_2, c, n, tank_diam, fluid)
         # L = tank inner diam , Area of circle x section
         #print(T_sat, T_gas, T_gas, P_tank, rho_gas, 0.15, 0.333, self.diam_in, (0.25*np.pi*(self.diam_in**2)), "N2O" ) 
-        Q_dot_sat_surf_to_gas = 0 #solve_Q_dot_natural_convection_gas(T_sat, T_gas, T_gas, P_tank, rho_gas, 0.15, 0.333, self.diam_in, (0.25*np.pi*(self.diam_in**2)), "N2O" ) #relative to gas cv
+        Q_dot_sat_surf_to_gas = solve_Q_dot_natural_convection_gas(T_sat, T_gas, T_gas, P_tank, rho_gas, 0.15, 0.333, self.diam_in, (0.25*np.pi*(self.diam_in**2)), "N2O" ) #relative to gas cv
     
         # Heat transfer (3)  from liq to saturated surface (sat surface assumed to be a liquid with quality 0)
-        Q_dot_liq_to_sat_surf = 0 #(E)*solve_Q_dot_natural_convection_liq(T_liq, T_sat, T_liq, P_tank, rho_liq, 0.15, 0.333, self.diam_in, (0.25*np.pi*(self.diam_in**2)), "N2O" ) #relative to liq cv
+        Q_dot_liq_to_sat_surf = (E)*solve_Q_dot_natural_convection_liq(T_liq, T_sat, T_liq, P_tank, rho_liq, 0.15, 0.333, self.diam_in, (0.25*np.pi*(self.diam_in**2)), "N2O" ) #relative to liq cv
         #NOTE:CORRECTION FACTOR for nitrous oxide heat transfer E = (E) HERE!
         #print("Q_dot_liq_to_sat_surf: ", Q_dot_liq_to_sat_surf , T_liq, T_sat, T_liq-T_sat, P_tank, rho_liq)
         
+        
 
         # Mass transfer (3) by evaporation 
-        m_dot_evap = 0 #solve_m_dot_evap( T_gas, T_liq, P_tank, Q_dot_liq_to_sat_surf, Q_dot_sat_surf_to_gas)
+        m_dot_evap = solve_m_dot_evap( T_gas, T_liq, P_tank, Q_dot_liq_to_sat_surf, Q_dot_sat_surf_to_gas)
+
+        # Mass transfer (2) by condensation
+        V_gas = m_gas/rho_gas
+        V_liq = self.V_tank - V_gas
+        m_dot_cond = 0
+
+        if m_dot_evap <= 0.0:
+            m_dot_cond = solve_m_dot_condensed(T_gas, T_liq, P_tank, V_gas, t)
+            preos_g = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_gas, P=P_tank)
+            P_tank = preos_g.Psat(T_gas)
 
 
         # Net Mass Transfer of Liquid and Gas CV
         m_dot_liq, m_dot_gas = solve_m_dot_liq_gas(m_dot_evap, m_dot_cond, m_dot_inj)
-        #print(m_dot_evap, m_dot_cond, m_dot_inj)
+        print(m_dot_evap, m_dot_cond, m_dot_inj)
         
         #then solve the height of the gas wall
         h_gas_wall = V_gas / (0.25*np.pi*(self.diam_in**2))
@@ -882,7 +886,7 @@ init_U_inj = tank.U_inj
 
 ###TODO: try solving single solve different ways!
 try:
-    while(t < 1000*TIMESTEP): #1000*TIMESTEP
+    while(t < 5000*TIMESTEP): #1000*TIMESTEP
         
         tank.inst(P_cc)
         t+=TIMESTEP 
