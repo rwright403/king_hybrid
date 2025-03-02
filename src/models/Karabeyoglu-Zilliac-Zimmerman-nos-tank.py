@@ -48,8 +48,43 @@ def secant(func, x1):
 
 
 ### ig polynomials here!!!!
+def solve_cp_ig_polynomial(T):
+    # Polynomial coefficients
+    A = 21.62
+    B = 72.81
+    C = -57.78  
+    D = 18.3
+    E = 0.0
+
+    # Apply temperature limits
+    if 150 < T and T < 310:
+        T_reduced = T / 1000
+        cp_ig = (A + B * T_reduced + C * T_reduced**2 + D * T_reduced**3 + E / (T_reduced**2)) / MW  # J/(kg K)
+        return cp_ig
+    raise ValueError("Temperature outside of function bounds!")
+
+def solve_cv_ig_polynomial(T):
+    cv_ig = solve_cp_ig_polynomial(T) - R_U
+    return cv_ig
+
+def analytical_integration_ig_enthalpy(T_REF, T):
+    # Polynomial coefficients
+    A = 21.62
+    B = 72.81
+    C = -57.78  
+    D = 18.3
+    E = 0.0
+
+    # Apply temperature limits
+    if 150 < T and T < 310:
+        h_ig = (T*(12000000000000000*E - T_REF**2*(12000000000*A + 6000000*B*T_REF + 4000*C*T_REF**2 + 3*D*T_REF**3)) + T_REF*(-12000000000000000*E + T**2*(12000000000*A + 6000000*B*T + 4000*C*T**2 + 3*D*T**3)))/(12000000000*MW*T*T_REF)
+        return h_ig
+    raise ValueError("Temperature outside of function bounds!")
 
 
+def analytical_integration_ig_int_energy(T_REF, T):
+    u_ig = analytical_integration_ig_enthalpy(T_REF, T) - R_U*T
+    return u_ig
 
 
 
