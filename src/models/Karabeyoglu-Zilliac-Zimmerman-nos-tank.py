@@ -96,7 +96,7 @@ def solve_du_drho_const_T_liq(rho,T,P):
 
     preos_l = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T, P=P)
 
-    """
+    
     sqrt_two = np.sqrt(2)
     #solve a_alpha
     a_alpha = preos_l.a_alpha_pure(T)
@@ -110,8 +110,8 @@ def solve_du_drho_const_T_liq(rho,T,P):
     du_drho_const_T_l_dep = (-MW)/(rho**2)*(du_dvm_const_T_l_dep)
 
     du_drho_const_T_l = du_drho_const_T_l_dep
-    """
-    du_drho_const_T_l  = (-MW)/(rho**2)*(preos_l.dH_dep_dV_l_T -P -vm*preos_l.dP_dV_l)
+    
+    #du_drho_const_T_l  = (-MW)/(rho**2)*(preos_l.dH_dep_dV_l_T -P -vm*preos_l.dP_dV_l)
 
     #print("checking du_drho_constT_l", du_drho_const_T_l)
     #print("checking deriv 1 and 2: ", du_drho_const_T_l, testing_deriv_second_way)
@@ -127,7 +127,6 @@ def solve_du_drho_const_T_gas(rho,T,P):
     preos_g = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T, P=P)
 
     #solve a_alpha
-    """
     sqrt_two = np.sqrt(2)
     a_alpha = preos_g.a_alpha_pure(T)
 
@@ -139,9 +138,9 @@ def solve_du_drho_const_T_gas(rho,T,P):
     du_drho_const_T_g_dep = (-MW)/(rho**2)*(du_dvm_const_T_g_dep)
 
     du_drho_const_T_g = du_drho_const_T_g_dep
-    """
     
-    du_drho_const_T_g  = (-MW)/(rho**2)*(preos_g.dH_dep_dV_g_T -P -vm*preos_g.dP_dV_g)
+    
+    #du_drho_const_T_g  = (-MW)/(rho**2)*(preos_g.dH_dep_dV_g_T -P -vm*preos_g.dP_dV_g)
 
     #print("checking du_drho_constT_g", du_drho_const_T_g)
     
@@ -275,11 +274,11 @@ def solve_m_dot_evap( T_gas, T_liq, P_tank, Q_dot_liq_to_sat_surf, Q_dot_sat_sur
     P_sat_l = preos_l.Psat(T_liq)
 
 
-    if (P_tank <= P_sat_l ) and (np.abs(Q_dot_liq_to_sat_surf) > np.abs(Q_dot_sat_surf_to_gas)):
+    if (np.abs(Q_dot_liq_to_sat_surf) > np.abs(Q_dot_sat_surf_to_gas)): #(P_tank <= P_sat_l ) and 
         m_dot_evap = (Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas) / delta_h_evap
 
-        print("checking Q_dot between boundary cond! ", Q_dot_liq_to_sat_surf, Q_dot_sat_surf_to_gas)
-        print("delta_h_evap just to feel: ", (Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas) , delta_h_evap, preos_g.Hvap(T_sat)/MW)
+        #print("checking Q_dot between boundary cond! ", Q_dot_liq_to_sat_surf, Q_dot_sat_surf_to_gas)
+        #print("delta_h_evap just to feel: ", (Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas) , delta_h_evap, preos_g.Hvap(T_sat)/MW)
 
 
     #print("evap sign convention: ", Q_dot_liq_to_sat_surf, Q_dot_sat_surf_to_gas)
@@ -893,7 +892,7 @@ init_U_inj = tank.U_inj
 
 ###TODO: try solving single solve different ways!
 try:
-    while(t < 6000*TIMESTEP): #1000*TIMESTEP
+    while(t < 600*TIMESTEP): #1000*TIMESTEP
         
         tank.inst(P_cc)
         t+=TIMESTEP 
