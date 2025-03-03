@@ -325,7 +325,7 @@ def solve_U_dot_liq(T_liq, T_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, V_d
     h_gas = preos_g.H_dep_g/MW + h_ig_gas
 
 
-    U_dot_liq = -m_dot_inj*( (h_liq-h_downstream_inj ) ) - m_dot_evap*( (h_gas-h_gas_prev) ) + m_dot_cond*( (h_liq-h_liq_prev) ) -P_tank*V_dot_liq + Q_dot_net
+    U_dot_liq = -m_dot_inj*( (h_liq-h_liq_prev ) ) - m_dot_evap*( (h_gas-h_gas_prev) ) + m_dot_cond*( (h_liq-h_liq_prev) ) -P_tank*V_dot_liq + Q_dot_net
     #NOTE: m_dot_inj is currently wrong, should be a spatial difference in enthalpy
     #print("inside u dot liq: ",  -m_dot_inj*( (h_liq-h_liq_prev) ) , - m_dot_evap*( (h_gas-h_gas_prev) ) , + m_dot_cond*( (h_liq-h_liq_prev) ) , -P_tank*V_dot_liq , + Q_dot_net )
     #print("looking at u_dot_liq: ", (h_liq-h_liq_prev), P_tank*V_dot_liq )
@@ -893,7 +893,7 @@ init_U_inj = tank.U_inj
 
 ###TODO: try solving single solve different ways!
 try:
-    while(t < 200*TIMESTEP): #1000*TIMESTEP
+    while(t < 6000*TIMESTEP): #1000*TIMESTEP
         
         tank.inst(P_cc)
         t+=TIMESTEP 
