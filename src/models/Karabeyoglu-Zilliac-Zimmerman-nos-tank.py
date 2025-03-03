@@ -265,7 +265,7 @@ def solve_m_dot_evap( T_gas, T_liq, P_tank, Q_dot_liq_to_sat_surf, Q_dot_sat_sur
     h_ig_gas = analytical_integration_ig_enthalpy(T_REF, T_gas)
 
     preos_g = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_gas, P=P_tank)
-    h_gas = preos_g.H_dep_g/MW + h_ig_gas 
+    #h_gas = preos_g.H_dep_g/MW + h_ig_gas 
 
     delta_h_evap = ( (h_sat_l-h_liq) + preos_g.Hvap(T_sat)/MW )
 
@@ -650,10 +650,10 @@ class model():
         V_liq = self.V_tank - V_gas
         m_dot_cond = 0
 
-        if m_dot_evap <= 0.0:
-            m_dot_cond = solve_m_dot_condensed(T_gas, T_liq, P_tank, V_gas, t)
-            preos_g = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_gas, P=P_tank)
-            P_tank = preos_g.Psat(T_gas)
+        #if m_dot_evap <= 0.0:
+        m_dot_cond = solve_m_dot_condensed(T_gas, T_liq, P_tank, V_gas, t)
+        preos_g = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_gas, P=P_tank)
+        P_tank = preos_g.Psat(T_gas)
 
 
         # Net Mass Transfer of Liquid and Gas CV
@@ -693,8 +693,8 @@ class model():
         #print("latent heat of evap and condensation: ", preos_l.Hvap(T_liq)/MW, ((-1)*preos_g.Hvap(T_gas)/MW) )
         #print("m_dot: ", m_dot_liq, m_dot_gas, m_dot_evap, m_dot_cond, m_dot_inj)
         print("Q_dot_liq! ", Q_dot_liq, Q_dot_liq_wall_to_liq, - Q_dot_liq_to_sat_surf , - m_dot_evap*(preos_l.Hvap(T_liq)/MW), "m_dot_evap for ref: ", m_dot_evap )
-        print("Q_dot_gas! ", Q_dot_gas, Q_dot_gas_wall_to_gas, + Q_dot_sat_surf_to_gas, + m_dot_cond*(preos_g.Hvap(T_gas)/MW), "m_dot_cond for ref: ", m_dot_cond ,"\n" )
-
+        print("Q_dot_gas! ", Q_dot_gas, Q_dot_gas_wall_to_gas, + Q_dot_sat_surf_to_gas, + m_dot_cond*((-1)*preos_g.Hvap(T_gas)/MW), "m_dot_cond for ref: ", m_dot_cond ,"\n" )
+        print("latent heat terms: (evap|cond) ",(preos_l.Hvap(T_liq)/MW), "NOTE COND HAS NO EFFECT RN: ", ((-1)*preos_g.Hvap(T_gas)/MW) )
 
 
 
