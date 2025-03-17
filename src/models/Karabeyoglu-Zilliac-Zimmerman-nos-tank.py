@@ -6,6 +6,9 @@ from thermo import Chemical
 import matplotlib.pyplot as plt
 import traceback
 
+from ..thermo_property_lookup.thermo_property_lookup import get_n2o_viscosity
+#python -m src.models.Karabeyoglu-Zilliac-Zimmerman-nos-tank
+
 ### this is to test:
 LOOKUP_TIME = 0
 
@@ -126,7 +129,7 @@ def solve_Q_dot_natural_convection_liq(T_1, T_2, T_f, P_f, rho_f, c, n, L, Area,
     if fluid == "N2O":
         n2o = Chemical('N2O', T=T_f, P=P_f) 
         k_f = n2o.kl # Conductivity W/(m K)
-        visc_f = n2o.nul # Kinematic viscosity (m^2/s)
+        visc_f = get_n2o_viscosity(T_f, P_f, "liquid") # Kinematic viscosity (m^2/s)
 
         Cp_ig = solve_cp_ig_polynomial(T_f)
 
@@ -162,7 +165,8 @@ def solve_Q_dot_natural_convection_gas(T_1, T_2, T_f, P_f, rho_f, c, n, L, Area,
     if fluid == "N2O":
         n2o = Chemical('N2O', T=T_f, P=P_f)  #TODO: units here!!!
         k_f = n2o.kg # Conductivity W/(m K)
-        visc_f = n2o.nug # Kinematic viscosity (m^2/s)
+        visc_f = get_n2o_viscosity(T_f, P_f, "vapor") # Kinematic viscosity (m^2/s)
+        print("kinematic visc gas: ", visc_f)
 
         Cp_ig = solve_cp_ig_polynomial(T_f)
 
