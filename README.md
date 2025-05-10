@@ -5,8 +5,9 @@
 This program was designed to be a framework for a user to combine and use different models to simulate a rocket engine.
 
 ## RUNNING THE PROGRAM:
+This file takes input in the form of a python module file. 
 
-In the directory this file is in:  #python3 -m src <filename of a validation case without the .py>
+In the directory this file is in:  #python3 -m src <filename of a desired python module file without the .py>
 
 The inputs folder contains the input files where the user can update the inputs the program uses.
 
@@ -14,7 +15,7 @@ the analysis_mode list is used to select the types of models used by the program
 
 [TODO: DOCUMENT MODELS IN EACH FILE]
 
-
+source venv/bin/activate
 
 
 ## Context:
