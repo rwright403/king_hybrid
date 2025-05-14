@@ -118,7 +118,7 @@ def analytical_integration_ig_int_energy(T_REF, T):
 
 
 def solve_du_drho_const_T_liq_central_diff(T_liq, rho_liq, delta_rho):
-    # my bad guys i kept messing up the calculus
+    # my bad guys its numerical bc kept messing up the calculus
     rho_0 = rho_liq - delta_rho
     vm_0 = MW/rho_0 
     preos_l_0 = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_liq, V= vm_0)
@@ -134,7 +134,7 @@ def solve_du_drho_const_T_liq_central_diff(T_liq, rho_liq, delta_rho):
 
 
 def solve_du_drho_const_T_gas_central_diff(T_gas, rho_gas, delta_rho):
-    # my bad guys i kept messing up the calculus
+    # my bad guys its numerical bc kept messing up the calculus
     rho_0 = rho_gas - delta_rho
     vm_0 = MW/rho_0 
     preos_g_0 = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_gas, V= vm_0)
@@ -245,16 +245,18 @@ def spi_model(Cd_hem_spi_dyer, A_inj_ox, P_1, P_2, rho_tank_exit):
 
     m_dot_spi = np.interp(LOOKUP_TIME, pipe_inj_time , pipe_inj_m_dot)
     """
-
+#NOTE: PIPING M_DOT TO ISOLATE REST OF MODEL FOR DEBUG
     m_dot_spi = -3.75
     return m_dot_spi
 
 
 def solve_m_dot_evap( T_gas, T_liq, P_tank, Q_dot_liq_to_sat_surf, Q_dot_sat_surf_to_gas):
     m_dot_evap = 0
-    print("evap heat transfer rates: ", (Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas), Q_dot_liq_to_sat_surf, Q_dot_sat_surf_to_gas)
+    #print("evap heat transfer rates: ", (Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas), Q_dot_liq_to_sat_surf, Q_dot_sat_surf_to_gas)
     if (Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas) > 0:
 
+        #old, this is wrong and does not match the thesis!
+        """
         h_ig_liq = analytical_integration_ig_enthalpy(T_REF, T_liq)
 
         preos_l = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_liq, P=P_tank)
@@ -266,7 +268,23 @@ def solve_m_dot_evap( T_gas, T_liq, P_tank, Q_dot_liq_to_sat_surf, Q_dot_sat_sur
         h_gas = preos_g.H_dep_g/MW + h_ig_gas 
 
         m_dot_evap = (Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas) / (h_gas-h_liq) 
-    
+        """
+
+        h_ig_liq = analytical_integration_ig_enthalpy(T_REF, T_liq)
+
+        preos_l = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_liq, P=P_tank)
+        h_liq = preos_l.H_dep_l/MW + h_ig_liq 
+
+        T_sat = preos_l.Tsat(P_tank)
+
+        h_ig_sat = analytical_integration_ig_enthalpy(T_REF, T_liq)
+
+        preos_sat = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_sat, P=P_tank)
+        h_sat = preos_l.H_dep_l/MW + h_ig_sat 
+
+
+        m_dot_evap = (Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas) / ( preos_sat.Hvap(T_sat)/MW + (h_sat -h_liq)  )  #if this doesnt work check functions and if they are as reusable as i treat them
+
     return m_dot_evap
 
 
@@ -278,6 +296,8 @@ def solve_m_dot_condensed(T_gas, T_liq, P_tank, V_gas, t):
 
     if (P_tank > P_sat_g):
         m_dot_cond = ((P_tank-P_sat_g)*V_gas*MW)/( preos_g.Z_g*(R_U/MW)*T_gas*(TIMESTEP) )  
+
+    #if p_tank > p_sat_gas, then condensation to enforce equilibrium
 
 ###NOTE: try m_dot_cond = 0
     m_dot_cond = 0
@@ -392,12 +412,17 @@ def single_solve_T_dot_liq_gas(V_dot_liq, m_liq, m_gas, T_liq, T_gas, rho_liq, r
     u_ig_liq = analytical_integration_ig_int_energy(T_REF, T_liq)
     u_liq = preos_l.U_dep_l/MW + u_ig_liq 
    
+    #m_dot_out_of_liq = m_dot_evap
+    #m_dot_out_of_gas = m_dot_cond
 
-    T_dot_liq = (1/Cv_liq)*( (1/m_liq) * (U_dot_liq - (u_liq-u_liq_prev)*m_dot_liq) - (partial_du_d_rho_const_T_liq* d_rho_dt_liq) )
-    T_dot_gas = (1/Cv_gas)*( (1/m_gas) * (U_dot_gas - (u_gas-u_gas_prev)*m_dot_gas) - (partial_du_d_rho_const_T_gas* d_rho_dt_gas) )
+    T_dot_liq = (1/Cv_liq)*( (1/m_liq) * (U_dot_liq - (u_liq-u_liq_prev)*np.abs(m_dot_evap)) - (partial_du_d_rho_const_T_liq* d_rho_dt_liq) )
+    T_dot_gas = (1/Cv_gas)*( (1/m_gas) * (U_dot_gas - (u_gas-u_gas_prev)*np.abs(m_dot_cond)) - (partial_du_d_rho_const_T_gas* d_rho_dt_gas) )
+
 
     if debug_mode == True:
         a = 1
+        #print("T_dot_liq: ", T_dot_liq, (U_dot_liq - (u_liq-u_liq_prev)*np.abs(m_dot_evap)) , - (partial_du_d_rho_const_T_liq* d_rho_dt_liq)  )
+        print("U_dot liq/gas: ", U_dot_liq, U_dot_gas)
         #print("looking at T_dot: ", m_dot_evap, T_dot_liq, T_dot_gas)
 #TODO: delete at some point
 
@@ -584,7 +609,7 @@ class model():
         # Mass transfer (3) by evaporation 
         m_dot_evap = solve_m_dot_evap( T_gas, T_liq, P_tank, Q_dot_liq_to_sat_surf, Q_dot_sat_surf_to_gas)
         #print("m_dot_evap 1: ", m_dot_evap)
-        #print("m_dot_evap! ", m_dot_evap, T_gas, T_liq, P_tank, Q_dot_liq_to_sat_surf, Q_dot_sat_surf_to_gas)
+        #print("m_dot_evap! ", m_dot_evap, (Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas), Q_dot_liq_to_sat_surf, " - ", Q_dot_sat_surf_to_gas)
 
         # Mass transfer (2) by condensation
         V_gas = m_gas/rho_gas
@@ -618,8 +643,19 @@ class model():
         preos_g = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_gas, P=P_tank)
 
 ###NOTE: Q_dot eqns:
-        Q_dot_liq = Q_dot_liq_wall_to_liq - Q_dot_liq_to_sat_surf - m_dot_evap*( preos_g.Hvap(T_gas)/MW  )
-        Q_dot_gas = Q_dot_gas_wall_to_gas + Q_dot_sat_surf_to_gas - m_dot_cond*( (-1)*preos_l.Hvap(T_liq)/MW )
+        Q_dot_liq = Q_dot_liq_wall_to_liq - Q_dot_liq_to_sat_surf - m_dot_cond*( (-1)*preos_l.Hvap(T_liq)/MW ) #- m_dot_evap*( preos_g.Hvap(T_gas)/MW  ) I think this is double counting
+        Q_dot_gas = Q_dot_gas_wall_to_gas + Q_dot_sat_surf_to_gas + m_dot_evap*( preos_g.Hvap(T_gas)/MW  ) #- m_dot_cond*( (-1)*preos_l.Hvap(T_liq)/MW ) I think this is double counting
+        
+        #print("Q_dot_net liq/gas: ", Q_dot_liq, Q_dot_gas)
+        #print("m_dot_ evap/cond: ", m_dot_evap, m_dot_cond)
+
+        #print("Q_dot_gas: ", Q_dot_gas, m_dot_evap*( preos_g.Hvap(T_gas)/MW  ))
+        #NOTE: tESTING DELETE AFTER
+        #Q_dot_gas = Q_dot_gas*1.5
+        #print("energy into boundary/ energy transfered to gas to evap: ", (Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas), m_dot_evap*( preos_g.Hvap(T_gas)/MW  )  )
+
+        #print("sat surface to gas, expect sign to be + ", Q_dot_sat_surf_to_gas)
+
 
         """print(f"Q_dot_liq!  {Q_dot_liq:.8f} {Q_dot_liq_wall_to_liq:.8f} {-Q_dot_liq_to_sat_surf:.8f} {-m_dot_evap*( preos_g.Hvap(T_gas)/MW  ):.8f} m_dot_evap for ref: {m_dot_evap:.8f} ")
         print(f"Q_dot_gas!  {Q_dot_gas:.8f} {Q_dot_gas_wall_to_gas:.8f} {Q_dot_sat_surf_to_gas:.8f}  {-m_dot_cond*(  (-1)*preos_l.Hvap(T_liq)/MW):.8f} m_dot_cond for ref {m_dot_cond} \n" )
@@ -692,7 +728,7 @@ class model():
         y0 = [self.T_liq, self.T_gas, self.m_liq, self.m_gas, self.T_wall_liq, self.T_wall_gas, self.m_inj, self.U_liq, self.U_gas, self.U_inj, self.Q_net_liq_cv_out, self.Q_net_gas_cv_out]
         constants = [P_cc, self.h_liq_prev, self.h_gas_prev, self.u_liq_prev, self.u_gas_prev, self.Q_net_liq_cv_out, self.Q_net_gas_cv_out] #constant over 4 rk steps
 
-        print(" * * * masses: ", self.m_liq, self.m_gas, self.m_inj)
+        #print(" * * * masses: ", self.m_liq, self.m_gas, self.m_inj)
 
         # NOTE: y is a vector, k1-k4 are derivatives of sol!
         k1 = self.system_of_liq_odes(t, y0, constants)
@@ -811,7 +847,7 @@ init_U_inj = tank.U_inj
 try:
     start_time = time.time()  # Start timer
 
-    while(t < 1): #3000*TIMESTEP
+    while(t < 0.55): #3000*TIMESTEP
         
         tank.inst(P_cc)
         t+=TIMESTEP 
@@ -821,7 +857,7 @@ try:
         #print("\n next timestep \n")
         
         P_tank_arr.append(tank.P_tank)
-        m_tank_arr.append( (tank.m_liq+tank.m_gas) )
+        m_tank_arr.append( (tank.m_liq+tank.m_gas+tank.m_inj) )
         m_liq_arr.append(tank.m_liq)
         m_gas_arr.append(tank.m_gas)
 
@@ -954,15 +990,18 @@ print(f"\n\n\n\nInitial Total Energy: {init_U_liq + init_U_gas + init_U_inj} (J)
 print("Initial Energy Components: ", init_U_liq , init_U_gas , init_U_inj)
 print(f"Final Total Energy: {tank.U_liq + tank.U_gas + tank.U_inj} (J)\nFinal Total Mass: {tank.m_liq + tank.m_gas + np.abs(tank.m_inj)} (kg)")
 
-percent_diff_U = ((tank.U_liq + tank.U_gas + tank.U_inj)-(init_U_liq + init_U_gas + init_U_inj)) /((init_U_liq + init_U_gas + init_U_inj))*100
+percent_diff_U = ((tank.U_liq + tank.U_gas + tank.U_inj)-(init_U_liq + init_U_gas + init_U_inj)) /(np.abs(init_U_liq + init_U_gas + init_U_inj))*100
+
 percent_diff_m = ((tank.m_liq + tank.m_gas + tank.m_inj)-(init_m_liq + init_m_gas + init_m_inj)) /((init_m_liq + init_m_gas + init_m_inj))*100
 
 print("percent difference to original mass and total energy: ", percent_diff_m ,"%" , percent_diff_U,"%"  )
 
 print("Final Energy Components: ", tank.U_liq , tank.U_gas , tank.U_inj)
 
-print("Difference Between Initial and Final Energy in CV: ", init_U_liq-tank.U_liq , init_U_gas-tank.U_gas, init_U_inj-tank.U_inj )
+#print("Difference Between Initial and Final Energy in CV: ", init_U_liq-tank.U_liq , init_U_gas-tank.U_gas, init_U_inj-tank.U_inj )
 
 print("Net Heat Transfer Liq and Gas Nodes ", tank.Q_net_liq_cv_out, tank.Q_net_gas_cv_out)
+
+print("\nMass of gas before/after: ", init_m_gas, tank.m_gas, "\nMass of liq before/after: ",init_m_liq, tank.m_liq)
 
 plt.show()
