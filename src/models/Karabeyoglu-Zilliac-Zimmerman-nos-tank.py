@@ -317,7 +317,8 @@ def solve_U_dot_liq(T_liq, T_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, V_d
     h_gas = preos_g.H_dep_g/MW + h_ig_gas
 
 
-    U_dot_liq = -m_dot_inj*( (h_liq-h_liq_prev ) ) - m_dot_evap*( (h_gas-h_gas_prev) ) + m_dot_cond*( (h_liq-h_liq_prev) ) -P_tank*V_dot_liq + Q_dot_net
+    # test U_dot_liq = -m_dot_inj*( (h_liq-h_liq_prev ) ) - m_dot_evap*( (h_gas-h_gas_prev) ) -P_tank*V_dot_liq + Q_dot_net
+    U_dot_liq = m_dot_inj*( (h_liq-h_liq_prev ) ) - m_dot_evap*( (h_gas-h_gas_prev) ) + m_dot_cond*( (h_liq-h_liq_prev) ) -P_tank*V_dot_liq + Q_dot_net
     #NOTE: m_dot_inj term might be a spatial difference in enthalpy, keep this in mind if more issues
 
     return U_dot_liq
@@ -334,7 +335,6 @@ def solve_U_dot_gas(T_liq, T_gas, P_tank, m_dot_evap, m_dot_cond, V_dot_gas, Q_d
     h_ig_gas = analytical_integration_ig_enthalpy(T_REF, T_gas)
     preos_g = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_gas, P=P_tank)
     h_gas = preos_g.H_dep_g/MW + h_ig_gas
-
 
     U_dot_gas = m_dot_evap*( (h_gas-h_gas_prev) ) - m_dot_cond*( (h_liq-h_liq_prev) ) - P_tank*V_dot_gas + Q_dot_net 
 
@@ -415,14 +415,14 @@ def single_solve_T_dot_liq_gas(V_dot_liq, m_liq, m_gas, T_liq, T_gas, rho_liq, r
     #m_dot_out_of_liq = m_dot_evap
     #m_dot_out_of_gas = m_dot_cond
 
-    T_dot_liq = (1/Cv_liq)*( (1/m_liq) * (U_dot_liq - (u_liq-u_liq_prev)*np.abs(m_dot_evap)) - (partial_du_d_rho_const_T_liq* d_rho_dt_liq) )
-    T_dot_gas = (1/Cv_gas)*( (1/m_gas) * (U_dot_gas - (u_gas-u_gas_prev)*np.abs(m_dot_cond)) - (partial_du_d_rho_const_T_gas* d_rho_dt_gas) )
+    T_dot_liq = (1/Cv_liq)*( (1/m_liq) * (U_dot_liq - (u_liq-u_liq_prev)*np.abs(m_dot_liq)) - (partial_du_d_rho_const_T_liq* d_rho_dt_liq) )
+    T_dot_gas = (1/Cv_gas)*( (1/m_gas) * (U_dot_gas - (u_gas-u_gas_prev)*np.abs(m_dot_gas)) - (partial_du_d_rho_const_T_gas* d_rho_dt_gas) )
 
 
     if debug_mode == True:
         a = 1
         #print("T_dot_liq: ", T_dot_liq, (U_dot_liq - (u_liq-u_liq_prev)*np.abs(m_dot_evap)) , - (partial_du_d_rho_const_T_liq* d_rho_dt_liq)  )
-        print("U_dot liq/gas: ", U_dot_liq, U_dot_gas)
+        #print("U_dot liq/gas: ", U_dot_liq, U_dot_gas)
         #print("looking at T_dot: ", m_dot_evap, T_dot_liq, T_dot_gas)
 #TODO: delete at some point
 
@@ -609,15 +609,16 @@ class model():
         # Mass transfer (3) by evaporation 
         m_dot_evap = solve_m_dot_evap( T_gas, T_liq, P_tank, Q_dot_liq_to_sat_surf, Q_dot_sat_surf_to_gas)
         #print("m_dot_evap 1: ", m_dot_evap)
-        #print("m_dot_evap! ", m_dot_evap, (Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas), Q_dot_liq_to_sat_surf, " - ", Q_dot_sat_surf_to_gas)
+        print("m_dot_evap! ", m_dot_evap, (Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas), Q_dot_liq_to_sat_surf, " - ", Q_dot_sat_surf_to_gas)
 
         # Mass transfer (2) by condensation
         V_gas = m_gas/rho_gas
         V_liq = self.V_tank - V_gas
 
         m_dot_cond = solve_m_dot_condensed(T_gas, T_liq, P_tank, V_gas, t)
-        preos_g = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_gas, P=P_tank)
-        P_tank = preos_g.Psat(T_gas)
+
+        #preos_g = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_gas, P=P_tank)
+        #P_tank = preos_g.Psat(T_gas)
 
 
         # Net Mass Transfer of Liquid and Gas CV
@@ -642,27 +643,13 @@ class model():
         preos_l = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_liq, P=P_tank)
         preos_g = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_gas, P=P_tank)
 
-###NOTE: Q_dot eqns:
-        Q_dot_liq = Q_dot_liq_wall_to_liq - Q_dot_liq_to_sat_surf - m_dot_cond*( (-1)*preos_l.Hvap(T_liq)/MW ) #- m_dot_evap*( preos_g.Hvap(T_gas)/MW  ) I think this is double counting
-        Q_dot_gas = Q_dot_gas_wall_to_gas + Q_dot_sat_surf_to_gas + m_dot_evap*( preos_g.Hvap(T_gas)/MW  ) #- m_dot_cond*( (-1)*preos_l.Hvap(T_liq)/MW ) I think this is double counting
+###NOTE: Q_dot eqns: 
+        Q_dot_liq = Q_dot_liq_wall_to_liq - Q_dot_liq_to_sat_surf #- m_dot_cond*( (-1)*preos_l.Hvap(T_liq)/MW ) #- m_dot_evap*( preos_g.Hvap(T_gas)/MW  ) I think this is double counting
+        Q_dot_gas = Q_dot_gas_wall_to_gas + Q_dot_sat_surf_to_gas #+ m_dot_evap*( preos_g.Hvap(T_gas)/MW  ) #- m_dot_cond*( (-1)*preos_l.Hvap(T_liq)/MW ) I think this is double counting
         
-        #print("Q_dot_net liq/gas: ", Q_dot_liq, Q_dot_gas)
-        #print("m_dot_ evap/cond: ", m_dot_evap, m_dot_cond)
-
-        #print("Q_dot_gas: ", Q_dot_gas, m_dot_evap*( preos_g.Hvap(T_gas)/MW  ))
-        #NOTE: tESTING DELETE AFTER
-        #Q_dot_gas = Q_dot_gas*1.5
-        #print("energy into boundary/ energy transfered to gas to evap: ", (Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas), m_dot_evap*( preos_g.Hvap(T_gas)/MW  )  )
-
-        #print("sat surface to gas, expect sign to be + ", Q_dot_sat_surf_to_gas)
-
-
-        """print(f"Q_dot_liq!  {Q_dot_liq:.8f} {Q_dot_liq_wall_to_liq:.8f} {-Q_dot_liq_to_sat_surf:.8f} {-m_dot_evap*( preos_g.Hvap(T_gas)/MW  ):.8f} m_dot_evap for ref: {m_dot_evap:.8f} ")
-        print(f"Q_dot_gas!  {Q_dot_gas:.8f} {Q_dot_gas_wall_to_gas:.8f} {Q_dot_sat_surf_to_gas:.8f}  {-m_dot_cond*(  (-1)*preos_l.Hvap(T_liq)/MW):.8f} m_dot_cond for ref {m_dot_cond} \n" )
-"""
-        #print(f"Q_dot_liq!  {Q_dot_liq_wall_to_liq:.8f} {-Q_dot_liq_to_sat_surf:.8f} {-m_dot_evap*( preos_g.Hvap(T_gas)/MW  ):.8f} m_dot_evap for ref: {m_dot_evap:.8f} ")
-        #print(f"Q_dot_gas!  {Q_dot_gas_wall_to_gas:.8f} {Q_dot_sat_surf_to_gas:.8f} {-m_dot_cond*(  (-1)*preos_l.Hvap(T_liq)/MW):.8f} m_dot_cond for ref {m_dot_cond:.8f} \n" )
-
+        #I believe above is correct but this incase i need to change where terms are applied:
+        #Q_dot_liq = Q_dot_liq_wall_to_liq - Q_dot_liq_to_sat_surf + m_dot_evap*( preos_g.Hvap(T_gas)/MW  )  #- m_dot_evap*( preos_g.Hvap(T_gas)/MW  ) I think this is double counting
+        #Q_dot_gas = Q_dot_gas_wall_to_gas + Q_dot_sat_surf_to_gas - m_dot_cond*( (-1)*preos_l.Hvap(T_liq)/MW )
 
 
         #NOTE: USE ambient properties for air, T_2 will be respective wall temperature (RK var)
@@ -697,6 +684,9 @@ class model():
 
 
         T_dot_liq, T_dot_gas = single_solve_T_dot_liq_gas(V_dot_liq, m_liq, m_gas, T_liq, T_gas, rho_liq, rho_gas, V_liq, V_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas, self.h_liq_prev, self.h_gas_prev, self.u_liq_prev, self.u_gas_prev, True)
+
+
+
 
 
         ### Debug Code:
