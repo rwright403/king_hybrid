@@ -27,7 +27,7 @@ KAPPA = 0.37464 + 1.5422*n2o_g.omega - 0.26992*n2o_g.omega**2
 b = 0.07780*(R_U*TC/PC)
 g = 9.81 #m/s^2
 
-H_OFFSET = 1.5e5
+H_OFFSET = 0 #4.56e4
 
 def secant(func, x1):
     x_eps = x1 * 0.005  # Set the tolerance to be 0.5% of init guess
@@ -280,12 +280,13 @@ def solve_m_dot_evap( T_gas, T_liq, P_tank, Q_dot_liq_to_sat_surf, Q_dot_sat_sur
         h_ig_sat = analytical_integration_ig_enthalpy(T_REF, T_liq)
 
         preos_sat = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_sat, P=P_tank)
-        h_sat = preos_l.H_dep_l/MW + h_ig_sat + H_OFFSET 
+        h_sat_liq = preos_sat.H_dep_l/MW + h_ig_sat + H_OFFSET 
+        h_sat_gas = preos_sat.H_dep_g/MW + h_ig_sat + H_OFFSET
 
+        m_dot_evap = (Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas) / ( (h_sat_gas-h_sat_liq) + (h_sat_liq - h_liq)  )  #if this doesnt work check functions and if they are as reusable as i treat them
 
-        m_dot_evap = (Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas) / ( preos_sat.Hvap(T_sat)/MW + (h_sat -h_liq)  )  #if this doesnt work check functions and if they are as reusable as i treat them
+        #print("sign convention in m_dot_evap Q: ", Q_dot_liq_to_sat_surf, - Q_dot_sat_surf_to_gas)
 
-        m_dot_evap = 0
     return m_dot_evap
 
 
@@ -676,8 +677,8 @@ class model():
         h_gas = preos_g.H_dep_g/MW + h_ig_gas + H_OFFSET
 
 ###NOTE: Q_dot eqns: 
-        Q_dot_liq = Q_dot_liq_wall_to_liq - Q_dot_liq_to_sat_surf + m_dot_evap*(h_liq - h_sat_liq)
-        Q_dot_gas = Q_dot_gas_wall_to_gas + Q_dot_sat_surf_to_gas + m_dot_evap*(h_sat_gas - h_gas)
+        Q_dot_liq = 0#Q_dot_liq_wall_to_liq - Q_dot_liq_to_sat_surf + m_dot_evap*(h_liq - h_sat_liq)
+        Q_dot_gas = 0#Q_dot_gas_wall_to_gas + Q_dot_sat_surf_to_gas + m_dot_evap*(h_sat_gas - h_gas)
 
         #print("Q_dot_liq signs: ", Q_dot_liq, Q_dot_liq_wall_to_liq, - Q_dot_liq_to_sat_surf, m_dot_evap*(h_liq - h_sat_liq) )
         #print("Q_dot_gas signs: ", Q_dot_gas, Q_dot_gas_wall_to_gas,   Q_dot_sat_surf_to_gas, m_dot_evap*(h_sat_gas - h_gas) )
@@ -730,6 +731,9 @@ class model():
         U_dot_gas = solve_U_dot_gas(T_liq, T_gas, P_tank, m_dot_evap, m_dot_cond, (-V_dot_liq), Q_dot_gas, self.h_liq_prev, self.h_gas_prev)
 
 
+        print("cons energy for adiabatic nodes w liq exit at inj: ", U_dot_liq + U_dot_gas, " = ", m_dot_inj*h_liq )
+        print("cons energy for adiabatic tank w liq exit at inj: ", U_dot_liq + U_dot_gas, " = ", m_dot_inj*h_liq +Q_dot_liq + Q_dot_gas, "expecting 0: ", P_tank * (V_dot_liq + (-V_dot_liq) ))
+
         ### solving U_dot_inj:
         
         preos_l = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_liq, P=P_tank)
@@ -741,11 +745,9 @@ class model():
 
         h_liq = h_ig_liq + preos_l.H_dep_l/MW + H_OFFSET
 
-        U_dot_inj = m_dot_inj*(h_liq) 
-
         #print("m_dot_evap 2: ", m_dot_evap)
 
-        return [T_dot_liq, T_dot_gas, m_dot_liq, m_dot_gas, T_dot_wall_liq, T_dot_wall_gas, np.abs(m_dot_inj), U_dot_liq, U_dot_gas, U_dot_inj, Q_dot_liq, Q_dot_gas]
+        return [T_dot_liq, T_dot_gas, m_dot_liq, m_dot_gas, T_dot_wall_liq, T_dot_wall_gas, np.abs(m_dot_inj), U_dot_liq, U_dot_gas, 1, Q_dot_liq, Q_dot_gas]
 
     def inst(self, P_cc):
 
@@ -863,7 +865,7 @@ init_m_gas = tank.m_gas
 init_m_inj = tank.m_inj
 init_U_liq = tank.U_liq
 init_U_gas = tank.U_gas
-init_U_inj = tank.U_inj
+init_U_inj = 0
 
 ###NOTE:
 #is thermo table or thermo lookup faster?
@@ -911,7 +913,14 @@ try:
         m_inj_arr.append(tank.m_inj)
         U_liq_arr.append(tank.U_liq)
         U_gas_arr.append(tank.U_gas)
-        U_inj_arr.append(tank.U_inj)
+
+
+        preos_l = PR(Tc=TC, Pc=PC, omega=OMEGA, T=tank.T_liq, P=P_tank)
+
+        u_ig_liq = analytical_integration_ig_int_energy(T_REF, tank.T_liq)
+        u_liq = preos_l.U_dep_l/MW + u_ig_liq 
+
+        U_inj_arr.append(u_liq*tank.m_inj)
         #print("u inj sign convention!!! ", tank.u_inj)
 
 
@@ -1011,21 +1020,10 @@ plt.legend()
 plt.grid(True)
 
 
-print(f"\n\n\n\nInitial Total Energy: {init_U_liq + init_U_gas + init_U_inj} (J)\nInitial Total Mass: {init_m_liq + init_m_gas + np.abs(init_m_inj)} (kg)")
-print("Initial Energy Components: ", init_U_liq , init_U_gas , init_U_inj)
-print(f"Final Total Energy: {tank.U_liq + tank.U_gas + tank.U_inj} (J)\nFinal Total Mass: {tank.m_liq + tank.m_gas + np.abs(tank.m_inj)} (kg)")
-
-percent_diff_U = ((tank.U_liq + tank.U_gas + tank.U_inj)-(init_U_liq + init_U_gas + init_U_inj)) /(np.abs(init_U_liq + init_U_gas + init_U_inj))*100
+print(f"\n\n\n\nInitial Total Mass: {init_m_liq + init_m_gas + np.abs(init_m_inj)} (kg)")
 
 percent_diff_m = ((tank.m_liq + tank.m_gas + tank.m_inj)-(init_m_liq + init_m_gas + init_m_inj)) /((init_m_liq + init_m_gas + init_m_inj))*100
 
-print("percent difference to original mass and total energy: ", percent_diff_m ,"%" , percent_diff_U,"%"  )
-
-print("Final Energy Components: ", tank.U_liq , tank.U_gas , tank.U_inj)
-
-#print("Difference Between Initial and Final Energy in CV: ", init_U_liq-tank.U_liq , init_U_gas-tank.U_gas, init_U_inj-tank.U_inj )
-
-print("Net Heat Transfer Liq and Gas Nodes ", tank.Q_net_liq_cv_out, tank.Q_net_gas_cv_out)
 
 print("\nMass of gas before/after: ", init_m_gas, tank.m_gas, "\nMass of liq before/after: ",init_m_liq, tank.m_liq)
 
