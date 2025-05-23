@@ -68,7 +68,7 @@ def gas_dynamic_visc_polynomial(T):
 def liq_dynamic_visc_polynomial(T):
     # Polynomial coefficients
     A = 0.001877085
-    B = 1.1864E-5
+    B = -1.1864E-5  #NOTE: Thesis reported B = 1.1864E-5 but this will return a dynamic viscosity orders of magnitude higher than expected. From testing this function found it was likely signed wrong in the thesis.
     C = 1.928E-8 
 
     # Apply temperature limits
@@ -160,10 +160,10 @@ def solve_Q_dot_natural_convection_liq(T_1, T_2, T_f, P_f, rho_f, c, n, L, Area,
         visc_f = dyn_visc_f/rho_f
         #visc_f = get_n2o_viscosity(T_f, P_f, "liquid") # Kinematic viscosity (m^2/s)
 
-        Cp_ig = solve_cp_ig_polynomial(T_f)
+        cp_ig = solve_cp_ig_polynomial(T_f)
 
         preos_l = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_f, P=P_f)
-        Cp_f = (preos_l.Cp_dep_l/MW + Cp_ig) #J/K 
+        cp_f = (preos_l.Cp_dep_l/MW + cp_ig) #J/K 
 
         dV_dT_P = preos_l.dV_dT_l
         beta = (1/preos_l.V_l)*dV_dT_P
@@ -173,11 +173,11 @@ def solve_Q_dot_natural_convection_liq(T_1, T_2, T_f, P_f, rho_f, c, n, L, Area,
         dyn_visc_f = CP.PropsSI('V', 'T', T_f, 'P', P_f, 'Air')  # Dynamic viscosity (Pa s)
         visc_f = dyn_visc_f/rho_f
         
-        Cp_f = CP.PropsSI("Cpmass", "T", T_f, "P", P_f, "Air")
+        cp_f = CP.PropsSI("Cpmass", "T", T_f, "P", P_f, "Air")
         beta = CP.PropsSI("ISOBARIC_EXPANSION_COEFFICIENT", "T", T_f, "P", P_f, "Air")
 
     Gr = ((L**3)*g*beta*np.abs(T_2 - T_1) ) / (visc_f**2)
-    Pr = (Cp_f*visc_f)/ k_f
+    Pr = (cp_f*visc_f)/ k_f
     X = Gr*Pr
 
     h = c * (k_f/L) * X**n
@@ -198,10 +198,10 @@ def solve_Q_dot_natural_convection_gas(T_1, T_2, T_f, P_f, rho_f, c, n, L, Area,
         visc_f = dyn_visc_f/rho_f
         #visc_f = get_n2o_viscosity(T_f, P_f, "vapor") # Kinematic viscosity (m^2/s)
 
-        Cp_ig = solve_cp_ig_polynomial(T_f)
+        cp_ig = solve_cp_ig_polynomial(T_f)
 
         preos_g = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_f, P=P_f)
-        Cp_f = (preos_g.Cp_dep_g/MW + Cp_ig)
+        cp_f = (preos_g.Cp_dep_g/MW + cp_ig)
         
         dV_dT_P = preos_g.dV_dT_g 
         beta = (1/preos_g.V_g)*dV_dT_P
@@ -211,11 +211,11 @@ def solve_Q_dot_natural_convection_gas(T_1, T_2, T_f, P_f, rho_f, c, n, L, Area,
         dyn_visc_f = CP.PropsSI('V', 'T', T_f, 'P', P_f, 'Air')  # Dynamic viscosity (Pa s)
         visc_f = dyn_visc_f/rho_f 
         
-        Cp_f = CP.PropsSI("Cpmass", "T", T_f, "P", P_atm, "Air")
+        cp_f = CP.PropsSI("Cpmass", "T", T_f, "P", P_atm, "Air")
         beta = CP.PropsSI("ISOBARIC_EXPANSION_COEFFICIENT", "T", T_f, "P", P_f, "Air")
 
     Gr = ((L**3)*g*beta*np.abs(T_2 - T_1) ) / (visc_f**2)
-    Pr = (Cp_f*visc_f)/ k_f
+    Pr = (cp_f*visc_f)/ k_f
     X = Gr*Pr
 
     h = c * (k_f/L) * X**n
@@ -277,7 +277,7 @@ def solve_m_dot_evap( T_gas, T_liq, P_tank, Q_dot_liq_to_sat_surf, Q_dot_sat_sur
 
         T_sat = preos_l.Tsat(P_tank)
 
-        h_ig_sat = analytical_integration_ig_enthalpy(T_REF, T_liq)
+        h_ig_sat = analytical_integration_ig_enthalpy(T_REF, T_sat)
 
         preos_sat = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_sat, P=P_tank)
         h_sat_liq = preos_sat.H_dep_l/MW + h_ig_sat + H_OFFSET 
@@ -328,6 +328,8 @@ def solve_U_dot_liq(T_liq, T_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, V_d
     """
 
     # test U_dot_liq = -m_dot_inj*( (h_liq-h_liq_prev ) ) - m_dot_evap*( (h_gas-h_gas_prev) ) -P_tank*V_dot_liq + Q_dot_net
+    #U_dot_liq = m_dot_inj*h_liq  + m_dot_cond*( 0 ) -P_tank*V_dot_liq + Q_dot_net
+
     U_dot_liq = m_dot_inj*h_liq - m_dot_evap*(h_sat_gas - h_sat_liq) + m_dot_cond*( 0 ) -P_tank*V_dot_liq + Q_dot_net
     #NOTE: m_dot_inj term might be a spatial difference in enthalpy, keep this in mind if more issues
 
@@ -354,7 +356,7 @@ def solve_U_dot_gas(T_liq, T_gas, P_tank, m_dot_evap, m_dot_cond, V_dot_gas, Q_d
     #h_sat_liq = preos_sat.H_dep_l/MW + h_ig_sat + H_OFFSET
 
     h_ig_gas = analytical_integration_ig_enthalpy(T_REF, T_gas)
-    h_gas = preos_g.H_dep_g/MW + h_ig_gas + H_OFFSET
+    #h_gas = preos_g.H_dep_g/MW + h_ig_gas + H_OFFSET
 
     U_dot_gas = m_dot_evap*h_sat_gas - m_dot_cond*( (0) ) - P_tank*V_dot_gas + Q_dot_net 
 
@@ -420,7 +422,7 @@ def single_solve_T_dot_liq_gas(V_dot_liq, m_liq, m_gas, T_liq, T_gas, rho_liq, r
     partial_du_d_rho_const_T_gas = solve_du_drho_const_T_gas_central_diff(T_gas,rho_gas,0.00001)
     
     cv_ig_gas = solve_cv_ig_polynomial(T_gas)
-    Cv_gas = preos_g.Cv_dep_g/MW + cv_ig_gas
+    cv_gas = preos_g.Cv_dep_g/MW + cv_ig_gas
 
     u_ig_gas = analytical_integration_ig_int_energy(T_REF, T_gas)
     u_gas = preos_g.U_dep_g/MW + u_ig_gas 
@@ -430,17 +432,31 @@ def single_solve_T_dot_liq_gas(V_dot_liq, m_liq, m_gas, T_liq, T_gas, rho_liq, r
     partial_du_d_rho_const_T_liq = solve_du_drho_const_T_liq_central_diff(T_liq,rho_liq,0.00001)
 
     cv_ig_liq = solve_cv_ig_polynomial(T_liq)
-    Cv_liq = (preos_l.Cv_dep_l/MW + cv_ig_liq)
+    cv_liq = (preos_l.Cv_dep_l/MW + cv_ig_liq)
 
     u_ig_liq = analytical_integration_ig_int_energy(T_REF, T_liq)
     u_liq = preos_l.U_dep_l/MW + u_ig_liq 
 
 
-    T_dot_liq = (1/Cv_liq)*( (1/m_liq) * (U_dot_liq - (u_liq*m_dot_liq)) - (partial_du_d_rho_const_T_liq* d_rho_dt_liq) )
-    T_dot_gas = (1/Cv_gas)*( (1/m_gas) * (U_dot_gas - (u_gas*m_dot_gas)) - (partial_du_d_rho_const_T_gas* d_rho_dt_gas) )
+    T_dot_liq = (1/cv_liq)*( (1/m_liq) * (U_dot_liq - (u_liq*m_dot_liq)) - (partial_du_d_rho_const_T_liq* d_rho_dt_liq) )
+    T_dot_gas = (1/cv_gas)*( (1/m_gas) * (U_dot_gas - (u_gas*m_dot_gas)) - (partial_du_d_rho_const_T_gas* d_rho_dt_gas) )
 
 
     if debug_mode == True:
+
+        ### check energy balance:
+        U_dot_liq_check = m_liq*cv_liq*T_dot_liq + m_liq*(partial_du_d_rho_const_T_liq* d_rho_dt_liq) + u_liq*m_dot_liq
+        U_dot_gas_check = m_gas*cv_gas*T_dot_gas + m_gas*(partial_du_d_rho_const_T_gas* d_rho_dt_gas) + u_gas*m_dot_gas
+
+
+        preos_l = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_liq, P=P_tank)
+        h_ig_liq = analytical_integration_ig_enthalpy(T_REF, T_liq)
+        h_liq = preos_l.H_dep_l/MW + h_ig_liq + H_OFFSET
+
+
+        print("cons energy CHECK IN T_DOT_EQN: ", (U_dot_liq_check + U_dot_gas_check), " = ", m_dot_inj*h_liq, "expecting 0: ",  (U_dot_liq_check + U_dot_gas_check)-(m_dot_inj*h_liq), (P_tank*(V_dot_liq+(-V_dot_liq))) )
+
+
         a = 1
         #print("T_dot_liq: ", T_dot_liq, (U_dot_liq - (u_liq-u_liq_prev)*np.abs(m_dot_evap)) , - (partial_du_d_rho_const_T_liq* d_rho_dt_liq)  )
         #print("U_dot liq/gas: ", U_dot_liq, U_dot_gas)
@@ -558,7 +574,7 @@ class model():
 
 
         ### Debugging code for adiabatic liq, gas and inj liq nodes:
-
+        
         h_ig_gas = analytical_integration_ig_enthalpy(T_REF, self.T_gas)
         u_ig_gas = analytical_integration_ig_int_energy(T_REF, self.T_gas)
         preos_g = PR(Tc=TC, Pc=PC, omega=OMEGA, T=self.T_gas, P=P_tank)
@@ -677,8 +693,8 @@ class model():
         h_gas = preos_g.H_dep_g/MW + h_ig_gas + H_OFFSET
 
 ###NOTE: Q_dot eqns: 
-        Q_dot_liq = 0#Q_dot_liq_wall_to_liq - Q_dot_liq_to_sat_surf + m_dot_evap*(h_liq - h_sat_liq)
-        Q_dot_gas = 0#Q_dot_gas_wall_to_gas + Q_dot_sat_surf_to_gas + m_dot_evap*(h_sat_gas - h_gas)
+        Q_dot_liq = Q_dot_liq_wall_to_liq - Q_dot_liq_to_sat_surf + m_dot_evap*(h_liq - h_sat_liq)
+        Q_dot_gas = Q_dot_gas_wall_to_gas + Q_dot_sat_surf_to_gas + m_dot_evap*(h_sat_gas - h_gas)
 
         #print("Q_dot_liq signs: ", Q_dot_liq, Q_dot_liq_wall_to_liq, - Q_dot_liq_to_sat_surf, m_dot_evap*(h_liq - h_sat_liq) )
         #print("Q_dot_gas signs: ", Q_dot_gas, Q_dot_gas_wall_to_gas,   Q_dot_sat_surf_to_gas, m_dot_evap*(h_sat_gas - h_gas) )
@@ -730,9 +746,11 @@ class model():
         U_dot_liq = solve_U_dot_liq(T_liq, T_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, V_dot_liq, Q_dot_liq, self.h_liq_prev, self.h_gas_prev)
         U_dot_gas = solve_U_dot_gas(T_liq, T_gas, P_tank, m_dot_evap, m_dot_cond, (-V_dot_liq), Q_dot_gas, self.h_liq_prev, self.h_gas_prev)
 
+        
 
-        print("cons energy for adiabatic nodes w liq exit at inj: ", U_dot_liq + U_dot_gas, " = ", m_dot_inj*h_liq )
-        print("cons energy for adiabatic tank w liq exit at inj: ", U_dot_liq + U_dot_gas, " = ", m_dot_inj*h_liq +Q_dot_liq + Q_dot_gas, "expecting 0: ", P_tank * (V_dot_liq + (-V_dot_liq) ))
+
+        #print("cons energy for adiabatic nodes w liq exit at inj: ", U_dot_liq + U_dot_gas, " = ", m_dot_inj*h_liq )
+        #print("cons energy for adiabatic tank w liq exit at inj: ", U_dot_liq + U_dot_gas, " = ", m_dot_inj*h_liq, "expecting 0: ",  (U_dot_liq + U_dot_gas)-(m_dot_inj*h_liq), (P_tank*(V_dot_liq+(-V_dot_liq))) )
 
         ### solving U_dot_inj:
         
@@ -800,7 +818,7 @@ P_tank = 45e5 #Pa
 V_tank = 0.0354 #m^3
 
 diam_out = 0.230 #m #NOTE: thesis didn't provide tank geometry, estimated based off of G type nos dimensions (approx equivalent nos mass to Karabeyoglu run tank)
-diam_in = 0.150 #m
+diam_in = 0.450 #m
 rho_wall = 2770 #kg/m^3
 k_w = 237 #W/(m K)
 
@@ -874,7 +892,7 @@ init_U_inj = 0
 try:
     start_time = time.time()  # Start timer
 
-    while(t < 0.5): #3000*TIMESTEP
+    while(t < 5): #3000*TIMESTEP
         
         tank.inst(P_cc)
         t+=TIMESTEP 
