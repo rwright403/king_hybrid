@@ -1,4 +1,4 @@
-from scipy.integrate import solve_ivp
+from scipy.optimize import root
 import numpy as np
 import CoolProp.CoolProp as CP
 from thermo import Chemical
@@ -31,7 +31,7 @@ g = 9.81 #m/s^2
 
 
 def thermo_span_wagner(rho, T, param):
-    nist_conversion = 1e6 # 7.3397e+5 +1e7#NOTE: Convert SW int Energy to NIST convention
+    nist_conversion = 7.3397e+5 #NOTE: Convert SW int Energy to NIST convention
 
     # Constants for N2O
     R = 8.3144598 / 44.0128 * 1000 # Gas constant (kJ/kg*K)
@@ -328,38 +328,43 @@ def solve_m_dot_liq_gas(m_dot_evap, m_dot_cond, m_dot_inj):
 
     return m_dot_liq, m_dot_gas
 
-"""
-#NOTE: KEEPING THIS IS NOT THERMO CONSISTENT BUT WE WILL SEE FIRST PASS
-"""
-def V_tank_error(P_guess, T_liq, T_gas, m_liq, m_gas, V_tank):
+import numpy as np
+from scipy.optimize import root
 
-    preos_l = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_liq, P=P_guess)
-    rho_liq = preos_l.rho_l*MW
-    
-    preos_g = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_gas, P=P_guess)
-    rho_gas = preos_g.rho_g*MW
+def thermo_residuals(rhos, T_liq, T_gas, m_liq, m_gas, V_tank):
+    rho_liq, rho_gas = rhos
 
-    V_tank_est = (m_liq/rho_liq) + (m_gas/rho_gas)
+    P_liq = thermo_span_wagner(rho_liq, T_liq, 'p')
+    P_gas = thermo_span_wagner(rho_gas, T_gas, 'p')
 
-    return V_tank_est - V_tank 
+    V_est = (m_liq / rho_liq) + (m_gas / rho_gas)
 
-"""
-#NOTE: KEEPING THIS IS NOT THERMO CONSISTENT BUT WE WILL SEE FIRST PASS
-"""
-def solve_thermo_params(T_liq, T_gas, m_liq, m_gas, P_tank_prev, V_tank, volume_err_tolerance):
+    print("P liq, gas, V_est, diff: ", P_liq, P_gas, V_est, (P_liq - P_gas) )
 
-    P_tank = P_tank_prev #initial guess for pressure
+    return [
+        P_liq - P_gas,      # pressure equilibrium
+        V_est - V_tank      # volume constraint
+    ]
 
-    while np.abs(V_tank_error(P_tank, T_liq, T_gas, m_liq, m_gas, V_tank) ) > volume_err_tolerance:
-        P_tank = secant((lambda P: V_tank_error(P, T_liq, T_gas, m_liq, m_gas, V_tank)), P_tank)
+def solve_thermo_params(T_liq, T_gas, m_liq, m_gas, rho_liq_prev, rho_gas_prev, V_tank, volume_err_tolerance=1e-6):
+    # Initial guess for densities: previous timestep values or saturation values
+    guess = [rho_liq_prev, rho_gas_prev]
 
-    preos_l = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_liq, P=P_tank)
-    rho_liq = preos_l.rho_l*MW
-    
-    preos_g = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_gas, P=P_tank)
-    rho_gas = preos_g.rho_g*MW
+    try:
+        sol = root(thermo_residuals, guess, args=(T_liq, T_gas, m_liq, m_gas, V_tank), method='hybr')
+    except ValueError as e:
+        print(e)
+
+    """if not sol.success or np.linalg.norm(sol.fun) > volume_err_tolerance:
+        raise RuntimeError("solve_thermo_params: Convergence failed")"""
+
+    rho_liq, rho_gas = sol.x
+
+    # Calculate common pressure
+    P_tank = thermo_span_wagner(rho_liq, T_liq, 'p')  # or use P_gas, they're equal
 
     return rho_liq, rho_gas, P_tank
+
 
 
 
@@ -506,7 +511,9 @@ class model():
         self.V_tank = self.V_liq+self.V_gas # "what are you going to do if the aluminum is too small? water it? give it sunlight? let it grow?"
         self.height_tank = self.V_tank/(0.25*np.pi*(diam_in**2))
 
-        self.P_tank_prev = self.P_tank
+        self.rho_liq_prev = self.rho_liq
+        self.rho_gas_prev = self.rho_gas
+
         self.V_dot_liq_prev = -1e-9 #NOTE: close to zero, but off zero
 
         self.T_atm = self.T_liq
@@ -551,7 +558,8 @@ class model():
         T_liq, T_gas, m_liq, m_gas, T_wall_liq, T_wall_gas, a, b, c, d, e, f = y  # Unpack state variables
 
         ### Solve thermo parameters!
-        rho_liq, rho_gas, P_tank = solve_thermo_params(T_liq, T_gas, m_liq, m_gas, self.P_tank_prev, self.V_tank, self.volume_err_tolerance)
+        rho_liq, rho_gas, P_tank = solve_thermo_params(T_liq, T_gas, m_liq, m_gas, self.rho_liq_prev, self.rho_gas_prev, V_tank, self.volume_err_tolerance)
+
 
         T_sat = CP.PropsSI('T', 'P', P_tank, 'Q', 0, 'N2O')
 
@@ -669,11 +677,7 @@ class model():
         #print("cons energy for adiabatic tank w liq exit at inj: ", U_dot_liq + U_dot_gas, " = ", m_dot_inj*h_liq, "expecting 0: ",  (U_dot_liq + U_dot_gas)-(m_dot_inj*h_liq), (P_tank*(V_dot_liq+(-V_dot_liq))) )
 
         ### solving U_dot_inj:
-    
 
-
-
-        preos_g = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_gas, P=P_tank)
 
         h_liq = thermo_span_wagner(rho_liq, T_liq, 'h')
 
@@ -707,10 +711,11 @@ class model():
 
         # (4) iteratively solve P_tank to update thermodynamic properties in each node
         #NOTE: this is just to update vals for downstream graphs
-        self.rho_liq, self.rho_gas, self.P_tank = solve_thermo_params(self.T_liq, self.T_gas, self.m_liq, self.m_gas, self.P_tank_prev, self.V_tank, self.volume_err_tolerance)
+        self.rho_liq, self.rho_gas, self.P_tank = solve_thermo_params(self.T_liq, self.T_gas, self.m_liq, self.m_gas, self.rho_liq_prev, self.rho_gas_prev, self.V_tank, self.volume_err_tolerance)
 
         #update stored vals for RK est and volumes
-        self.P_tank_prev = self.P_tank
+        self.rho_liq_prev = self.rho_liq
+        self.rho_gas_prev = self.rho_gas
         self.V_dot_liq_prev = self.V_liq - self.m_liq/self.rho_liq
         self.V_liq = self.m_liq/self.rho_liq
         self.V_gas = self.V_tank - self.V_liq
@@ -891,8 +896,8 @@ except Exception as e:
 
 plt.subplot(1,3,1)
 plt.scatter(time_arr,P_tank_arr,label = "tank")
-plt.scatter(time_arr,P_sat_liq_arr,label = "P_sat_liq")
-plt.scatter(time_arr,P_sat_gas_arr,label = "P_sat_gas")
+#plt.scatter(time_arr,P_sat_liq_arr,label = "P_sat_liq")
+#plt.scatter(time_arr,P_sat_gas_arr,label = "P_sat_gas")
 plt.xlabel('Time (s)')
 plt.ylabel('Pressure (Pa)')
 plt.title('Pressure vs. Time')
@@ -912,7 +917,7 @@ plt.grid(True)
 plt.subplot(1,3,3)
 plt.scatter(time_arr,T_liq_arr, label = "liquid")
 plt.scatter(time_arr,T_gas_arr, label = "gas")
-plt.scatter(time_arr,T_sat_arr, label = "T_sat")
+#plt.scatter(time_arr,T_sat_arr, label = "T_sat")
 plt.scatter(time_arr,T_liq_wall_arr, label = "WALL liquid")
 plt.scatter(time_arr,T_gas_wall_arr, label = "WALL gas")
 plt.xlabel('Time (s)')
