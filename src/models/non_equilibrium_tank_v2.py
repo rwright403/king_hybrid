@@ -31,6 +31,7 @@ g = 9.81 #m/s^2
 
 
 def thermo_span_wagner(rho, T, param):
+    nist_conversion = 1e6 # 7.3397e+5 +1e7#NOTE: Convert SW int Energy to NIST convention
 
     # Constants for N2O
     R = 8.3144598 / 44.0128 * 1000 # Gas constant (kJ/kg*K)
@@ -73,11 +74,11 @@ def thermo_span_wagner(rho, T, param):
     if param == 'p':  # Pressure (Pa)
         out = rho * R * T * (1 + delta * ar_delta)
     elif param == 'u':  # Specific internal energy (J/kg)
-        out = R * T * tau * (ao_tau + ar_tau)  + 7.3397e+5 #NOTE: Convert SW int Energy to NIST convention
+        out = R * T * tau * (ao_tau + ar_tau) + nist_conversion
     elif param == 's':  # Specific entropy (J/kg*K)
-        out = R * (tau * (ao_tau + ar_tau) - ao - ar)  + 7.3397e+5 #NOTE: Convert SW Entropy to NIST convention
+        out = R * (tau * (ao_tau + ar_tau) - ao - ar) + nist_conversion
     elif param == 'h':  # Specific enthalpy (J/kg)
-        out = R * T * (1 + tau * (ao_tau + ar_tau) + delta * ar_delta)  + 7.3397e+5 #NOTE: Convert SW Enthalpy to NIST convention
+        out = R * T * (1 + tau * (ao_tau + ar_tau) + delta * ar_delta) + nist_conversion
     elif param == 'cv':  # Specific heat constant volume (J/kg*K)
         out = R * -tau**2 * (ao_tautau + ar_tautau)
     elif param == 'cp':  # Specific heat constant pressure (J/kg*K)
@@ -291,7 +292,7 @@ def solve_m_dot_condensed(T_gas, P_tank, V_gas):
 #TODO: INPUT RHO LIQ AND GAS FOR SWEOS, DELETE HPREVS
 # """
 
-def solve_U_dot_liq(T_liq, T_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, V_dot_liq , Q_dot_net, h_liq_prev, h_gas_prev):
+def solve_U_dot_liq(rho_liq, rho_gas, T_liq, T_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, V_dot_liq , Q_dot_net):
 
     h_liq = thermo_span_wagner(rho_liq, T_liq, 'h')  #preos_l.H_dep_l/MW + h_ig_liq 
 
@@ -307,7 +308,7 @@ def solve_U_dot_liq(T_liq, T_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, V_d
 
 
 #TODO: INPUT RHO LIQ AND GAS FOR SWEOS, DELETE HPREVS
-def solve_U_dot_gas(T_liq, T_gas, P_tank, m_dot_evap, m_dot_cond, V_dot_gas, Q_dot_net, h_liq_prev, h_gas_prev):
+def solve_U_dot_gas(rho_liq, rho_gas, T_liq, T_gas, P_tank, m_dot_evap, m_dot_cond, V_dot_gas, Q_dot_net):
 
     T_sat = CP.PropsSI('T', 'P', P_tank, 'Q', 0, 'N2O')
     h_sat_gas = CP.PropsSI('H', 'T', T_sat, 'Q', 1, 'N2O')
@@ -372,8 +373,8 @@ def single_solve_T_dot_liq_gas(V_dot_liq, m_liq, m_gas, rho_liq, rho_gas, T_liq,
     d_rho_dt_gas = (1/V_gas)*m_dot_gas -(m_gas/(V_gas**2))*V_dot_gas
 
 
-    U_dot_liq = solve_U_dot_liq(T_liq, T_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, V_dot_liq, Q_dot_liq, h_liq_prev, h_gas_prev)
-    U_dot_gas = solve_U_dot_gas(T_liq, T_gas, P_tank, m_dot_evap, m_dot_cond, V_dot_gas, Q_dot_gas, h_liq_prev, h_gas_prev)
+    U_dot_liq = solve_U_dot_liq(rho_liq, rho_gas, T_liq, T_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, V_dot_liq, Q_dot_liq)
+    U_dot_gas = solve_U_dot_gas(rho_liq, rho_gas, T_liq, T_gas, P_tank, m_dot_evap, m_dot_cond, V_dot_gas, Q_dot_gas)
     
 
     partial_du_d_rho_const_T_gas = thermo_span_wagner(rho_gas, T_gas, 'du_drho_const_T')
@@ -658,8 +659,8 @@ class model():
 
         ### Debug Code:
         
-        U_dot_liq = solve_U_dot_liq(T_liq, T_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, V_dot_liq, Q_dot_liq, self.h_liq_prev, self.h_gas_prev)
-        U_dot_gas = solve_U_dot_gas(T_liq, T_gas, P_tank, m_dot_evap, m_dot_cond, (-V_dot_liq), Q_dot_gas, self.h_liq_prev, self.h_gas_prev)
+        U_dot_liq = solve_U_dot_liq(rho_liq, rho_gas, T_liq, T_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, V_dot_liq, Q_dot_liq)
+        U_dot_gas = solve_U_dot_gas(rho_liq, rho_gas, T_liq, T_gas, P_tank, m_dot_evap, m_dot_cond, (-V_dot_liq), Q_dot_gas)
 
         
 
@@ -818,7 +819,7 @@ init_U_inj = 0
 try:
     start_time = time.time()  # Start timer
 
-    while(t < TIMESTEP): #3000*TIMESTEP
+    while(t < 100*TIMESTEP): #3000*TIMESTEP
         
         tank.inst(P_cc)
         t+=TIMESTEP 
