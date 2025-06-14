@@ -51,7 +51,9 @@ I got some of the liquid stuff to work and accidentally broke the hybrid models.
 | [11]   | Two-phase flow through pressure safety valves. Experimental investigation and model prediction, Gino Boccardi et al | explains omega model (part of [5]) | https://www.sciencedirect.com/science/article/pii/S0009250905003313 |
 | [12]   | Effects of Injector Design and Impingement Techniques on the Atomization of Self-Pressurizing Oxidizers, Benjamin S. Waxman, Brian J. Cantwell, Greg Zilliac | nitrous injector | https://arc.aiaa.org/doi/10.2514/6.2012-3906 |
 | [13]   | Rocket Propellant and Pressurization Systems Elliot Ring | used to help better understand pressurized tank models | very hard to find- out of print and pdf is hard to come by |
-
+| [14]   | NIST Chemical Webbook | Used to validate thermo properties from libraries | https://webbook.nist.gov/cgi/fluid.cgi?ID=C10024972&Action=Page |
+| [15]  | Thorade, M., Saadat, A. (2013): Partial derivatives of thermodynamic state properties for dynamic
+simulation. ‐ Environmental Earth Sciences, 70, 8, 3497‐3503 | for span wagner eos partial derivs |https://gfzpublic.gfz-potsdam.de/rest/items/item_247373_5/component/file_306833/content?download=true
 
 
 
