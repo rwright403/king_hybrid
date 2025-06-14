@@ -27,11 +27,28 @@ KAPPA = 0.37464 + 1.5422*n2o_g.omega - 0.26992*n2o_g.omega**2
 b = 0.07780*(R_U*TC/PC)
 g = 9.81 #m/s^2
 
+####
+"""
+#TODO: APPLY OFFSETS TO THE COOLPROP!
+"""
+###
 
+def coolprop_sat_adjust_ref_state(quality,T, param):
 
+    out = 0.0
+    if param == 'u':  # Specific internal energy (J/kg)
+        out = CP.PropsSI('U', 'T', T, 'Q', quality, 'N2O') - 694758.4344871361
+    elif param == 's':  # Specific entropy (J/kg*K)
+        out = CP.PropsSI('S', 'T', T, 'Q', quality, 'N2O')  - 2747.351485288236
+    elif param == 'h':  # Specific enthalpy (J/kg)
+        out = CP.PropsSI('H', 'T', T, 'Q', quality, 'N2O')  - 692420.6091673233
+
+    else:
+        raise NotImplementedError(f'{param} is not implemented or incorrectly entered, see thermo_span_wagner()')
+
+    return out
 
 def thermo_span_wagner(rho, T, param):
-    nist_conversion = 7.3397e+5 #NOTE: Convert SW int Energy to NIST convention
 
     # Constants for N2O
     R = 8.3144598 / 44.0128 * 1000 # Gas constant (kJ/kg*K)
@@ -74,18 +91,18 @@ def thermo_span_wagner(rho, T, param):
     if param == 'p':  # Pressure (Pa)
         out = rho * R * T * (1 + delta * ar_delta)
     elif param == 'u':  # Specific internal energy (J/kg)
-        out = R * T * tau * (ao_tau + ar_tau) + nist_conversion
+        out = R * T * tau * (ao_tau + ar_tau)
     elif param == 's':  # Specific entropy (J/kg*K)
-        out = R * (tau * (ao_tau + ar_tau) - ao - ar) + nist_conversion
+        out = R * (tau * (ao_tau + ar_tau) - ao - ar)
     elif param == 'h':  # Specific enthalpy (J/kg)
-        out = R * T * (1 + tau * (ao_tau + ar_tau) + delta * ar_delta) + nist_conversion
+        out = R * T * (1 + tau * (ao_tau + ar_tau) + delta * ar_delta)
     elif param == 'cv':  # Specific heat constant volume (J/kg*K)
         out = R * -tau**2 * (ao_tautau + ar_tautau)
     elif param == 'cp':  # Specific heat constant pressure (J/kg*K)
         out = R * (-tau**2 * (ao_tautau + ar_tautau) + (1 + delta * ar_delta - delta * tau * ar_deltatau)**2 / (1 + 2 * delta * ar_delta + delta**2 * ar_deltadelta))
 #NOTE: on below I BELIEVE ar_deltatau = ar_taudelta, but not sure so test this one in particular
     elif param == 'du_drho_const_T': # 
-        out = R * T * ( tau * delta * ar_deltatau)
+        out = R * T / rho * ( tau * delta * ar_deltatau)
 #NOTE: on below I BELIEVE ar_deltatau = ar_taudelta, but not sure so test this one in particular
     elif param == 'dP_dT_const_rho':
         out = rho * R *(1 + delta * ar_delta - (tau * delta *ar_deltatau) )
@@ -260,8 +277,8 @@ def solve_m_dot_evap(rho_liq, T_liq, P_tank, Q_dot_liq_to_sat_surf, Q_dot_sat_su
         h_liq = thermo_span_wagner(rho_liq, T_liq, 'h') 
  
         T_sat = CP.PropsSI('T', 'P', P_tank, 'Q', 0, 'N2O')
-        h_sat_gas = CP.PropsSI('H', 'T', T_sat, 'Q', 1, 'N2O')
-        h_sat_liq = CP.PropsSI('H', 'T', T_sat, 'Q', 0, 'N2O')
+        h_sat_gas = coolprop_sat_adjust_ref_state(1, T_sat,'h')
+        h_sat_liq = coolprop_sat_adjust_ref_state(0, T_sat,'h')
 
         m_dot_evap = (Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas) / ( (h_sat_gas-h_sat_liq) + (h_sat_liq - h_liq)  )  #if this doesnt work check functions and if they are as reusable as i treat them
 
@@ -294,11 +311,11 @@ def solve_m_dot_condensed(T_gas, P_tank, V_gas):
 
 def solve_U_dot_liq(rho_liq, rho_gas, T_liq, T_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, V_dot_liq , Q_dot_net):
 
-    h_liq = thermo_span_wagner(rho_liq, T_liq, 'h')  #preos_l.H_dep_l/MW + h_ig_liq 
+    h_liq = thermo_span_wagner(rho_liq, T_liq, 'h')  
 
     T_sat = CP.PropsSI('T', 'P', P_tank, 'Q', 0, 'N2O')
-    h_sat_gas = CP.PropsSI('H', 'T', T_sat, 'Q', 1, 'N2O')
-    h_sat_liq = CP.PropsSI('H', 'T', T_sat, 'Q', 0, 'N2O')
+    h_sat_gas = coolprop_sat_adjust_ref_state(1, T_sat,'h')
+    h_sat_liq = coolprop_sat_adjust_ref_state(0, T_sat,'h')
 
  
 # NOTE: BROKE FOR TESTING ON PURPOSE  no cond!!!!!
@@ -311,7 +328,8 @@ def solve_U_dot_liq(rho_liq, rho_gas, T_liq, T_gas, P_tank, m_dot_inj, m_dot_eva
 def solve_U_dot_gas(rho_liq, rho_gas, T_liq, T_gas, P_tank, m_dot_evap, m_dot_cond, V_dot_gas, Q_dot_net):
 
     T_sat = CP.PropsSI('T', 'P', P_tank, 'Q', 0, 'N2O')
-    h_sat_gas = CP.PropsSI('H', 'T', T_sat, 'Q', 1, 'N2O')
+    h_sat_gas = coolprop_sat_adjust_ref_state(1, T_sat,'h')
+    h_sat_liq = coolprop_sat_adjust_ref_state(0, T_sat,'h')
 
     #h_gas = preos_g.H_dep_g/MW + h_ig_gas  TODO: did we need this?
 
@@ -617,8 +635,8 @@ class model():
 
 
         T_sat = CP.PropsSI('T', 'P', P_tank, 'Q', 0, 'N2O')
-        h_sat_gas = CP.PropsSI('H', 'T', T_sat, 'Q', 1, 'N2O')
-        h_sat_liq = CP.PropsSI('H', 'T', T_sat, 'Q', 0, 'N2O')
+        h_sat_gas = coolprop_sat_adjust_ref_state(1, T_sat,'h')
+        h_sat_liq = coolprop_sat_adjust_ref_state(0, T_sat,'h')
 
         h_gas = thermo_span_wagner(rho_gas, T_gas, 'h')
 
@@ -824,7 +842,7 @@ init_U_inj = 0
 try:
     start_time = time.time()  # Start timer
 
-    while(t < 100*TIMESTEP): #3000*TIMESTEP
+    while(t < 400*TIMESTEP): #3000*TIMESTEP
         
         tank.inst(P_cc)
         t+=TIMESTEP 
