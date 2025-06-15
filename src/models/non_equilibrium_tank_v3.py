@@ -97,7 +97,6 @@ def solve_Q_dot_natural_convection_liq(rho_f, T_1, T_2, T_f, P_f, c, n, L, Area,
 
         cp_f = CP.PropsSI('Cpmass', 'D', rho_f, 'T', T_f, 'N2O') #(preos_l.Cp_dep_l/MW + cp_ig) #J/K  
 
-        d_rho_dT_P = CP.PropsSI('d(D)/d(T)|P', 'T', T_f, 'P', P_f, 'N2O')
         beta = CP.PropsSI("ISOBARIC_EXPANSION_COEFFICIENT", "T", T_f, "P", P_f, "N2O") #d_rho_dT_P/rho_f     #(1/rho_f)*d_rho_dT_P
 
     elif fluid == "Air":
@@ -132,7 +131,6 @@ def solve_Q_dot_natural_convection_gas(rho_f, T_1, T_2, T_f, P_f, c, n, L, Area,
 
         cp_f = CP.PropsSI('Cpmass', 'D', rho_f, 'T', T_f, 'N2O') #(preos_l.Cp_dep_l/MW + cp_ig) #J/K 
         
-        d_rho_dT_P = CP.PropsSI('d(D)/d(T)|P', 'T', T_f, 'P', P_f, 'N2O')
         beta = CP.PropsSI("ISOBARIC_EXPANSION_COEFFICIENT", "T", T_f, "P", P_f, "N2O") #d_rho_dT_P/rho_f     #(1/rho_f)*d_rho_dT_P
 
     elif fluid == "Air":
@@ -276,7 +274,7 @@ def thermo_residuals(rhos, T_liq, T_gas, m_liq, m_gas, V_tank):
 
     V_est = (m_liq / rho_liq) + (m_gas / rho_gas)
 
-    #print("P liq, gas, V_est, diff: ", P_liq, P_gas, V_est, (P_liq - P_gas) )
+    print("P liq, gas, V_est, diff: ", P_liq, P_gas, V_est, (P_liq - P_gas) )
 
     return [
         P_liq - P_gas,      # pressure equilibrium
@@ -288,17 +286,17 @@ def solve_thermo_params(T_liq, T_gas, m_liq, m_gas, rho_liq_prev, rho_gas_prev, 
     guess = [rho_liq_prev, rho_gas_prev]
 
     try:
-        sol = root(thermo_residuals, guess, args=(T_liq, T_gas, m_liq, m_gas, V_tank), method='hybr')
+        sol = root(thermo_residuals, guess, args=(T_liq, T_gas, m_liq, m_gas, V_tank), method='hybr', options={'disp': True})
     except ValueError as e:
         print(e)
 
-    """if not sol.success or np.linalg.norm(sol.fun) > volume_err_tolerance:
-        raise RuntimeError("solve_thermo_params: Convergence failed")"""
-
+    """if not sol.success:
+        raise RuntimeError(f"solve_thermo_params convergence failed, sol.success: {sol.success}")
+    """
     rho_liq, rho_gas = sol.x
 
     # Calculate common pressure
-    P_tank = CP.PropsSI('P', 'D', rho_liq, 'T', T_liq, 'N2O')
+    #P_tank = CP.PropsSI('P', 'D', rho_liq, 'T', T_liq, 'N2O')
 
     return rho_liq, rho_gas, P_tank
 
@@ -425,7 +423,7 @@ class model():
         #gas cv
         self.m_gas = x_tank*self.m_nos
 
-        self.T_gas = rho_sat_gas = CP.PropsSI('T', 'P', self.P_tank, 'Q', 1, 'N2O') - 0.05 #perturb to start close to equillibrium but as a gas
+        self.T_gas = rho_sat_gas = CP.PropsSI('T', 'P', self.P_tank, 'Q', 1, 'N2O') - 0.1075 #perturb to start close to equillibrium but as a gas
         self.T_wall_gas = self.T_gas
 
         # since we perturb, resol density so surface doesnt break
@@ -435,7 +433,7 @@ class model():
 
         #liquid cv
         self.m_liq = self.m_nos-self.m_gas
-        self.T_liq = CP.PropsSI('T', 'P', self.P_tank, 'Q', 0, 'N2O') + 0.05 #perturb to start close to equillibrium
+        self.T_liq = CP.PropsSI('T', 'P', self.P_tank, 'Q', 0, 'N2O') + 0.1075 #perturb to start close to equillibrium
         self.T_wall_liq = self.T_liq
 
         #solve rho_liq!
@@ -670,7 +668,7 @@ class model():
 
 
 t = 0
-TIMESTEP = 1e-3
+TIMESTEP = 1e-4
 
 P_atm = 1e5 #Pa
 T_atm = 286.5 #K
@@ -799,10 +797,8 @@ try:
         U_gas_arr.append(tank.U_gas)
 
 
-        preos_l = PR(Tc=TC, Pc=PC, omega=OMEGA, T=tank.T_liq, P=P_tank)
 
-
-        u_liq = thermo_span_wagner(tank.rho_liq, tank.T_liq, 'u')
+        u_liq = CP.PropsSI('U', 'D', tank.rho_liq, 'T', tank.T_liq, 'N2O')
 
         U_inj_arr.append(u_liq*tank.m_inj)
         #print("u inj sign convention!!! ", tank.u_inj)
