@@ -1,14 +1,11 @@
-from scipy.optimize import root
 import numpy as np
 import CoolProp.CoolProp as CP
+import matplotlib.pyplot as plt
+from scipy.optimize import bisect
 from thermo import Chemical
 from thermo.eos import PR
-import matplotlib.pyplot as plt
 import traceback
 import time
-
-#from ..thermo_property_lookup.get_n2o_viscosity import get_n2o_viscosity
-#python3 -m src.models.Karabeyoglu-Zilliac-Zimmerman-nos-tank
 
 ### this is to test:
 LOOKUP_TIME = 0
@@ -16,6 +13,9 @@ LOOKUP_TIME = 0
 # Global Constants:
 R_U = 8.31446 #J/(mol K)
 T_REF = 298.15 #K
+
+#TODO: DELETE UNUSED CONSTANTS!
+
 
 n2o_g = Chemical('nitrous oxide', T=T_REF)
 PC = n2o_g.Pc
@@ -146,11 +146,6 @@ def solve_Q_dot_natural_convection_gas(rho_f, T_1, T_2, T_f, P_f, c, n, L, Area,
     Pr = (cp_f*visc_f)/ k_f
     X = Gr*Pr
 
-    print("check grashof num: L, g, beta, visc_f ",L, g, beta, visc_f)
-    print("check prandtl num: cp_f, visc_f, k_f", cp_f, visc_f, k_f)
-
-    print("h coeff in heat transfer breaking again due to invalid num X, n:", X, n)
-
     h = c * (k_f/L) * X**n
 
     Q_dot = h*(Area)*(T_1-T_2)
@@ -189,6 +184,7 @@ def spi_model(Cd_hem_spi_dyer, A_inj_ox, P_1, P_2, rho_tank_exit):
 def solve_m_dot_evap(rho_liq, T_liq, P_tank, Q_dot_liq_to_sat_surf, Q_dot_sat_surf_to_gas):
     m_dot_evap = 0
     #print("evap heat transfer rates: ", (Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas), Q_dot_liq_to_sat_surf, Q_dot_sat_surf_to_gas)
+    print("check if evap, must be pos: ", Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas)
     if (Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas) > 0:
 
         h_liq = CP.PropsSI('H', 'D', rho_liq, 'T', T_liq, 'N2O')
@@ -236,7 +232,14 @@ def solve_U_dot_liq(rho_liq, rho_gas, T_liq, T_gas, P_tank, m_dot_inj, m_dot_eva
 
  
 # NOTE: BROKE FOR TESTING ON PURPOSE  no cond!!!!!
-    U_dot_liq = m_dot_inj*h_liq - m_dot_evap*(h_sat_gas - h_sat_liq) + m_dot_cond*( 0 ) -P_tank*V_dot_liq + Q_dot_net
+
+
+    #print("U_DOT_SIGNS: ", - m_dot_evap*(h_sat_gas - h_sat_liq), m_dot_cond*( h_sat_liq - h_sat_gas ))
+
+    U_dot_liq = m_dot_inj*(h_liq) - m_dot_evap*(h_sat_gas - h_sat_liq) + m_dot_cond*(h_sat_gas - h_sat_liq) -P_tank*V_dot_liq + Q_dot_net #NOTE: enthalpy arranged such that sign in front of term is representative of whether the magnitude of energy gained or lost from node
+
+
+
 
     return U_dot_liq
 
@@ -244,14 +247,14 @@ def solve_U_dot_liq(rho_liq, rho_gas, T_liq, T_gas, P_tank, m_dot_inj, m_dot_eva
 #TODO: INPUT RHO LIQ AND GAS FOR SWEOS, DELETE HPREVS
 def solve_U_dot_gas(rho_liq, rho_gas, T_liq, T_gas, P_tank, m_dot_evap, m_dot_cond, V_dot_gas, Q_dot_net):
 
-    T_sat = CP.PropsSI('T', 'P', P_tank, 'Q', 0, 'N2O')
+    T_sat = CP.PropsSI('T', 'P', P_tank, 'Q', 1, 'N2O')
     h_sat_gas = CP.PropsSI('H', 'Q', 1, 'T', T_sat, 'N2O')
     h_sat_liq = CP.PropsSI('H', 'Q', 0, 'T', T_sat, 'N2O')
 
     #h_gas = preos_g.H_dep_g/MW + h_ig_gas  TODO: did we need this?
 
 # NOTE: BROKE FOR TESTING ON PURPOSE  no cond!!!!!
-    U_dot_gas = m_dot_evap*h_sat_gas - m_dot_cond*( (0) ) - P_tank*V_dot_gas + Q_dot_net 
+    U_dot_gas = m_dot_evap*(h_sat_gas - h_sat_liq) - m_dot_cond*(h_sat_liq - h_sat_gas) - P_tank*V_dot_gas + Q_dot_net  #NOTE: enthalpy arranged such that sign in front of term is representative of whether the magnitude of energy gained or lost from node
 
     return U_dot_gas
 
@@ -263,47 +266,70 @@ def solve_m_dot_liq_gas(m_dot_evap, m_dot_cond, m_dot_inj):
 
     return m_dot_liq, m_dot_gas
 
-import numpy as np
-from scipy.optimize import root
 
-def thermo_residuals(rhos, T_liq, T_gas, m_liq, m_gas, V_tank):
-    rho_liq, rho_gas = rhos
 
-    P_liq = CP.PropsSI('P', 'D', rho_liq, 'T', T_liq, 'N2O')
-    P_gas = CP.PropsSI('P', 'D', rho_gas, 'T', T_gas, 'N2O')
+def P_tank_error(rho_liq_guess, T_liq, T_gas, m_liq, m_gas, V_tank):
+    #print("rho_liq: ", rho_liq_guess)
 
-    V_est = (m_liq / rho_liq) + (m_gas / rho_gas)
+    P_liq_est = CP.PropsSI('P', 'D', rho_liq_guess, 'T', T_liq, 'N2O')
 
-    print("P liq, gas, V_est, diff: ", P_liq, P_gas, V_est, (P_liq - P_gas) )
+    rho_gas_est = m_gas / (V_tank - (m_liq/rho_liq_guess) )
+    print("check sign in rho_gas_est: ", V_tank - (m_liq/rho_liq_guess) )
+    if (V_tank - (m_liq/rho_liq_guess)) > 0:
 
-    return [
-        P_liq - P_gas,      # pressure equilibrium
-        V_est - V_tank      # volume constraint
-    ]
+        P_gas_est = CP.PropsSI('P', 'D', rho_gas_est, 'T', T_gas, 'N2O')
+    else:
+        P_gas_est = 1e8
 
-def solve_thermo_params(T_liq, T_gas, m_liq, m_gas, rho_liq_prev, rho_gas_prev, V_tank, volume_err_tolerance=1e-6):
-    # Initial guess for densities: previous timestep values or saturation values
-    guess = [rho_liq_prev, rho_gas_prev]
+    #print("P error: ", P_liq_est - P_gas_est)
+
+    return P_liq_est - P_gas_est
+
+
+
+def solve_thermo_params(T_liq, T_gas, m_liq, m_gas, rho_liq_prev, V_tank, P_tank_err_tolerance):
+
+    rho_liq = rho_liq_prev #initial guess for rho_liq
+
+    #Bisection method to solve for rho_liq
+    lower_bound = max( CP.PropsSI('D', 'T', T_liq, 'Q', 1, 'N2O'), rho_liq_prev - 1)
+    upper_bound = rho_liq_prev + 1
 
     try:
-        sol = root(thermo_residuals, guess, args=(T_liq, T_gas, m_liq, m_gas, V_tank), method='hybr', options={'disp': True})
-    except ValueError as e:
-        print(e)
+        func = lambda rho: P_tank_error(rho, T_liq, T_gas, m_liq, m_gas, V_tank)
 
-    """if not sol.success:
-        raise RuntimeError(f"solve_thermo_params convergence failed, sol.success: {sol.success}")
+        rho_liq = bisect(func, lower_bound, upper_bound, xtol=P_tank_err_tolerance)
+
+    except Exception as e:
+        print("\nclassic does not work! ")
+        print("Exception:", e)
+        print("Inputs:")
+        print(f"T_liq = {T_liq}")
+        print(f"T_gas = {T_gas}")
+        print(f"m_liq = {m_liq}")
+        print(f"m_gas = {m_gas}")
+        print(f"rho_liq_prev = {rho_liq_prev}")
+        print(f"V_tank = {V_tank}")
+        print(f"P_tank_err_tolerance = {P_tank_err_tolerance}")
+        print(f"lower_bound = {lower_bound}")
+        print(f"upper_bound = {upper_bound}")
+        raise  # Re-raise the exception to crash the program
+
+    """while np.abs(P_tank_error(rho_liq, T_liq, T_gas, m_liq, m_gas, V_tank) ) > P_tank_err_tolerance:
+        rho_liq = secant((lambda P: P_tank_error(P, T_liq, T_gas, m_liq, m_gas, V_tank)), rho_liq)
     """
-    rho_liq, rho_gas = sol.x
 
-    # Calculate common pressure
-    #P_tank = CP.PropsSI('P', 'D', rho_liq, 'T', T_liq, 'N2O')
+
+    P_tank = CP.PropsSI('P', 'D', rho_liq, 'T', T_liq, 'N2O')
+
+    rho_gas = m_gas / (V_tank - (m_liq/rho_liq) )
 
     return rho_liq, rho_gas, P_tank
 
 
 
 
-def single_solve_T_dot_liq_gas(V_dot_liq, m_liq, m_gas, rho_liq, rho_gas, T_liq, T_gas, V_liq, V_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas, h_liq_prev, h_gas_prev, u_liq_prev, u_gas_prev, debug_mode):
+def single_solve_T_dot_liq_gas(V_dot_liq, m_liq, m_gas, rho_liq, rho_gas, T_liq, T_gas, V_liq, V_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas, debug_mode):
 
     m_dot_liq, m_dot_gas = solve_m_dot_liq_gas(m_dot_evap, m_dot_cond, m_dot_inj)
 
@@ -346,7 +372,7 @@ def single_solve_T_dot_liq_gas(V_dot_liq, m_liq, m_gas, rho_liq, rho_gas, T_liq,
 
     return T_dot_liq, T_dot_gas 
 
-def P_dot_error(V_dot_guess, m_liq, m_gas, rho_liq, rho_gas, T_liq, T_gas, V_liq, V_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas, h_liq_prev, h_gas_prev, u_liq_prev, u_gas_prev):    
+def P_dot_error(V_dot_guess, m_liq, m_gas, rho_liq, rho_gas, T_liq, T_gas, V_liq, V_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas):    
 
     V_dot_gas = -V_dot_guess #guessing for liquid
 
@@ -356,7 +382,7 @@ def P_dot_error(V_dot_guess, m_liq, m_gas, rho_liq, rho_gas, T_liq, T_gas, V_liq
     d_rho_dt_liq = (1/V_liq)*m_dot_liq - (m_liq/(V_liq**2))*V_dot_guess
     d_rho_dt_gas = (1/V_gas)*m_dot_gas - (m_gas/(V_gas**2))*V_dot_gas
 
-    T_dot_liq, T_dot_gas = single_solve_T_dot_liq_gas(V_dot_guess, m_liq, m_gas, rho_liq, rho_gas, T_liq, T_gas, V_liq, V_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas, h_liq_prev, h_gas_prev, u_liq_prev, u_gas_prev, False)
+    T_dot_liq, T_dot_gas = single_solve_T_dot_liq_gas(V_dot_guess, m_liq, m_gas, rho_liq, rho_gas, T_liq, T_gas, V_liq, V_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas, False)
 
 
     partial_dP_dT_const_rho_liq = CP.PropsSI('d(P)/d(T)|D', 'T', T_liq, 'D', rho_liq, 'N2O')
@@ -423,7 +449,7 @@ class model():
         #gas cv
         self.m_gas = x_tank*self.m_nos
 
-        self.T_gas = rho_sat_gas = CP.PropsSI('T', 'P', self.P_tank, 'Q', 1, 'N2O') - 0.1075 #perturb to start close to equillibrium but as a gas
+        self.T_gas = CP.PropsSI('T', 'P', self.P_tank, 'Q', 1, 'N2O') - 0.003 #perturb to start close to equillibrium but as a gas
         self.T_wall_gas = self.T_gas
 
         # since we perturb, resol density so surface doesnt break
@@ -433,21 +459,21 @@ class model():
 
         #liquid cv
         self.m_liq = self.m_nos-self.m_gas
-        self.T_liq = CP.PropsSI('T', 'P', self.P_tank, 'Q', 0, 'N2O') + 0.1075 #perturb to start close to equillibrium
+        self.T_liq = CP.PropsSI('T', 'P', self.P_tank, 'Q', 0, 'N2O') + 0.003 #perturb to start close to equillibrium
         self.T_wall_liq = self.T_liq
 
         #solve rho_liq!
-        self.rho_liq = CP.PropsSI('D', 'P', self.P_tank, 'T', self.T_liq, 'N2O')
+        self.rho_liq = CP.PropsSI('D', 'P', self.P_tank, 'T', self.T_liq, 'N2O') #NOTE: THIS IS GIVING THE WRONG ROOT!
         v_liq = 1/self.rho_liq
         self.V_liq = v_liq*self.m_liq
+
+        print("starting, check rho_liq and rho_gas: ", self.rho_liq, self.rho_gas, "\n\n")
 
 
         self.V_tank = self.V_liq+self.V_gas # "what are you going to do if the aluminum is too small? water it? give it sunlight? let it grow?"
         self.height_tank = self.V_tank/(0.25*np.pi*(diam_in**2))
 
-        self.rho_liq_prev = self.rho_liq
-        self.rho_gas_prev = self.rho_gas
-
+        self.rho_liq_prev = self.rho_liq 
         self.V_dot_liq_prev = -1e-9 #NOTE: close to zero, but off zero
 
         self.T_atm = self.T_liq
@@ -492,7 +518,7 @@ class model():
         T_liq, T_gas, m_liq, m_gas, T_wall_liq, T_wall_gas, a, b, c, d, e, f = y  # Unpack state variables
 
         ### Solve thermo parameters!
-        rho_liq, rho_gas, P_tank = solve_thermo_params(T_liq, T_gas, m_liq, m_gas, self.rho_liq_prev, self.rho_gas_prev, V_tank, self.volume_err_tolerance)
+        rho_liq, rho_gas, P_tank = solve_thermo_params(T_liq, T_gas, m_liq, m_gas, self.rho_liq_prev, V_tank, P_tank_err_tolerance)
 
 
         T_sat = CP.PropsSI('T', 'P', P_tank, 'Q', 0, 'N2O')
@@ -521,9 +547,6 @@ class model():
 
         m_dot_cond = solve_m_dot_condensed(T_gas, P_tank, V_gas)
 
-        #preos_g = PR(Tc=TC, Pc=PC, omega=OMEGA, T=T_gas, P=P_tank)
-        #P_tank = preos_g.Psat(T_gas)
-
 
         # Net Mass Transfer of Liquid and Gas CV
         m_dot_liq, m_dot_gas = solve_m_dot_liq_gas(m_dot_evap, m_dot_cond, m_dot_inj)
@@ -540,9 +563,9 @@ class model():
 # NOTE: ADIABATIC FOR DEBUGGING
   
         # Heat transfer (4) [natural convection] from liq wall to liq
-        Q_dot_liq_wall_to_liq = 0#solve_Q_dot_natural_convection_liq(rho_liq, T_wall_liq, T_liq, T_liq, P_tank, 0.021, 0.4, h_liq_wall, (np.pi*self.diam_in*h_liq_wall), "N2O" ) #relative to liq cv       
+        Q_dot_liq_wall_to_liq = solve_Q_dot_natural_convection_liq(rho_liq, T_wall_liq, T_liq, T_liq, P_tank, 0.021, 0.4, h_liq_wall, (np.pi*self.diam_in*h_liq_wall), "N2O" ) #relative to liq cv       
         # Heat transfer (5) [natural convection] from gas to gas wall
-        Q_dot_gas_wall_to_gas = 0#solve_Q_dot_natural_convection_gas(rho_gas, T_wall_gas, T_gas, T_gas, P_tank, 0.021, 0.4, h_gas_wall, (np.pi*self.diam_in*h_gas_wall), "N2O" ) #relative to gas cv
+        Q_dot_gas_wall_to_gas = solve_Q_dot_natural_convection_gas(rho_gas, T_wall_gas, T_gas, T_gas, P_tank, 0.021, 0.4, h_gas_wall, (np.pi*self.diam_in*h_gas_wall), "N2O" ) #relative to gas cv
         
 
 
@@ -557,25 +580,26 @@ class model():
         h_gas = CP.PropsSI('H', 'D', rho_gas, 'T', T_gas, 'N2O')
 
 ###NOTE: Q_dot eqns: 
-        Q_dot_liq = Q_dot_liq_wall_to_liq - Q_dot_liq_to_sat_surf + m_dot_evap*(h_liq - h_sat_liq)
-        Q_dot_gas = Q_dot_gas_wall_to_gas + Q_dot_sat_surf_to_gas + m_dot_evap*(h_sat_gas - h_gas)
+        Q_dot_liq = Q_dot_liq_wall_to_liq - Q_dot_liq_to_sat_surf + m_dot_evap*(h_liq - h_sat_liq) + m_dot_cond*(h_liq - h_sat_liq)
+        Q_dot_gas = Q_dot_gas_wall_to_gas + Q_dot_sat_surf_to_gas + m_dot_evap*(h_sat_gas - h_gas) + m_dot_cond*(h_sat_gas - h_gas)
 
 
 
         #NOTE: USE ambient properties for air, T_2 will be respective wall temperature (RK var)
         # (6) [natural convection] from atm to liq wall
-        Q_dot_atm_to_liq_wall = solve_Q_dot_natural_convection_gas(self.T_atm, T_wall_liq, self.T_atm, self.P_atm, self.rho_atm, 0.59, 0.25, self.height_tank, (np.pi*self.diam_in*h_liq_wall), "Air") #relative to wall_liq cv
+        #Q_dot_atm_to_liq_wall = solve_Q_dot_natural_convection_gas(self.T_atm, T_wall_liq, self.T_atm, self.P_atm, self.rho_atm, 0.59, 0.25, self.height_tank, (np.pi*self.diam_in*h_liq_wall), "Air") #relative to wall_liq cv
         # (7) [natural convection] from atm to gas wall
-        Q_dot_atm_to_gas_wall = solve_Q_dot_natural_convection_gas(self.T_atm, T_wall_gas, self.T_atm, self.P_atm, self.rho_atm, 0.59, 0.25, self.height_tank, (np.pi*self.diam_in*h_gas_wall), "Air") #relative to wall_gas cv
+        #Q_dot_atm_to_gas_wall = solve_Q_dot_natural_convection_gas(self.T_atm, T_wall_gas, self.T_atm, self.P_atm, self.rho_atm, 0.59, 0.25, self.height_tank, (np.pi*self.diam_in*h_gas_wall), "Air") #relative to wall_gas cv
         # (8) [conduction] from liq wall to gas wall 
-        Q_dot_liq_wall_to_gas_wall = solve_Q_dot_conduction( (T_wall_liq-T_wall_gas), self.height_tank, self.k_w, self.diam_in, self.diam_out) #relative to wall_liq cv
+        #Q_dot_liq_wall_to_gas_wall = solve_Q_dot_conduction( (T_wall_liq-T_wall_gas), self.height_tank, self.k_w, self.diam_in, self.diam_out) #relative to wall_liq cv
 
 
 
         # Iteratively solve change in CV Volume
         V_dot_liq = self.V_dot_liq_prev #initial guess for dV_dt_liq
-        while np.abs(P_dot_error(V_dot_liq, m_liq, m_gas, rho_liq, rho_gas, T_liq, T_gas, V_liq, V_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas, self.h_liq_prev, self.h_gas_prev, self.u_liq_prev, self.u_gas_prev)) > self.P_dot_err_tolerance:
-            V_dot_liq = secant((lambda V_dot: P_dot_error(V_dot, m_liq, m_gas, rho_liq, rho_gas,  T_liq, T_gas, V_liq, V_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas, self.h_liq_prev, self.h_gas_prev, self.u_liq_prev, self.u_gas_prev)), V_dot_liq)
+        print(V_dot_liq, m_liq, m_gas, rho_liq, rho_gas, T_liq, T_gas, V_liq, V_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas)
+        while np.abs(P_dot_error(V_dot_liq, m_liq, m_gas, rho_liq, rho_gas, T_liq, T_gas, V_liq, V_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas)) > self.P_dot_err_tolerance:
+            V_dot_liq = secant((lambda V_dot: P_dot_error(V_dot, m_liq, m_gas, rho_liq, rho_gas,  T_liq, T_gas, V_liq, V_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas)), V_dot_liq)
         
 
 
@@ -593,7 +617,7 @@ class model():
         T_dot_wall_gas = 0#( Q_dot_atm_to_gas_wall - Q_dot_gas_wall_to_gas + Q_dot_liq_wall_to_gas_wall + m_dot_gas_wall*(0.15)*( T_wall_liq - T_wall_gas) ) / (0.15*m_gas_wall)
 
 
-        T_dot_liq, T_dot_gas = single_solve_T_dot_liq_gas(V_dot_liq, m_liq, m_gas, rho_liq, rho_gas, T_liq, T_gas, V_liq, V_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas, self.h_liq_prev, self.h_gas_prev, self.u_liq_prev, self.u_gas_prev, True)
+        T_dot_liq, T_dot_gas = single_solve_T_dot_liq_gas(V_dot_liq, m_liq, m_gas, rho_liq, rho_gas, T_liq, T_gas, V_liq, V_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas, True)
 
 
 
@@ -603,7 +627,7 @@ class model():
         U_dot_gas = solve_U_dot_gas(rho_liq, rho_gas, T_liq, T_gas, P_tank, m_dot_evap, m_dot_cond, (-V_dot_liq), Q_dot_gas)
 
         
-
+        print("h_liq, h_sat_liq, h_sat_gas, h_gas, ", h_liq, h_sat_liq, h_sat_gas, h_gas )
 
         #print("cons energy for adiabatic nodes w liq exit at inj: ", U_dot_liq + U_dot_gas, " = ", m_dot_inj*h_liq )
         #print("cons energy for adiabatic tank w liq exit at inj: ", U_dot_liq + U_dot_gas, " = ", m_dot_inj*h_liq, "expecting 0: ",  (U_dot_liq + U_dot_gas)-(m_dot_inj*h_liq), (P_tank*(V_dot_liq+(-V_dot_liq))) )
@@ -626,15 +650,19 @@ class model():
         #print(" * * * masses: ", self.m_liq, self.m_gas, self.m_inj)
 
         # NOTE: y is a vector, k1-k4 are derivatives of sol!
+        print("starting k1")
         k1 = self.system_of_liq_odes(t, y0, constants)
-
+        
         y_2 = [y_i + self.TIMESTEP * k1_i / 2 for y_i, k1_i in zip(y0, k1)]
+        print("starting k2")
         k2 = self.system_of_liq_odes(t + self.TIMESTEP / 2, y_2, P_cc)
 
         y_3 = [y_i + self.TIMESTEP * k2_i / 2 for y_i, k2_i in zip(y0, k2)]
+        print("starting k3")
         k3 = self.system_of_liq_odes(t + self.TIMESTEP / 2, y_3, P_cc)
 
         y_4 = [y_i + self.TIMESTEP * k3_i for y_i, k3_i in zip(y0, k3)]
+        print("starting k4")
         k4 = self.system_of_liq_odes(t + self.TIMESTEP, y_4, P_cc)
 
         y =[ y_i + (self.TIMESTEP / 6) * (k1_i + 2*k2_i + 2*k3_i + k4_i) for y_i, k1_i,k2_i,k3_i,k4_i in zip(y0, k1,k2,k3,k4)]
@@ -643,11 +671,10 @@ class model():
 
         # (4) iteratively solve P_tank to update thermodynamic properties in each node
         #NOTE: this is just to update vals for downstream graphs
-        self.rho_liq, self.rho_gas, self.P_tank = solve_thermo_params(self.T_liq, self.T_gas, self.m_liq, self.m_gas, self.rho_liq_prev, self.rho_gas_prev, self.V_tank, self.volume_err_tolerance)
+        self.rho_liq, self.rho_gas, self.P_tank = solve_thermo_params(self.T_liq, self.T_gas, self.m_liq, self.m_gas, self.rho_liq_prev, self.V_tank, P_tank_err_tolerance) 
 
         #update stored vals for RK est and volumes
-        self.rho_liq_prev = self.rho_liq
-        self.rho_gas_prev = self.rho_gas
+        self.P_tank_prev = self.P_tank
         self.V_dot_liq_prev = self.V_liq - self.m_liq/self.rho_liq
         self.V_liq = self.m_liq/self.rho_liq
         self.V_gas = self.V_tank - self.V_liq
@@ -682,11 +709,11 @@ P_tank = 45e5 #Pa
 V_tank = 0.0354 #m^3
 
 diam_out = 0.230 #m #NOTE: thesis didn't provide tank geometry, estimated based off of G type nos dimensions (approx equivalent nos mass to Karabeyoglu run tank)
-diam_in = 0.450 #m
+diam_in = 0.5 #m
 rho_wall = 2770 #kg/m^3
 k_w = 237 #W/(m K)
 
-Cd_1 = 0.425
+Cd_1 = 0.6
 A_inj_1 = 0.00003 #m^3 NOTE: GUESS
 P_cc = 1.03e6 #Pa
 
@@ -710,6 +737,7 @@ P_cc = P_atm
 """
 #def __init__(self, TIMESTEP, T_atm, m_nos, Cd_1, A_inj_1, V_tank, diam_out, diam_in, rho_wall, k_w, P_tank, P_atm, inj_model)
 volume_err_tolerance = 1e-8
+P_tank_err_tolerance = 200 #Pa
 P_dot_err_tolerance = 10
 tank = model(TIMESTEP, m_nos, P_tank, P_cc, P_atm, T_atm, rho_atm, V_tank, diam_out, diam_in, rho_wall, k_w, Cd_1, A_inj_1, volume_err_tolerance, P_dot_err_tolerance)
 
@@ -756,7 +784,7 @@ init_U_inj = 0
 try:
     start_time = time.time()  # Start timer
 
-    while(t < 750*TIMESTEP): #3000*TIMESTEP
+    while(t < 50*TIMESTEP): #3000*TIMESTEP
         
         tank.inst(P_cc)
         t+=TIMESTEP 
