@@ -3,9 +3,9 @@ import CoolProp.CoolProp as CP
 import matplotlib.pyplot as plt
 from scipy.optimize import bisect
 from thermo import Chemical
-from thermo.eos import PR
 import traceback
 import time
+
 
 ### this is to test:
 LOOKUP_TIME = 0
@@ -14,24 +14,7 @@ LOOKUP_TIME = 0
 R_U = 8.31446 #J/(mol K)
 T_REF = 298.15 #K
 
-#TODO: DELETE UNUSED CONSTANTS!
-
-
-n2o_g = Chemical('nitrous oxide', T=T_REF)
-PC = n2o_g.Pc
-TC = n2o_g.Tc
-OMEGA = n2o_g.omega
-
-MW = (n2o_g.MW/1000) #n2o.MW in g/mol --> converted to kg/mol
-KAPPA = 0.37464 + 1.5422*n2o_g.omega - 0.26992*n2o_g.omega**2
-b = 0.07780*(R_U*TC/PC)
 g = 9.81 #m/s^2
-
-####
-"""
-#TODO: APPLY OFFSETS TO THE COOLPROP!
-"""
-###
 
 
 def secant(func, x1):
@@ -53,6 +36,9 @@ def secant(func, x1):
         kk = kk + 1
     x = x2
     return x
+
+
+
 
 
 
@@ -92,12 +78,10 @@ def solve_Q_dot_natural_convection_liq(rho_f, T_1, T_2, T_f, P_f, c, n, L, Area,
         k_f = n2o.kl # Conductivity W/(m K)
         dyn_visc_f = liq_dynamic_visc_polynomial(T_f)
         visc_f = dyn_visc_f/rho_f
-        #visc_f = get_n2o_viscosity(T_f, P_f, "liquid") # Kinematic viscosity (m^2/s)
 
+        cp_f = model.get_pure_thermo_state(T_f, rho_f)['cp'] #CP.PropsSI('Cpmass', 'D', rho_f, 'T', T_f, 'N2O') #(preos_l.Cp_dep_l/MW + cp_ig) #J/K  
 
-        cp_f = CP.PropsSI('Cpmass', 'D', rho_f, 'T', T_f, 'N2O') #(preos_l.Cp_dep_l/MW + cp_ig) #J/K  
-
-        beta = CP.PropsSI("ISOBARIC_EXPANSION_COEFFICIENT", "T", T_f, "P", P_f, "N2O") #d_rho_dT_P/rho_f     #(1/rho_f)*d_rho_dT_P
+        beta = get_beta_isobaric(T_f, rho_f) #CP.PropsSI("ISOBARIC_EXPANSION_COEFFICIENT", "T", T_f, "P", P_f, "N2O") #d_rho_dT_P/rho_f     #(1/rho_f)*d_rho_dT_P
 
     elif fluid == "Air":
         k_f = CP.PropsSI('L', 'T', T_f, 'P', P_f, 'Air')  # Conductivity W/(m K)
@@ -127,11 +111,10 @@ def solve_Q_dot_natural_convection_gas(rho_f, T_1, T_2, T_f, P_f, c, n, L, Area,
         k_f = n2o.kg # Conductivity W/(m K)
         dyn_visc_f = gas_dynamic_visc_polynomial(T_f)
         visc_f = dyn_visc_f/rho_f
-        #visc_f = get_n2o_viscosity(T_f, P_f, "vapor") # Kinematic viscosity (m^2/s)
 
-        cp_f = CP.PropsSI('Cpmass', 'D', rho_f, 'T', T_f, 'N2O') #(preos_l.Cp_dep_l/MW + cp_ig) #J/K 
+        cp_f = model.get_pure_thermo_state(T_f, rho_f)['cp'] #CP.PropsSI('Cpmass', 'D', rho_f, 'T', T_f, 'N2O') #(preos_l.Cp_dep_l/MW + cp_ig) #J/K 
         
-        beta = CP.PropsSI("ISOBARIC_EXPANSION_COEFFICIENT", "T", T_f, "P", P_f, "N2O") #d_rho_dT_P/rho_f     #(1/rho_f)*d_rho_dT_P
+        beta = get_beta_isobaric(T_f, rho_f) #CP.PropsSI("ISOBARIC_EXPANSION_COEFFICIENT", "T", T_f, "P", P_f, "N2O") #d_rho_dT_P/rho_f     #(1/rho_f)*d_rho_dT_P
 
     elif fluid == "Air":
         k_f = CP.PropsSI('L', 'T', T_f, 'P', P_f, 'Air')  # Conductivity W/(m K)
@@ -183,15 +166,16 @@ def spi_model(Cd_hem_spi_dyer, A_inj_ox, P_1, P_2, rho_tank_exit):
 """
 def solve_m_dot_evap(rho_liq, T_liq, P_tank, Q_dot_liq_to_sat_surf, Q_dot_sat_surf_to_gas):
     m_dot_evap = 0
-    #print("evap heat transfer rates: ", (Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas), Q_dot_liq_to_sat_surf, Q_dot_sat_surf_to_gas)
     print("check if evap, must be pos: ", Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas)
     if (Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas) > 0:
 
-        h_liq = CP.PropsSI('H', 'D', rho_liq, 'T', T_liq, 'N2O')
+        h_liq = model.get_pure_thermo_state(T_liq, rho_liq)['h'] # CP.PropsSI('H', 'D', rho_liq, 'T', T_liq, 'N2O')
  
-        T_sat = CP.PropsSI('T', 'P', P_tank, 'Q', 0, 'N2O')
-        h_sat_gas = CP.PropsSI('H', 'Q', 1, 'T', T_sat, 'N2O')
-        h_sat_liq = CP.PropsSI('H', 'Q', 0, 'T', T_sat, 'N2O')
+        T_sat = model.get_Tsat_P(P_tank) #CP.PropsSI('T', 'P', P_tank, 'Q', 0, 'N2O')
+
+        rho_l_sat, rho_v_sat = model.get_rho_sat_T(T_sat)
+        h_sat_liq = model.get_pure_thermo_state(T_sat, rho_l_sat)['h'] #CP.PropsSI('H', 'Q', 0, 'T', T_sat, 'N2O')
+        h_sat_gas = model.get_pure_thermo_state(T_sat, rho_v_sat)['h'] #CP.PropsSI('H', 'Q', 1, 'T', T_sat, 'N2O')
 
         m_dot_evap = (Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas) / ( (h_sat_gas-h_sat_liq) + (h_sat_liq - h_liq)  )  #if this doesnt work check functions and if they are as reusable as i treat them
 
@@ -203,10 +187,10 @@ def solve_m_dot_evap(rho_liq, T_liq, P_tank, Q_dot_liq_to_sat_surf, Q_dot_sat_su
 def solve_m_dot_condensed(T_gas, P_tank, V_gas):
     m_dot_cond = 0
 
-    P_sat_g = CP.PropsSI('P', 'T', T_gas, 'Q', 1, 'N2O')  
+    P_sat_g = model.get_psat_T(T_gas) #CP.PropsSI('P', 'T', T_gas, 'Q', 1, 'N2O')  
 
     if (P_tank > P_sat_g):
-        m_dot_cond = ((P_tank-P_sat_g)*V_gas*MW)/( (R_U/MW)*T_gas*(TIMESTEP) )   #NOTE EDIT DENOM FOR TESTING, OLD FOR REF: ( preos_g.Z_g*(R_U/MW)*T_gas*(TIMESTEP) )
+        m_dot_cond = 0# TODO: CHECK UNITS ((P_tank-P_sat_g)*V_gas)/( (R_U)*T_gas*(TIMESTEP) )   #NOTE EDIT DENOM FOR TESTING, OLD FOR REF: ( preos_g.Z_g*(R_U/MW)*T_gas*(TIMESTEP) )
 
 #NOTE: CONDENSATION FROM PREOS
     #if p_tank > p_sat_gas, then condensation to enforce equilibrium
@@ -224,11 +208,13 @@ def solve_m_dot_condensed(T_gas, P_tank, V_gas):
 
 def solve_U_dot_liq(rho_liq, rho_gas, T_liq, T_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, V_dot_liq , Q_dot_net):
 
-    h_liq = CP.PropsSI('H', 'D', rho_liq, 'T', T_liq, 'N2O')
+    h_liq = model.get_pure_thermo_state(T_liq, rho_liq)['h'] # CP.PropsSI('H', 'D', rho_liq, 'T', T_liq, 'N2O')
+ 
+    T_sat = model.get_Tsat_P(P_tank) #CP.PropsSI('T', 'P', P_tank, 'Q', 0, 'N2O')
 
-    T_sat = CP.PropsSI('T', 'P', P_tank, 'Q', 0, 'N2O')
-    h_sat_gas = CP.PropsSI('H', 'Q', 1, 'T', T_sat, 'N2O')
-    h_sat_liq = CP.PropsSI('H', 'Q', 0, 'T', T_sat, 'N2O')
+    rho_l_sat, rho_v_sat = model.get_rho_sat_T(T_sat)
+    h_sat_liq = model.get_pure_thermo_state(T_sat, rho_l_sat)['h'] #CP.PropsSI('H', 'Q', 0, 'T', T_sat, 'N2O')
+    h_sat_gas = model.get_pure_thermo_state(T_sat, rho_v_sat)['h'] #CP.PropsSI('H', 'Q', 1, 'T', T_sat, 'N2O')
 
  
 # NOTE: BROKE FOR TESTING ON PURPOSE  no cond!!!!!
@@ -246,12 +232,13 @@ def solve_U_dot_liq(rho_liq, rho_gas, T_liq, T_gas, P_tank, m_dot_inj, m_dot_eva
 
 #TODO: INPUT RHO LIQ AND GAS FOR SWEOS, DELETE HPREVS
 def solve_U_dot_gas(rho_liq, rho_gas, T_liq, T_gas, P_tank, m_dot_evap, m_dot_cond, V_dot_gas, Q_dot_net):
+ 
+    T_sat = model.get_Tsat_P(P_tank) #CP.PropsSI('T', 'P', P_tank, 'Q', 0, 'N2O')
 
-    T_sat = CP.PropsSI('T', 'P', P_tank, 'Q', 1, 'N2O')
-    h_sat_gas = CP.PropsSI('H', 'Q', 1, 'T', T_sat, 'N2O')
-    h_sat_liq = CP.PropsSI('H', 'Q', 0, 'T', T_sat, 'N2O')
+    rho_l_sat, rho_v_sat = model.get_rho_sat_T(T_sat)
+    h_sat_liq = model.get_pure_thermo_state(T_sat, rho_l_sat)['h'] #CP.PropsSI('H', 'Q', 0, 'T', T_sat, 'N2O')
+    h_sat_gas = model.get_pure_thermo_state(T_sat, rho_v_sat)['h'] #CP.PropsSI('H', 'Q', 1, 'T', T_sat, 'N2O')
 
-    #h_gas = preos_g.H_dep_g/MW + h_ig_gas  TODO: did we need this?
 
 # NOTE: BROKE FOR TESTING ON PURPOSE  no cond!!!!!
     U_dot_gas = m_dot_evap*(h_sat_gas - h_sat_liq) - m_dot_cond*(h_sat_liq - h_sat_gas) - P_tank*V_dot_gas + Q_dot_net  #NOTE: enthalpy arranged such that sign in front of term is representative of whether the magnitude of energy gained or lost from node
@@ -271,17 +258,14 @@ def solve_m_dot_liq_gas(m_dot_evap, m_dot_cond, m_dot_inj):
 def P_tank_error(rho_liq_guess, T_liq, T_gas, m_liq, m_gas, V_tank):
     #print("rho_liq: ", rho_liq_guess)
 
-    P_liq_est = CP.PropsSI('P', 'D', rho_liq_guess, 'T', T_liq, 'N2O')
+    P_liq_est = model.get_pure_thermo_state(T_liq, rho_liq_guess)['p'] #CP.PropsSI('P', 'D', rho_liq_guess, 'T', T_liq, 'N2O')
 
     rho_gas_est = m_gas / (V_tank - (m_liq/rho_liq_guess) )
-    print("check sign in rho_gas_est: ", V_tank - (m_liq/rho_liq_guess) )
-    if (V_tank - (m_liq/rho_liq_guess)) > 0:
 
-        P_gas_est = CP.PropsSI('P', 'D', rho_gas_est, 'T', T_gas, 'N2O')
+    if (V_tank - (m_liq/rho_liq_guess)) > 0:
+        P_gas_est =  model.get_pure_thermo_state(T_liq, rho_gas_est)['p']
     else:
         P_gas_est = 1e8
-
-    #print("P error: ", P_liq_est - P_gas_est)
 
     return P_liq_est - P_gas_est
 
@@ -292,7 +276,8 @@ def solve_thermo_params(T_liq, T_gas, m_liq, m_gas, rho_liq_prev, V_tank, P_tank
     rho_liq = rho_liq_prev #initial guess for rho_liq
 
     #Bisection method to solve for rho_liq
-    lower_bound = max( CP.PropsSI('D', 'T', T_liq, 'Q', 1, 'N2O'), rho_liq_prev - 1)
+    rho_l_sat, _ = model.get_rho_sat_T(T_liq)
+    lower_bound = max( rho_l_sat, rho_liq_prev - 1)
     upper_bound = rho_liq_prev + 1
 
     try:
@@ -320,7 +305,7 @@ def solve_thermo_params(T_liq, T_gas, m_liq, m_gas, rho_liq_prev, V_tank, P_tank
     """
 
 
-    P_tank = CP.PropsSI('P', 'D', rho_liq, 'T', T_liq, 'N2O')
+    P_tank = model.get_pure_thermo_state(T_liq, rho_liq)['p']
 
     rho_gas = m_gas / (V_tank - (m_liq/rho_liq) )
 
@@ -343,14 +328,14 @@ def single_solve_T_dot_liq_gas(V_dot_liq, m_liq, m_gas, rho_liq, rho_gas, T_liq,
     U_dot_gas = solve_U_dot_gas(rho_liq, rho_gas, T_liq, T_gas, P_tank, m_dot_evap, m_dot_cond, V_dot_gas, Q_dot_gas)
     
 
-    partial_du_d_rho_const_T_gas = CP.PropsSI('d(U)/d(D)|T', 'D', rho_gas, 'T', T_gas, 'N2O')
-    cv_gas = CP.PropsSI('CVMASS', 'D', rho_gas, 'T', T_gas, 'N2O')
-    u_gas = CP.PropsSI('U', 'D', rho_gas, 'T', T_gas, 'N2O')
+    partial_du_d_rho_const_T_gas = model.get_deriv('d(u)/d(rho)|T', T_gas, rho_gas) #CP.PropsSI('d(U)/d(D)|T', 'D', rho_gas, 'T', T_gas, 'N2O')
+    cv_gas = model.get_pure_thermo_state(T_gas, rho_gas)['cp'] #CP.PropsSI('CVMASS', 'D', rho_gas, 'T', T_gas, 'N2O')
+    u_gas = model.get_pure_thermo_state(T_gas, rho_gas)['u'] #CP.PropsSI('U', 'D', rho_gas, 'T', T_gas, 'N2O')
 
 
-    partial_du_d_rho_const_T_liq = CP.PropsSI('d(U)/d(D)|T', 'D', rho_liq, 'T', T_liq, 'N2O')
-    cv_liq = CP.PropsSI('CVMASS', 'D', rho_liq, 'T', T_liq, 'N2O')
-    u_liq = CP.PropsSI('U', 'D', rho_liq, 'T', T_liq, 'N2O')
+    partial_du_d_rho_const_T_liq = model.get_deriv('d(u)/d(rho)|T', T_liq, rho_liq) #CP.PropsSI('d(U)/d(D)|T', 'D', rho_liq, 'T', T_liq, 'N2O')
+    cv_liq = model.get_pure_thermo_state(T_liq, rho_liq)['cp'] #CP.PropsSI('CVMASS', 'D', rho_liq, 'T', T_liq, 'N2O')
+    u_liq = model.get_pure_thermo_state(T_liq, rho_liq)['u'] #CP.PropsSI('U', 'D', rho_liq, 'T', T_liq, 'N2O')
 
 
     T_dot_liq = (1/cv_liq)*( (1/m_liq) * (U_dot_liq - (u_liq*m_dot_liq)) - (partial_du_d_rho_const_T_liq* d_rho_dt_liq) )
@@ -385,16 +370,16 @@ def P_dot_error(V_dot_guess, m_liq, m_gas, rho_liq, rho_gas, T_liq, T_gas, V_liq
     T_dot_liq, T_dot_gas = single_solve_T_dot_liq_gas(V_dot_guess, m_liq, m_gas, rho_liq, rho_gas, T_liq, T_gas, V_liq, V_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas, False)
 
 
-    partial_dP_dT_const_rho_liq = CP.PropsSI('d(P)/d(T)|D', 'T', T_liq, 'D', rho_liq, 'N2O')
+    partial_dP_dT_const_rho_liq = model.get_deriv('d(p)/d(T)|rho', T_liq, rho_liq) #CP.PropsSI('d(P)/d(T)|D', 'T', T_liq, 'D', rho_liq, 'N2O')
 
-    partial_dP_drho_const_T_liq = CP.PropsSI('d(P)/d(D)|T', 'D', rho_liq, 'T', T_liq, 'N2O')
+    partial_dP_drho_const_T_liq = model.get_deriv('d(p)/d(rho)|T', T_liq, rho_liq) #CP.PropsSI('d(P)/d(D)|T', 'D', rho_liq, 'T', T_liq, 'N2O')
 
     P_dot_liq = partial_dP_dT_const_rho_liq*T_dot_liq + partial_dP_drho_const_T_liq*d_rho_dt_liq
 
 
-    partial_dP_dT_const_rho_gas = CP.PropsSI('d(P)/d(T)|D', 'T', T_gas, 'D', rho_gas, 'N2O')
+    partial_dP_dT_const_rho_gas = model.get_deriv('d(p)/d(T)|rho', T_gas, rho_gas) #CP.PropsSI('d(P)/d(T)|D', 'T', T_gas, 'D', rho_gas, 'N2O')
 
-    partial_dP_drho_const_T_gas = CP.PropsSI('d(P)/d(D)|T', 'D', rho_gas, 'T', T_gas, 'N2O')
+    partial_dP_drho_const_T_gas = model.get_deriv('d(p)/d(rho)|T', T_gas, rho_gas) #CP.PropsSI('d(P)/d(D)|T', 'D', rho_gas, 'T', T_gas, 'N2O')
 
     P_dot_gas = partial_dP_dT_const_rho_gas*T_dot_gas + partial_dP_drho_const_T_gas*d_rho_dt_gas
 
@@ -439,8 +424,8 @@ class model():
         self.V_tank = V_tank
         self.m_nos = m_nos
 
-        rho_sat_gas = CP.PropsSI('D', 'P', P_tank, 'Q', 1, 'N2O')
-        rho_sat_liq = CP.PropsSI('D', 'P', P_tank, 'Q', 0, 'N2O')
+        rho_sat_gas = get_sat_densities_P(P_tank) #CP.PropsSI('D', 'P', P_tank, 'Q', 1, 'N2O')
+        rho_sat_liq = get_sat_densities_P(P_tank) #CP.PropsSI('D', 'P', P_tank, 'Q', 0, 'N2O')
         
         rho_sat_tank = self.m_nos/V_tank
 
@@ -449,21 +434,27 @@ class model():
         #gas cv
         self.m_gas = x_tank*self.m_nos
 
-        self.T_gas = CP.PropsSI('T', 'P', self.P_tank, 'Q', 1, 'N2O') - 0.003 #perturb to start close to equillibrium but as a gas
+        self.T_gas = model.get_Tsat_P(self.P_tank) #CP.PropsSI('T', 'P', self.P_tank, 'Q', 1, 'N2O') - 0.003 #perturb to start close to equillibrium but as a gas
         self.T_wall_gas = self.T_gas
 
+        #TODO: SOL DENSITY? OR IS THERE A SMARTER WAY TO SETUP MY INITIAL CONDITIONS?
         # since we perturb, resol density so surface doesnt break
-        self.rho_gas = CP.PropsSI('D', 'P', self.P_tank, 'T', self.T_gas, 'N2O')
+        #self.rho_gas = CP.PropsSI('D', 'P', self.P_tank, 'T', self.T_gas, 'N2O')
+        self.rho_liq, self.rho_gas = model.get_rho_sat_T(T_sat)
+        
         v_gas = 1/self.rho_gas
         self.V_gas = v_gas*self.m_gas
 
         #liquid cv
         self.m_liq = self.m_nos-self.m_gas
-        self.T_liq = CP.PropsSI('T', 'P', self.P_tank, 'Q', 0, 'N2O') + 0.003 #perturb to start close to equillibrium
+        self.T_liq = model.get_Tsat_P(self.P_tank) #perturb to start close to equillibrium
         self.T_wall_liq = self.T_liq
 
+        #TODO: SOL DENSITY? OR IS THERE A SMARTER WAY TO SETUP MY INITIAL CONDITIONS?
         #solve rho_liq!
-        self.rho_liq = CP.PropsSI('D', 'P', self.P_tank, 'T', self.T_liq, 'N2O') #NOTE: THIS IS GIVING THE WRONG ROOT!
+
+        ## yes we dont need to resol bcuz we can be on sat line bcuz sweos good
+        #self.rho_liq = CP.PropsSI('D', 'P', self.P_tank, 'T', self.T_liq, 'N2O') #NOTE: THIS IS GIVING THE WRONG ROOT!
         v_liq = 1/self.rho_liq
         self.V_liq = v_liq*self.m_liq
 
@@ -483,18 +474,13 @@ class model():
         
         #i dont think we need this 
 
-        self.h_liq_prev = CP.PropsSI('H', 'D', self.rho_liq, 'T', self.T_liq, 'N2O')
-        self.h_gas_prev = CP.PropsSI('H', 'D', self.rho_gas, 'T', self.T_gas, 'N2O')
-
-        self.u_liq_prev = CP.PropsSI('U', 'D', self.rho_liq, 'T', self.T_liq, 'N2O')
-        self.u_gas_prev = CP.PropsSI('U', 'D', self.rho_gas, 'T', self.T_gas, 'N2O')
-
+       
 
         ### below is debug code delete later!!!!
 
         self.m_inj = 0
-        u_liq = CP.PropsSI('U', 'D', self.rho_liq, 'T', self.T_liq, 'N2O')
-        u_gas = CP.PropsSI('U', 'D', self.rho_gas, 'T', self.T_gas, 'N2O')
+        u_liq = model.get_pure_thermo_state(self.T_liq, self.rho_liq)['u']
+        u_gas = model.get_pure_thermo_state(self.T_gas, self.rho_gas)['u']
         u_inj = u_liq #NOTE:  this is wrong!!!!
 
         self.U_liq = u_liq*self.m_liq
@@ -521,7 +507,7 @@ class model():
         rho_liq, rho_gas, P_tank = solve_thermo_params(T_liq, T_gas, m_liq, m_gas, self.rho_liq_prev, V_tank, P_tank_err_tolerance)
 
 
-        T_sat = CP.PropsSI('T', 'P', P_tank, 'Q', 0, 'N2O')
+        T_sat = model.get_Tsat_P(P_tank) #CP.PropsSI('T', 'P', P_tank, 'Q', 0, 'N2O')
 
         # Mass transfer (1) from injector
         m_dot_inj = spi_model(self.Cd_1, self.A_inj_1, P_tank, P_cc, rho_liq)
@@ -570,14 +556,14 @@ class model():
 
 
 
-        h_liq = CP.PropsSI('H', 'D', rho_liq, 'T', T_liq, 'N2O')
+        h_liq = model.get_pure_thermo_state(T_liq, rho_liq)['h']
 
 
-        T_sat = CP.PropsSI('T', 'P', P_tank, 'Q', 0, 'N2O')
-        h_sat_gas = CP.PropsSI('H', 'Q', 1, 'T', T_sat, 'N2O')
-        h_sat_liq = CP.PropsSI('H', 'Q', 0, 'T', T_sat, 'N2O')
+        T_sat = model.get_Tsat_P(P_tank)
+        h_sat_liq = model.get_pure_thermo_state(T_sat, rho_liq)['h']
+        h_sat_gas = model.get_pure_thermo_state(T_sat, rho_gas)['h']
 
-        h_gas = CP.PropsSI('H', 'D', rho_gas, 'T', T_gas, 'N2O')
+        h_gas = model.get_pure_thermo_state(T_gas, rho_gas)['h']
 
 ###NOTE: Q_dot eqns: 
         Q_dot_liq = Q_dot_liq_wall_to_liq - Q_dot_liq_to_sat_surf + m_dot_evap*(h_liq - h_sat_liq) + m_dot_cond*(h_liq - h_sat_liq)
@@ -806,16 +792,14 @@ try:
 
         T_liq_wall_arr.append(tank.T_wall_liq)
         T_gas_wall_arr.append(tank.T_wall_gas)
-
-        preos_g = PR(Tc=TC, Pc=PC, omega=OMEGA, T=tank.T_gas, P=tank.P_tank)
         
-        T_sat = preos_g.Tsat(tank.P_tank)
+        T_sat = model.get_Tsat_P(tank.P_tank)
         T_sat_arr.append(T_sat)
 
-        P_sat_g = preos_g.Psat(tank.T_gas)
+        P_sat_g = model.get_psat_T(tank.T_gas)
         P_sat_gas_arr.append(P_sat_g)
 
-        P_sat_l = preos_g.Psat(tank.T_liq)
+        P_sat_l = model.get_psat_T(tank.T_liq)
         P_sat_liq_arr.append(P_sat_l)
 
 
