@@ -131,8 +131,7 @@ def span2000_residual(P, T):
     prop_gas = explicit_helmholtz_derivs(rho_gas, T)
     prop_liq = explicit_helmholtz_derivs(rho_liq, T)
     RES = P/(prop_liq['R']*T) * (1/rho_gas-1/rho_liq) - np.log(rho_liq/rho_gas) - (prop_liq['ar']-prop_gas['ar'])
-    
-    #first term times 1.06 gets it to work
+
     return RES
 
 def thermo_span_wagner(rho, T, param):
@@ -211,105 +210,67 @@ def thermo_span_wagner(rho, T, param):
 
 
 
-"""
-
-import numpy as np
-import matplotlib.pyplot as plt
-
-# === User input ===
-T = 290  # K
-P_sat = 5012645.773525399  # Pa, your tested saturation pressure
-
-# === Sweep density range ===
-rho_range = np.linspace(0.1, 1200, 1000)  # kg/m³
-mu_vals = []
-rho_vals = []
-
-for rho in rho_range:
-    try:
-        P = thermo_span_wagner(rho, T, 'p')
-        if abs(P - P_sat) / P_sat < 0.01:  # Acceptable range around your input P_sat (1%)
-            mu = thermo_span_wagner(rho, T, 'mu')
-            mu_vals.append(mu)
-            rho_vals.append(rho)
-    except Exception:
-        continue
-
-# === Compute mu_liq - mu_vap ===
-if len(rho_vals) >= 2:
-    rho_vals = np.array(rho_vals)
-    mu_vals = np.array(mu_vals)
-
-    rho_liq = rho_vals[-1]
-    rho_vap = rho_vals[0]
-
-    mu_liq = mu_vals[-1]
-    mu_vap = mu_vals[0]
-    delta_mu = mu_liq - mu_vap
-
-    print(f"rho_liq: {rho_liq:.2f} kg/m³, rho_vap: {rho_vap:.2f} kg/m³")
-    print(f"mu_liq: {mu_liq:.3f}, mu_vap: {mu_vap:.3f}")
-    print(f"Δμ = μ_liq - μ_vap = {delta_mu:.3f} J/kg")
-
-    # === Plot μ vs ρ ===
-    plt.figure(figsize=(8, 5))
-    plt.plot(rho_vals, mu_vals, label=r'$\mu(\rho)$ at T = {:.1f} K'.format(T))
-    plt.axvline(rho_liq, color='blue', linestyle='--', label='ρ_liq')
-    plt.axvline(rho_vap, color='red', linestyle='--', label='ρ_vap')
-    plt.xlabel('Density [kg/m³]')
-    plt.ylabel('Chemical Potential μ [J/kg]')
-    plt.title(f'μ vs Density at P = {P_sat/1e5:.2f} bar, T = {T} K')
-    plt.legend()
-    plt.grid(True)
-    plt.tight_layout()
-    plt.show()
-else:
-    print("Not enough density values found near P_sat.")
-
-
-"""
-
-
-
-
 T_input = 290
 
 sol_psat = thermo_span_wagner(None, T_input, "P_sat")
 print("tsw P_sat:", sol_psat)
 
 import CoolProp.CoolProp as CP
-print(CP.PropsSI('P', 'T', T_input, 'Q', 0, 'N2O'))
+print("coolprop P_sat: ", CP.PropsSI('P', 'T', T_input, 'Q', 0, 'N2O'))
 
-"""
-roots = verbose_find_all_sweos_density_roots(T_input, sol_psat, rho_min=0.1, rho_max=1200)
-if len(roots) < 2:
-    raise ValueError("Less than two density roots found for P = {:.3f} Pa".format(sol_psat))
+import numpy as np
+import matplotlib.pyplot as plt
 
-roots = sorted(roots)
-rho_gas = roots[0]      # Lowest density (vapor)
-rho_liq = roots[-1]     # Highest density (liquid)
+# Inputs
+P_sat = thermo_span_wagner(None, T_input, "P_sat")  # [Pa], your given saturation pressure
 
-print("tsw rho_gas, rho_liq: ", rho_gas, rho_liq)"""
+# Density sweep range
+rhos = np.linspace(0.1, 1200, 1000)  # [kg/m^3]
 
-"""T_c = 309.52  # Critical Temperature (K)
-rho_c = 452.0115  # Critical Density (kg/m^3)
-print("critical pressure check: ", thermo_span_wagner(rho_c, T_c, "p"))"""
+mu_vals = []
+for rho in rhos:
+    try:
+        mu_vals.append( thermo_span_wagner(rho, T_input, "mu") )
+    except Exception as e:
+        mu_vals.append(np.nan)
 
+mu_vals = np.array(mu_vals)
 
-
-"""pressures = np.linspace(0.9* sol_psat, 1.05 * sol_psat, 20)
-residuals = [span2000_residual(P, T_input) for P in pressures]
-
-plt.plot(pressures, residuals)
-plt.axhline(0, color='r', linestyle='--')
-plt.xlabel("Pressure [Pa]")
-plt.ylabel("Saturation Residual")
-plt.title(f"span2000_residual vs P at T = {T_input} K")
+# Plot
+plt.figure(figsize=(10,6))
+plt.plot(rhos, mu_vals, label='μ vs ρ')
+plt.xlabel('Density [kg/m³]')
+plt.ylabel('Chemical Potential [J/kg]')
+plt.title(f'Chemical Potential at T = {T_input} K, Sweeping Density')
 plt.grid(True)
-plt.show()"""
+
+# Highlight regions where P matches P_sat (roots of EOS)
+P_residuals = [thermo_span_wagner(rho, T_input, 'p') - P_sat for rho in rhos]
+signs = np.sign(P_residuals)
+crossings = np.where(np.diff(signs))[0]
+
+for idx in crossings:
+    plt.axvline(rhos[idx], color='red', linestyle='--', alpha=0.6)
+    print("root: ", rhos[idx])
+
+plt.legend()
+plt.show()
 
 
-"""import CoolProp.CoolProp as CP
-print(CP.PropsSI('P', 'T', T_input, 'Q', 0, 'N2O'),CP.PropsSI('D', 'T', T_input, 'Q', 1, 'N2O'),CP.PropsSI('D', 'T', T_input, 'Q', 0, 'N2O') )
+rhos = np.linspace(50, 1200, 300)
 
-"""
+shift = thermo_span_wagner(rho, T_input, "a") - CP.PropsSI('HELMHOLTZMASS', 'D', rho, 'T', T_input, 'N2O')
+
+a_model = np.array([thermo_span_wagner(rho, T_input, "a") for rho in rhos])
+a_cp = np.array([CP.PropsSI('HELMHOLTZMASS', 'D', rho, 'T', T_input, 'N2O') + shift for rho in rhos])
+
+# Plot
+plt.plot(rhos, a_cp, label='CoolProp', linewidth=2)
+plt.plot(rhos, a_model, '--', label='tswa', linewidth=2)
+plt.xlabel("Density [kg/m³]")
+plt.ylabel("Helmholtz Energy a [J/kg]")
+plt.title(f"Helmholtz Energy vs Density at T = {T_input} K")
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
