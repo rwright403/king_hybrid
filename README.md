@@ -54,7 +54,9 @@ I got some of the liquid stuff to work and accidentally broke the hybrid models.
 | [14]   | NIST Chemical Webbook | Used to validate thermo properties from libraries | https://webbook.nist.gov/cgi/fluid.cgi?ID=C10024972&Action=Page |
 | [15]  | Thorade, M., Saadat, A. (2013): Partial derivatives of thermodynamic state properties for dynamic
 simulation. ‐ Environmental Earth Sciences, 70, 8, 3497‐3503 | for span wagner eos partial derivs |https://gfzpublic.gfz-potsdam.de/rest/items/item_247373_5/component/file_306833/content?download=true
-
+| [16]  | Modeling Feed System Flow Physics for Self-Pressurizing Propellants | Understanding Metastable States | https://www.researchgate.net/publication/268482381_Modeling_Feed_System_Flow_Physics_for_Self-Pressurizing_Propellants |
+| [17]  | Span, Multiparameter Equations of State An Accurate Source of Thermodynamic Property Data | Understanding how to implement the Span Wagner EOS | https://www.researchgate.net/publication/40381676_Multiparameter_equations_of_state_an_accurate_source_of_thermodynamic_property_data_with_151_figures_and_tables |
+| [18]  | A Reliable and Useful Method to Determine the Saturation State from Helmholtz Energy Equations of State | Another source that helps explain the iterative algo to solve saturation properties w helmholtz eos | https://www.jstage.jst.go.jp/article/jtst/3/3/3_3_442/_pdf |
 
 
 
