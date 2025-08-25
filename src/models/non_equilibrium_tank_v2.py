@@ -326,7 +326,7 @@ def solve_U_dot_gas(rho_liq, rho_gas, T_liq, T_gas, P_tank, m_dot_evap, m_dot_co
     #h_gas = preos_g.H_dep_g/MW + h_ig_gas  TODO: did we need this?
 
 # NOTE: BROKE FOR TESTING ON PURPOSE  no cond!!!!!
-    U_dot_gas = m_dot_evap*h_sat_gas - m_dot_cond*(h_sat_gas - h_sat_liq) - P_tank*V_dot_gas + Q_dot_net 
+    U_dot_gas = m_dot_evap*(h_sat_gas - h_sat_liq)  - m_dot_cond*(h_sat_gas - h_sat_liq) - P_tank*V_dot_gas + Q_dot_net 
 
     return U_dot_gas
 
