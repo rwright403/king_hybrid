@@ -29,15 +29,66 @@ CW = 896 #J/(kg K) ~ this is the specific heat capacity of the wall material, fo
 #NOTE: EMPIRICAL FACTOR E:
 E = 2.1e4 #FOR HEAT TRANSFER
 
-def thermo_span_wagner(rho, T, param):
+
+
+import numpy as np
+from scipy.optimize import brentq
+
+import matplotlib.pyplot as plt
+
+def secant(func, x1):
+    x_eps = x1 * 0.005  # Set the tolerance to be 0.5% of init guess
+    x2 = x1 -x1 * 0.01  # Set a second point 1% away from the original guess
+    F1 = func(x1)  # Evaluate function at x1
+    F2 = func(x2)  # Evaluate function at x2
+    kk = 1  # Set up counter
+    kk_max = 1000
+
+    while np.abs(x2 - x1) >= (x_eps) and kk < kk_max:  # While error is too large and counter is less than max
+        x3 = x2 - (F2 * (x2 - x1) / (F2 - F1)) 
+        x1 = x2  # Move everything forward
+        x2 = x3
+        F1 = F2
+        F2 = func(x2) 
+        if (F1 == F2):
+            return x2
+        kk = kk + 1
+    x = x2
+    return x
+
+def P_sat_anc(T):
+    # Polynomial coefficients
+    A = 4.80716087
+    B = 967.819748
+    C = 19.6368887
+
+    if 140 < T and T < 310:
+        P_sat_est = 100000*( 10**(A-(B/(T+C))) )
+        return P_sat_est
+    raise ValueError("Temperature outside of function bounds!")
+
+def T_sat_anc(P):
+    # Polynomial coefficients
+    A = 4.80716087
+    B = 967.819748
+    C = 19.6368887
+
+    T_sat_est = B/(A - np.log10(P/100000)) - C
+
+    if T_sat_est > 140 and 310 < T_sat_est:
+        raise ValueError("Temperature outside of function bounds!")
+    return T_sat_est
+
+
+def explicit_helmholtz_derivs(rho, T):
 
     # Constants for N2O
-    R = 8.3144598 / 44.0128 * 1000 # Gas constant (kJ/kg*K)
+    R = 8.3144598 / 44.0128 * 1000 # Specific Gas constant (J/kg*K)
     T_c = 309.52  # Critical Temperature (K)
     rho_c = 452.0115  # Critical Density (kg/m^3)
 
     n0 = np.array([0.88045, -2.4235, 0.38237, 0.068917, 0.00020367, 0.13122, 0.46032,
-          -0.0036985, -0.23263, -0.00042859, -0.042810, -0.023038])
+        -0.0036985, -0.23263, -0.00042859, -0.042810, -0.023038])
     n1 = n0[0:5]
     n2 = n0[5:12]
     a1 = 10.7927224829
@@ -68,59 +119,180 @@ def thermo_span_wagner(rho, T, param):
     ar_deltadelta = np.sum(n1 * d1 * (d1 - 1) * delta**(d1 - 2) * tau**t1) + np.sum(n2 * tau**t2 * delta**(d2 - 2) * ((d2 - P0 * delta**P0) * (d2 - 1 - P0 * delta**P0) - P0**2 * delta**P0) * np.exp(-delta**P0))
     ar_deltatau = np.sum(n1 * d1 * t1 * delta**(d1 - 1) * tau**(t1 - 1)) + np.sum(n2 * t2 * tau**(t2 - 1) * delta**(d2 - 1) * (d2 - P0 * delta**P0) * np.exp(-delta**P0))
 
-    out = 0.0
+    return {
+        'R': R,
+        'tau': tau,
+        'delta': delta,
+        'ao': ao,
+        'ar': ar,
+        'ao_tau': ao_tau,
+        'ar_tau': ar_tau,
+        'ao_tautau': ao_tautau,
+        'ar_tautau': ar_tautau,
+        'ar_delta': ar_delta,
+        'ar_deltadelta': ar_deltadelta,
+        'ar_deltatau': ar_deltatau,
+    }
+
+
+def verbose_find_all_sweos_density_roots(T, P_target, rho_min, rho_max, n_points=1000):
+    
+    rhos = np.linspace(rho_min, rho_max, n_points)
+    residuals = [thermo_span_wagner(rho=rho, T=T, param='p') - P_target for rho in rhos]
+    
+    signs = np.sign(residuals)
+    zero_crossings = np.where(np.diff(signs))[0]
+    
+     # 🔍 Plot pressure residuals
+    plt.figure(figsize=(8, 5))
+    plt.plot(rhos, residuals, label='P_calc - P_target')
+    plt.axhline(0, color='red', linestyle='--', label='Zero residual')
+    plt.xlabel('Density [kg/m³]')
+    plt.ylabel('Pressure Residual [Pa]')
+    plt.title(f'Residuals of Helmholtz EOS Pressure at T = {T:.2f} K')
+    plt.grid(True)
+    plt.legend()
+    plt.show()
+
+    roots = []
+    for idx in zero_crossings:
+        try:
+            root = brentq(lambda r: thermo_span_wagner(rho=r, T=T, param='p') - P_target,
+                          rhos[idx], rhos[idx+1])
+            roots.append(root)
+        except ValueError:
+            pass  # in case brentq fails due to no root in interval
+    return roots
+
+
+def find_all_sweos_density_roots(T, P_target, rho_min, rho_max, n_points):
+    
+    rhos = np.linspace(rho_min, rho_max, n_points)
+    residuals = [thermo_span_wagner(rho=rho, T=T, param='p') - P_target for rho in rhos]
+    
+    signs = np.sign(residuals)
+    zero_crossings = np.where(np.diff(signs))[0]
+
+    roots = []
+    for idx in zero_crossings:
+        try:
+            root = brentq(lambda r: thermo_span_wagner(rho=r, T=T, param='p') - P_target,
+                          rhos[idx], rhos[idx+1])
+            roots.append(root)
+        except ValueError:
+            pass  # in case brentq fails due to no root in interval
+
+    if len(roots) < 2:
+        raise ValueError("Less than two density roots found")
+    return sorted(roots) #returns in order of smallest to largest. NOTE: rho_gas = roots[0] // rho_liq = roots[-1] 
+
+def span2000_residual(P, T):
+    # Solve for liquid and vapor densities at this P, T
+    roots = find_all_sweos_density_roots(T, P, rho_min=0.1, rho_max=1200,n_points=1000)
+    
+    rho_gas = roots[0]      # Lowest density (vapor)
+    rho_liq = roots[-1]     # Highest density (liquid)
+
+    # Compute residual combining pressure and chemical potential constraints
+    prop_gas = explicit_helmholtz_derivs(rho_gas, T)
+    prop_liq = explicit_helmholtz_derivs(rho_liq, T)
+    RES = P/(prop_liq['R']*T) * (1/rho_gas-1/rho_liq) - np.log(rho_liq/rho_gas) - (prop_liq['ar']-prop_gas['ar'])
+
+    return RES
+
+
+def sol_init_guess(est, pcnt):
+    est_min = (1-pcnt)*est
+    est_max = (1+pcnt)*est
+    return est_min, est_max
+
+def thermo_span_wagner(rho=None, T=None, P=None, param=None):
+    
     if param == 'p':  # Pressure (Pa)
-        out = rho * R * T * (1 + delta * ar_delta)
+        prop = explicit_helmholtz_derivs(rho, T)
+        return rho * prop['R'] * T * (1 + prop['delta'] * prop['ar_delta'])
+    
     elif param == 'u':  # Specific internal energy (J/kg)
-        out = R * T * tau * (ao_tau + ar_tau)
+        prop = explicit_helmholtz_derivs(rho, T)
+        return prop['R'] * T * prop['tau'] * (prop['ao_tau'] + prop['ar_tau'])
+    
     elif param == 's':  # Specific entropy (J/kg*K)
-        out = R * (tau * (ao_tau + ar_tau) - ao - ar)
+        prop = explicit_helmholtz_derivs(rho, T)
+        return prop['R'] * (prop['tau'] * (prop['ao_tau'] + prop['ar_tau']) - prop['ao'] - prop['ar'])
+    
     elif param == 'h':  # Specific enthalpy (J/kg)
-        out = R * T * (1 + tau * (ao_tau + ar_tau) + delta * ar_delta)
+        prop = explicit_helmholtz_derivs(rho, T)
+        return prop['R'] * T * (1 + prop['tau'] * (prop['ao_tau'] + prop['ar_tau']) + prop['delta'] * prop['ar_delta'])
+    
+    elif param == 'a':  # Helmholtz free energy per unit mass (J/kg)
+        prop = explicit_helmholtz_derivs(rho, T)
+        return prop['R'] * T * (prop['ao'] + prop['ar'])
+    
+    elif param == 'mu': # Chemical Potential (J/kg)
+        P = thermo_span_wagner(rho=rho, T=T, param='p')
+        a = thermo_span_wagner(rho=rho, T=T, param='a')
+        return a + P / rho
+    
     elif param == 'cv':  # Specific heat constant volume (J/kg*K)
-        out = R * -tau**2 * (ao_tautau + ar_tautau)
+        prop = explicit_helmholtz_derivs(rho, T)
+        return prop['R'] * -prop['tau']**2 * (prop['ao_tautau'] + prop['ar_tautau'])
+    
     elif param == 'cp':  # Specific heat constant pressure (J/kg*K)
-        out = R * (-tau**2 * (ao_tautau + ar_tautau) + (1 + delta * ar_delta - delta * tau * ar_deltatau)**2 / (1 + 2 * delta * ar_delta + delta**2 * ar_deltadelta))
-#NOTE: on below I BELIEVE ar_deltatau = ar_taudelta, but not sure so test this one in particular
+        prop = explicit_helmholtz_derivs(rho, T)
+        return prop['R'] * (-prop['tau']**2 * (prop['ao_tautau'] + prop['ar_tautau']) + (1 + prop['delta'] * prop['ar_delta'] - prop['delta'] * prop['tau'] * prop['ar_deltatau'])**2 / (1 + 2 * prop['delta'] * prop['ar_delta'] + prop['delta']**2 * prop['ar_deltadelta']))
+    
     elif param == 'du_drho_const_T': # 
-        out = R * T / rho * ( tau * delta * ar_deltatau)
-#NOTE: on below I BELIEVE ar_deltatau = ar_taudelta, but not sure so test this one in particular
+        prop = explicit_helmholtz_derivs(rho, T)
+        return prop['R'] * T / rho * ( prop['tau'] * prop['delta'] * prop['ar_deltatau'])
+    
     elif param == 'dP_dT_const_rho':
-        out = rho * R *(1 + delta * ar_delta - (tau * delta *ar_deltatau) )
+        prop = explicit_helmholtz_derivs(rho, T)
+        return rho * prop['R'] *(1 + prop['delta'] * prop['ar_delta'] - (prop['tau'] * prop['delta'] * prop['ar_deltatau']) )
+    
     elif param == 'dP_drho_const_T':
-        out = R * T * (1 + 2 * delta * ar_delta + (delta**2) * ar_deltadelta )
-#NOTE: on below I BELIEVE ar_deltatau = ar_taudelta, but not sure so test this one in particular
+        prop = explicit_helmholtz_derivs(rho, T)
+        return prop['R'] * T * (1 + 2 * prop['delta'] * prop['ar_delta'] + (prop['delta']**2) * prop['ar_deltadelta'] )
+    
     elif param == 'd_rho_dT_const_P':
-        out = (rho * R *(1 + delta * ar_delta - (tau * delta *ar_deltatau) )) / (R * T * (1 + 2 * delta * ar_delta + (delta**2) * ar_deltadelta ))
+        prop = explicit_helmholtz_derivs(rho, T)
+        return (rho * prop['R'] *(1 + prop['delta'] * prop['ar_delta'] - (prop['tau'] * prop['delta'] *prop['ar_deltatau']) )) / (prop['R'] * T * (1 + 2 * prop['delta'] * prop['ar_delta'] + (prop['delta']**2) * prop['ar_deltadelta'] ))
+    
+    
+
+    elif param == 'P_sat':
+        pcnt = 0.1
+        P_sat_est = P_sat_anc(T) # Start: Ancillary Eqn to sol an estimate for saturation temp
+        while pcnt < 0.5:
+            try:
+                P_min, P_max = sol_init_guess(P_sat_est, pcnt)
+                return brentq(lambda P: span2000_residual(P, T), P_min, P_max, xtol=1e-6, rtol=1e-6, maxiter=100)
+            except ValueError:
+                pcnt +=0.05
+        raise RuntimeError("Root finding failed")
+    
+    elif param == "T_sat":
+        T_guess = T_sat_anc(P)        
+        return secant(lambda T: thermo_span_wagner(T=T, param="P_sat") - P, T_guess)
+    
+    elif param == "rho_sat_liq":
+        return find_all_sweos_density_roots(T, P, rho_min=0.1, rho_max=1200,n_points=1000)[-1]
+    
+    elif param == "rho_sat_gas":
+        return find_all_sweos_density_roots(T, P, rho_min=0.1, rho_max=1200,n_points=1000)[0]
+
+    elif param == "h_sat_liq":
+        roots = find_all_sweos_density_roots(T, P, rho_min=0.1, rho_max=1200,n_points=1000)
+        return thermo_span_wagner(rho=roots[-1], T=T, param='h') # roots[-1] Highest density root (liquid)
+    
+    elif param == "h_sat_gas":
+        roots = find_all_sweos_density_roots(T, P, rho_min=0.1, rho_max=1200,n_points=1000)
+        return thermo_span_wagner(rho=roots[0], T=T, param='h') # roots[0] Lowest density root (vapor)
+    
+
     else:
         raise NotImplementedError(f'{param} is not implemented or incorrectly entered, see thermo_span_wagner()')
 
-    return out
 
-
-###TODO: DO NOT RUN UNTIL ADDED PARTIAL DERIVS ^ IS TESTED
-
-
-
-def secant(func, x1):
-    x_eps = x1 * 0.005  # Set the tolerance to be 0.5% of init guess
-    x2 = x1 -x1 * 0.01  # Set a second point 1% away from the original guess
-    F1 = func(x1)  # Evaluate function at x1
-    F2 = func(x2)  # Evaluate function at x2
-    kk = 1  # Set up counter
-    kk_max = 1000
-
-    while np.abs(x2 - x1) >= (x_eps) and kk < kk_max:  # While error is too large and counter is less than max
-        x3 = x2 - (F2 * (x2 - x1) / (F2 - F1)) 
-        x1 = x2  # Move everything forward
-        x2 = x3
-        F1 = F2
-        F2 = func(x2) 
-        if (F1 == F2):
-            return x2
-        kk = kk + 1
-    x = x2
-    return x
 
 
 
@@ -163,9 +335,9 @@ def solve_Q_dot_natural_convection_liq(rho_f, T_1, T_2, T_f, P_f, c, n, L, Area,
         #visc_f = get_n2o_viscosity(T_f, P_f, "liquid") # Kinematic viscosity (m^2/s)
 
 
-        cp_f = thermo_span_wagner(rho_f, T_f, 'cp') #(preos_l.Cp_dep_l/MW + cp_ig) #J/K 
+        cp_f = thermo_span_wagner(rho=rho_f, T=T_f, param='cp') #(preos_l.Cp_dep_l/MW + cp_ig) #J/K 
 
-        d_rho_dT_P = thermo_span_wagner(rho_f, T_f, 'd_rho_dT_const_P')
+        d_rho_dT_P = thermo_span_wagner(rho=rho_f, T=T_f, param='d_rho_dT_const_P')
         beta = d_rho_dT_P/rho_f     #(1/rho_f)*d_rho_dT_P
 
     elif fluid == "Air":
@@ -198,9 +370,9 @@ def solve_Q_dot_natural_convection_gas(rho_f, T_1, T_2, T_f, P_f, c, n, L, Area,
         visc_f = dyn_visc_f/rho_f
         #visc_f = get_n2o_viscosity(T_f, P_f, "vapor") # Kinematic viscosity (m^2/s)
 
-        cp_f = thermo_span_wagner(rho_f, T_f, 'cp') #(preos_l.Cp_dep_l/MW + cp_ig) #J/K 
+        cp_f = thermo_span_wagner(rho=rho_f, T=T_f, param='cp') #(preos_l.Cp_dep_l/MW + cp_ig) #J/K 
         
-        d_rho_dT_P = thermo_span_wagner(rho_f, T_f, 'd_rho_dT_const_P')
+        d_rho_dT_P = thermo_span_wagner(rho=rho_f, T=T_f, param='d_rho_dT_const_P')
         beta = d_rho_dT_P/rho_f     #(1/rho_f)*d_rho_dT_P
 
     elif fluid == "Air":
@@ -255,14 +427,11 @@ def solve_m_dot_evap(rho_liq, T_liq, T_gas, P_tank, Q_dot_liq_to_sat_surf, Q_dot
     #print("evap heat transfer rates: ", (Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas), Q_dot_liq_to_sat_surf, Q_dot_sat_surf_to_gas)
     if (Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas) > 0: #this is negative
 
-        h_liq = thermo_span_wagner(rho_liq, T_liq, 'h') 
+        h_liq = thermo_span_wagner(rho=rho_liq, T=T_liq, param='h') 
  
-        T_sat = CP.PropsSI('T', 'P', P_tank, 'Q', 0, 'N2O')
-        rho_sat_liq = CP.PropsSI('D', 'P', P_tank, 'Q', 0, 'N2O')
-        rho_sat_gas = CP.PropsSI('D', 'P', P_tank, 'Q', 1, 'N2O')
-
-        h_sat_liq = thermo_span_wagner(rho_sat_liq, T_sat, 'h')
-        h_sat_gas = thermo_span_wagner(rho_sat_gas, T_sat, 'h')
+        T_sat = thermo_span_wagner(P=P_tank, param='T_sat')
+        h_sat_liq = thermo_span_wagner(T=T_sat, P=P_tank, param='h_sat_liq')
+        h_sat_gas = thermo_span_wagner(T=T_sat, P=P_tank, param='h_sat_gas')
 
         m_dot_evap = (Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas) / ( (h_sat_gas-h_sat_liq) + (h_sat_liq - h_liq)  )  #if this doesnt work check functions and if they are as reusable as i treat them
 
@@ -275,7 +444,7 @@ def solve_m_dot_evap(rho_liq, T_liq, T_gas, P_tank, Q_dot_liq_to_sat_surf, Q_dot
 def solve_m_dot_condensed(T_gas, P_tank, V_gas):
     m_dot_cond = 0
 
-    P_sat_g = CP.PropsSI('P', 'T', T_gas, 'Q', 1, 'N2O')  
+    P_sat_g = thermo_span_wagner(T=T_gas, param='P_sat') 
 
     if (P_tank > P_sat_g):
         m_dot_cond = ((P_tank-P_sat_g)*V_gas*MW)/( (R_U/MW)*T_gas*(TIMESTEP) )   #NOTE EDIT DENOM FOR TESTING, OLD FOR REF: ( preos_g.Z_g*(R_U/MW)*T_gas*(TIMESTEP) )
@@ -296,14 +465,11 @@ def solve_m_dot_condensed(T_gas, P_tank, V_gas):
 
 def solve_U_dot_liq(rho_liq, rho_gas, T_liq, T_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, V_dot_liq , Q_dot_net):
 
-    h_liq = thermo_span_wagner(rho_liq, T_liq, 'h')  
+    h_liq = thermo_span_wagner(rho=rho_liq, T=T_liq, param='h')  
 
-    T_sat = CP.PropsSI('T', 'P', P_tank, 'Q', 0, 'N2O')
-    rho_sat_liq = CP.PropsSI('D', 'P', P_tank, 'Q', 0, 'N2O')
-    rho_sat_gas = CP.PropsSI('D', 'P', P_tank, 'Q', 1, 'N2O')
-
-    h_sat_liq = thermo_span_wagner(rho_sat_liq, T_sat, 'h')
-    h_sat_gas = thermo_span_wagner(rho_sat_gas, T_sat, 'h')
+    T_sat = thermo_span_wagner(P=P_tank, param='T_sat')
+    h_sat_liq = thermo_span_wagner(P=P_tank, T=T_sat, param='h_sat_liq')
+    h_sat_gas = thermo_span_wagner(P=P_tank, T=T_sat, param='h_sat_gas')
 
  
 # NOTE: BROKE FOR TESTING ON PURPOSE  no cond!!!!!
@@ -316,12 +482,9 @@ def solve_U_dot_liq(rho_liq, rho_gas, T_liq, T_gas, P_tank, m_dot_inj, m_dot_eva
 #TODO: INPUT RHO LIQ AND GAS FOR SWEOS, DELETE HPREVS
 def solve_U_dot_gas(rho_liq, rho_gas, T_liq, T_gas, P_tank, m_dot_evap, m_dot_cond, V_dot_gas, Q_dot_net):
 
-    T_sat = CP.PropsSI('T', 'P', P_tank, 'Q', 0, 'N2O')
-    rho_sat_liq = CP.PropsSI('D', 'P', P_tank, 'Q', 0, 'N2O')
-    rho_sat_gas = CP.PropsSI('D', 'P', P_tank, 'Q', 1, 'N2O')
-
-    h_sat_liq = thermo_span_wagner(rho_sat_liq, T_sat, 'h')
-    h_sat_gas = thermo_span_wagner(rho_sat_gas, T_sat, 'h')
+    T_sat = thermo_span_wagner(P=P_tank, param='T_sat')
+    h_sat_liq = thermo_span_wagner(P=P_tank, T=T_sat, param='h_sat_liq')
+    h_sat_gas = thermo_span_wagner(P=P_tank, T=T_sat, param='h_sat_gas')
 
     #h_gas = preos_g.H_dep_g/MW + h_ig_gas  TODO: did we need this?
 
@@ -342,8 +505,8 @@ def solve_m_dot_liq_gas(m_dot_evap, m_dot_cond, m_dot_inj):
 def thermo_residuals(rhos, T_liq, T_gas, m_liq, m_gas, V_tank):
     rho_liq, rho_gas = rhos
 
-    P_liq = thermo_span_wagner(rho_liq, T_liq, 'p')
-    P_gas = thermo_span_wagner(rho_gas, T_gas, 'p')
+    P_liq = thermo_span_wagner(rho=rho_liq, T=T_liq, param='p')
+    P_gas = thermo_span_wagner(rho=rho_gas, T=T_gas, param='p')
 
     V_est = (m_liq / rho_liq) + (m_gas / rho_gas)
 
@@ -369,7 +532,7 @@ def solve_thermo_params(T_liq, T_gas, m_liq, m_gas, rho_liq_prev, rho_gas_prev, 
     rho_liq, rho_gas = sol.x
 
     # Calculate common pressure
-    P_tank = thermo_span_wagner(rho_gas, T_gas, 'p')
+    P_tank = thermo_span_wagner(rho=rho_gas, T=T_gas, param='p')
 
     return rho_liq, rho_gas, P_tank
 
@@ -390,14 +553,14 @@ def single_solve_T_dot_liq_gas(V_dot_liq, m_liq, m_gas, rho_liq, rho_gas, T_liq,
     U_dot_gas = solve_U_dot_gas(rho_liq, rho_gas, T_liq, T_gas, P_tank, m_dot_evap, m_dot_cond, V_dot_gas, Q_dot_gas)
     
 
-    partial_du_d_rho_const_T_gas = thermo_span_wagner(rho_gas, T_gas, 'du_drho_const_T')
-    cv_gas = thermo_span_wagner(rho_gas, T_gas, 'cv')
-    u_gas = thermo_span_wagner(rho_gas, T_gas, 'u')
+    partial_du_d_rho_const_T_gas = thermo_span_wagner(rho=rho_gas, T=T_gas, param='du_drho_const_T')
+    cv_gas = thermo_span_wagner(rho=rho_gas, T=T_gas, param='cv')
+    u_gas = thermo_span_wagner(rho=rho_gas, T=T_gas, param='u')
 
 
-    partial_du_d_rho_const_T_liq = thermo_span_wagner(rho_liq, T_liq, 'du_drho_const_T')
-    cv_liq = thermo_span_wagner(rho_liq, T_liq, 'cv')
-    u_liq = thermo_span_wagner(rho_liq, T_liq, 'u')
+    partial_du_d_rho_const_T_liq = thermo_span_wagner(rho=rho_liq, T=T_liq, param='du_drho_const_T')
+    cv_liq = thermo_span_wagner(rho=rho_liq, T=T_liq, param='cv')
+    u_liq = thermo_span_wagner(rho=rho_liq, T=T_liq, param='u')
 
 
     T_dot_liq = (1/cv_liq)*( (1/m_liq) * (U_dot_liq - (u_liq*m_dot_liq)) - (partial_du_d_rho_const_T_liq* d_rho_dt_liq) )
@@ -433,19 +596,18 @@ def P_dot_error(V_dot_guess, m_liq, m_gas, rho_liq, rho_gas, T_liq, T_gas, V_liq
     T_dot_liq, T_dot_gas = single_solve_T_dot_liq_gas(V_dot_guess, m_liq, m_gas, rho_liq, rho_gas, T_liq, T_gas, V_liq, V_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas, h_liq_prev, h_gas_prev, u_liq_prev, u_gas_prev, False)
 
 
-    partial_dP_dT_const_rho_liq = thermo_span_wagner(rho_liq, T_liq, 'dP_dT_const_rho')
+    partial_dP_dT_const_rho_liq = thermo_span_wagner(rho=rho_liq, T=T_liq, param='dP_dT_const_rho')
 
-    partial_dP_drho_const_T_liq = thermo_span_wagner(rho_liq, T_liq, 'dP_drho_const_T')
+    partial_dP_drho_const_T_liq = thermo_span_wagner(rho=rho_liq, T=T_liq, param='dP_drho_const_T')
 
     P_dot_liq = partial_dP_dT_const_rho_liq*T_dot_liq + partial_dP_drho_const_T_liq*d_rho_dt_liq
 
 
-    partial_dP_dT_const_rho_gas = thermo_span_wagner(rho_gas, T_gas, 'dP_dT_const_rho')
+    partial_dP_dT_const_rho_gas = thermo_span_wagner(rho=rho_gas, T=T_gas, param='dP_dT_const_rho')
 
-    partial_dP_drho_const_T_gas = thermo_span_wagner(rho_gas, T_gas, 'dP_drho_const_T')
+    partial_dP_drho_const_T_gas = thermo_span_wagner(rho=rho_gas, T=T_gas, param='dP_drho_const_T')
 
     P_dot_gas = partial_dP_dT_const_rho_gas*T_dot_gas + partial_dP_drho_const_T_gas*d_rho_dt_gas
-
 
     #print("P_dot_inside (take last) :", P_dot_liq, P_dot_gas )
     return P_dot_liq - P_dot_gas
@@ -501,20 +663,20 @@ class model():
         #gas cv
         self.m_gas = x_tank*self.m_nos
 
-        self.T_gas = CP.PropsSI('T', 'P', P_tank, 'Q', 1, 'N2O') #preos.Tsat(self.P_tank) #- 0.0005 #Perturb to start close to equillibrium but as a gas
+        self.T_gas = thermo_span_wagner(P=self.P_tank, param='T_sat') #preos.Tsat(self.P_tank) #- 0.0005 #Perturb to start close to equillibrium but as a gas
         self.T_wall_gas = self.T_gas
 
-        self.rho_gas = CP.PropsSI('D', 'P', P_tank, 'Q', 1, 'N2O')
+        self.rho_gas = thermo_span_wagner(T=self.T_gas, P=self.P_tank, param='rho_sat_gas')
         v_gas = 1/self.rho_gas
         self.V_gas = v_gas*self.m_gas
 
         #liquid cv
         self.m_liq = self.m_nos-self.m_gas
-        self.T_liq = CP.PropsSI('T', 'P', P_tank, 'Q', 0, 'N2O') #preos.Tsat(self.P_tank) #+ 0.0005 #Perturb to start close to equillibrium
+        self.T_liq = thermo_span_wagner(P=self.P_tank, param='T_sat') #preos.Tsat(self.P_tank) #+ 0.0005 #Perturb to start close to equillibrium
         self.T_wall_liq = self.T_liq
 
         #solve rho_liq!
-        self.rho_liq = CP.PropsSI('D', 'P', P_tank, 'Q', 0, 'N2O')
+        self.rho_liq = thermo_span_wagner(T=self.T_liq, P=self.P_tank, param='rho_sat_liq')
         v_liq = 1/self.rho_liq
         self.V_liq = v_liq*self.m_liq
 
@@ -534,18 +696,18 @@ class model():
         
         #i dont think we need this 
 
-        self.h_liq_prev = thermo_span_wagner(self.rho_liq, self.T_liq, 'h')
-        self.h_gas_prev = thermo_span_wagner(self.rho_gas, self.T_gas, 'h')
+        self.h_liq_prev = thermo_span_wagner(rho=self.rho_liq, T=self.T_liq, param='h')
+        self.h_gas_prev = thermo_span_wagner(rho=self.rho_gas, T=self.T_gas, param='h')
 
-        self.u_liq_prev = thermo_span_wagner(self.rho_liq, self.T_liq, 'u')
-        self.u_gas_prev = thermo_span_wagner(self.rho_gas, self.T_gas, 'u')
+        self.u_liq_prev = thermo_span_wagner(rho=self.rho_liq, T=self.T_liq, param='u')
+        self.u_gas_prev = thermo_span_wagner(rho=self.rho_gas, T=self.T_gas, param='u')
 
 
         ### below is debug code delete later!!!!
 
         self.m_inj = 0
-        u_liq = thermo_span_wagner(self.rho_liq, self.T_liq, 'u')
-        u_gas = thermo_span_wagner(self.rho_gas, self.T_gas, 'u')
+        u_liq = thermo_span_wagner(rho=self.rho_liq, T=self.T_liq, param='u')
+        u_gas = thermo_span_wagner(rho=self.rho_gas, T=self.T_gas, param='u')
         u_inj = u_liq #NOTE:  this is wrong!!!!
 
         self.U_liq = u_liq*self.m_liq
@@ -571,7 +733,7 @@ class model():
 
 
 
-        T_sat = CP.PropsSI('T', 'P', P_tank, 'Q', 0, 'N2O')
+        T_sat = thermo_span_wagner(P=P_tank, param='T_sat')
 
         
         """rhos = rho_liq, rho_gas
@@ -629,17 +791,14 @@ class model():
 
         #print("T_liq, T_gas, heat transfer (4), (5): ", T_liq, T_gas, Q_dot_liq_wall_to_liq, Q_dot_gas_wall_to_gas)
 
-        h_liq = thermo_span_wagner(rho_liq, T_liq, 'h')
+        h_liq = thermo_span_wagner(rho=rho_liq, T=T_liq, param='h')
 
 
-        T_sat = CP.PropsSI('T', 'P', P_tank, 'Q', 0, 'N2O')
-        rho_sat_liq = CP.PropsSI('D', 'P', P_tank, 'Q', 0, 'N2O')
-        rho_sat_gas = CP.PropsSI('D', 'P', P_tank, 'Q', 1, 'N2O')
+        T_sat = thermo_span_wagner(P=P_tank, param='T_sat')
+        h_sat_liq = thermo_span_wagner(T=T_sat, P=P_tank, param='h_sat_liq')
+        h_sat_gas = thermo_span_wagner(T=T_sat, P=P_tank, param='h_sat_gas')
 
-        h_sat_liq = thermo_span_wagner(rho_sat_liq, T_sat, 'h')
-        h_sat_gas = thermo_span_wagner(rho_sat_gas, T_sat, 'h')
-
-        h_gas = thermo_span_wagner(rho_gas, T_gas, 'h')
+        h_gas = thermo_span_wagner(rho=rho_gas, T=T_gas, param='h')
 
 ###NOTE: Q_dot eqns: 
         #print("entering Q_dot_liq and Q_dot_gas, look at Q_dot_liq_wall_to_liq, Q_dot_gas_wall_to_gas", Q_dot_liq_wall_to_liq, Q_dot_gas_wall_to_gas)
@@ -713,7 +872,7 @@ class model():
         ### solving U_dot_inj:
 
 
-        h_liq = thermo_span_wagner(rho_liq, T_liq, 'h')
+        h_liq = thermo_span_wagner(rho=rho_liq, T=T_liq, param='h')
 
         #print("m_dot_evap 2: ", m_dot_evap)
 
@@ -886,13 +1045,13 @@ try:
         T_gas_wall_arr.append(tank.T_wall_gas)
 
         
-        T_sat = CP.PropsSI('T', 'P', tank.P_tank, 'Q', 0, 'N2O') 
+        T_sat = thermo_span_wagner(P=P_tank, param='T_sat') 
         T_sat_arr.append(T_sat)
 
-        P_sat_g = CP.PropsSI('P', 'T', tank.T_gas, 'Q', 1, 'N2O') 
+        P_sat_g = thermo_span_wagner(T=tank.T_gas, param='P_sat')
         P_sat_gas_arr.append(P_sat_g)
 
-        P_sat_l = CP.PropsSI('P', 'T', tank.T_liq, 'Q', 0, 'N2O') 
+        P_sat_l = thermo_span_wagner(T=tank.T_liq, param='P_sat')
         P_sat_liq_arr.append(P_sat_l)
 
 
@@ -902,7 +1061,7 @@ try:
         U_gas_arr.append(tank.U_gas)
 
 
-        u_liq = thermo_span_wagner(tank.rho_liq, tank.T_liq, 'u')
+        u_liq = thermo_span_wagner(rho=tank.rho_liq, T=tank.T_liq, param='u')
 
         U_inj_arr.append(u_liq*tank.m_inj)
         #print("u inj sign convention!!! ", tank.u_inj)
