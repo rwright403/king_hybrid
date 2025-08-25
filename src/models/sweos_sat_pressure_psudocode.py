@@ -3,6 +3,26 @@ from scipy.optimize import brentq
 
 import matplotlib.pyplot as plt
 
+def secant(func, x1):
+    x_eps = x1 * 0.005  # Set the tolerance to be 0.5% of init guess
+    x2 = x1 -x1 * 0.01  # Set a second point 1% away from the original guess
+    F1 = func(x1)  # Evaluate function at x1
+    F2 = func(x2)  # Evaluate function at x2
+    kk = 1  # Set up counter
+    kk_max = 1000
+
+    while np.abs(x2 - x1) >= (x_eps) and kk < kk_max:  # While error is too large and counter is less than max
+        x3 = x2 - (F2 * (x2 - x1) / (F2 - F1)) 
+        x1 = x2  # Move everything forward
+        x2 = x3
+        F1 = F2
+        F2 = func(x2) 
+        if (F1 == F2):
+            return x2
+        kk = kk + 1
+    x = x2
+    return x
+
 def P_sat_anc(T):
     # Polynomial coefficients
     A = 4.80716087
@@ -13,6 +33,19 @@ def P_sat_anc(T):
         P_sat_est = 100000*( 10**(A-(B/(T+C))) )
         return P_sat_est
     raise ValueError("Temperature outside of function bounds!")
+
+def T_sat_anc(P):
+    # Polynomial coefficients
+    A = 4.80716087
+    B = 967.819748
+    C = 19.6368887
+
+    T_sat_est = B/(A - np.log10(P/100000)) - C
+
+    if T_sat_est > 140 and 310 < T_sat_est:
+        raise ValueError("Temperature outside of function bounds!")
+    return T_sat_est
+
 
 def explicit_helmholtz_derivs(rho, T):
 
@@ -91,7 +124,7 @@ def verbose_find_all_sweos_density_roots(T, P_target, rho_min, rho_max, n_points
     roots = []
     for idx in zero_crossings:
         try:
-            root = brentq(lambda r: thermo_span_wagner(r, T, 'p') - P_target,
+            root = brentq(lambda r: thermo_span_wagner(rho=r, T=T, param='p') - P_target,
                           rhos[idx], rhos[idx+1])
             roots.append(root)
         except ValueError:
@@ -99,10 +132,10 @@ def verbose_find_all_sweos_density_roots(T, P_target, rho_min, rho_max, n_points
     return roots
 
 
-def find_all_sweos_density_roots(T, P_target, rho_min, rho_max, n_points=1000):
+def find_all_sweos_density_roots(T, P_target, rho_min, rho_max, n_points):
     
     rhos = np.linspace(rho_min, rho_max, n_points)
-    residuals = [thermo_span_wagner(rho, T, 'p') - P_target for rho in rhos]
+    residuals = [thermo_span_wagner(rho=rho, T=T, param='p') - P_target for rho in rhos]
     
     signs = np.sign(residuals)
     zero_crossings = np.where(np.diff(signs))[0]
@@ -110,20 +143,20 @@ def find_all_sweos_density_roots(T, P_target, rho_min, rho_max, n_points=1000):
     roots = []
     for idx in zero_crossings:
         try:
-            root = brentq(lambda r: thermo_span_wagner(r, T, 'p') - P_target,
+            root = brentq(lambda r: thermo_span_wagner(rho=r, T=T, param='p') - P_target,
                           rhos[idx], rhos[idx+1])
             roots.append(root)
         except ValueError:
             pass  # in case brentq fails due to no root in interval
-    return roots
+
+    if len(roots) < 2:
+        raise ValueError("Less than two density roots found")
+    return sorted(roots) #returns in order of smallest to largest. NOTE: rho_gas = roots[0] // rho_liq = roots[-1] 
 
 def span2000_residual(P, T):
     # Solve for liquid and vapor densities at this P, T
-    roots = find_all_sweos_density_roots(T, P, rho_min=0.1, rho_max=1200)
-    if len(roots) < 2:
-        raise ValueError("Less than two density roots found for P = {:.3f} Pa".format(P))
+    roots = find_all_sweos_density_roots(T, P, rho_min=0.1, rho_max=1200,n_points=1000)
     
-    roots = sorted(roots)
     rho_gas = roots[0]      # Lowest density (vapor)
     rho_liq = roots[-1]     # Highest density (liquid)
 
@@ -134,7 +167,13 @@ def span2000_residual(P, T):
 
     return RES
 
-def thermo_span_wagner(rho, T, param):
+
+def sol_init_guess(est, pcnt):
+    est_min = (1-pcnt)*est
+    est_max = (1+pcnt)*est
+    return est_min, est_max
+
+def thermo_span_wagner(rho=None, T=None, P=None, param=None):
     
     if param == 'p':  # Pressure (Pa)
         prop = explicit_helmholtz_derivs(rho, T)
@@ -157,8 +196,8 @@ def thermo_span_wagner(rho, T, param):
         return prop['R'] * T * (prop['ao'] + prop['ar'])
     
     elif param == 'mu': # Chemical Potential (J/kg)
-        P = thermo_span_wagner(rho, T, 'p')
-        a = thermo_span_wagner(rho, T, 'a')
+        P = thermo_span_wagner(rho=rho, T=T, param='p')
+        a = thermo_span_wagner(rho=rho, T=T, param='a')
         return a + P / rho
     
     elif param == 'cv':  # Specific heat constant volume (J/kg*K)
@@ -185,36 +224,68 @@ def thermo_span_wagner(rho, T, param):
         prop = explicit_helmholtz_derivs(rho, T)
         return (rho * prop['R'] *(1 + prop['delta'] * prop['ar_delta'] - (prop['tau'] * prop['delta'] *prop['ar_deltatau']) )) / (prop['R'] * T * (1 + 2 * prop['delta'] * prop['ar_delta'] + (prop['delta']**2) * prop['ar_deltadelta'] ))
     
+    
+
     elif param == 'P_sat':
         pcnt = 0.1
         P_sat_est = P_sat_anc(T) # Start: Ancillary Eqn to sol an estimate for saturation temp
-        def sol_init_guess(P_sat_est, pcnt):
-            P_min = (1-pcnt)*P_sat_est # Solve initial guesses for pressure (regula falsi bounds) based on results from ancillary eqn
-            P_max = (1+pcnt)*P_sat_est
-            return P_min, P_max
         while pcnt < 0.5:
             try:
                 P_min, P_max = sol_init_guess(P_sat_est, pcnt)
-                P_sat = brentq(lambda P: span2000_residual(P, T), P_min, P_max, xtol=1e-6, rtol=1e-6, maxiter=100)
-                break
+                return brentq(lambda P: span2000_residual(P, T), P_min, P_max, xtol=1e-6, rtol=1e-6, maxiter=100)
             except ValueError:
                 pcnt +=0.05
-            
-            P_min, P_max = sol_init_guess(P_sat_est, pcnt)
-            P_sat = brentq(lambda P: span2000_residual(P, T), P_min, P_max, xtol=1e-6, rtol=1e-6, maxiter=100)
+        raise RuntimeError("Root finding failed")
+    
+    elif param == "T_sat":
+        T_guess = T_sat_anc(P_input)        
+        return secant(lambda T: thermo_span_wagner(T=T, param="P_sat") - P_input, T_guess)
 
-        return P_sat
+    elif param == "h_sat_vap":
+        roots = find_all_sweos_density_roots(T, P, rho_min=0.1, rho_max=1200,n_points=1000)
+        return thermo_span_wagner(rho=roots[0], T=T, param='h') # roots[0] Lowest density root (vapor)
+
+    elif param == "h_sat_liq":
+        roots = find_all_sweos_density_roots(T, P, rho_min=0.1, rho_max=1200,n_points=1000)
+        return thermo_span_wagner(rho=roots[-1], T=T, param='h') # roots[-1] Highest density root (liquid)
 
     else:
         raise NotImplementedError(f'{param} is not implemented or incorrectly entered, see thermo_span_wagner()')
 
 
 
-T_input = 290
 
-sol_psat = thermo_span_wagner(None, T_input, "P_sat")
-print("tsw P_sat:", sol_psat)
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+"""T_input = 293
+sol_psat = thermo_span_wagner(T=T_input, param="P_sat")
+print("tsw P_sat:", sol_psat)"""
+
+P_input = 4e6
+
+
+sol_tsat = thermo_span_wagner(P=P_input, param="T_sat")
+sol_hsat_liq = thermo_span_wagner(P=P_input, T=sol_tsat, param="h_sat_liq")
+sol_hsat_vap = thermo_span_wagner(P=P_input, T=sol_tsat, param="h_sat_vap")
+print("tsw T_sat:", sol_tsat, sol_hsat_liq, sol_hsat_vap)
+
+
+
+
+"""
 import CoolProp.CoolProp as CP
 print("coolprop P_sat: ", CP.PropsSI('P', 'T', T_input, 'Q', 0, 'N2O'))
 
@@ -222,7 +293,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Inputs
-P_sat = thermo_span_wagner(None, T_input, "P_sat")  # [Pa], your given saturation pressure
+P_sat = thermo_span_wagner(T=T_input, param="P_sat")  # [Pa], your given saturation pressure
 
 # Density sweep range
 rhos = np.linspace(0.1, 1200, 1000)  # [kg/m^3]
@@ -230,7 +301,7 @@ rhos = np.linspace(0.1, 1200, 1000)  # [kg/m^3]
 mu_vals = []
 for rho in rhos:
     try:
-        mu_vals.append( thermo_span_wagner(rho, T_input, "mu") )
+        mu_vals.append( thermo_span_wagner(rho=rho, T=T_input, param="mu") )
     except Exception as e:
         mu_vals.append(np.nan)
 
@@ -238,14 +309,14 @@ mu_vals = np.array(mu_vals)
 
 # Plot
 plt.figure(figsize=(10,6))
-plt.plot(rhos, mu_vals, label='μ vs ρ')
+plt.plot(rhos, mu_vals, label='mu vs rho')
 plt.xlabel('Density [kg/m³]')
 plt.ylabel('Chemical Potential [J/kg]')
 plt.title(f'Chemical Potential at T = {T_input} K, Sweeping Density')
 plt.grid(True)
 
 # Highlight regions where P matches P_sat (roots of EOS)
-P_residuals = [thermo_span_wagner(rho, T_input, 'p') - P_sat for rho in rhos]
+P_residuals = [thermo_span_wagner(rho=rho, T=T_input, param='p') - P_sat for rho in rhos]
 signs = np.sign(P_residuals)
 crossings = np.where(np.diff(signs))[0]
 
@@ -259,9 +330,9 @@ plt.show()
 
 rhos = np.linspace(50, 1200, 300)
 
-shift = thermo_span_wagner(rho, T_input, "a") - CP.PropsSI('HELMHOLTZMASS', 'D', rho, 'T', T_input, 'N2O')
+shift = thermo_span_wagner(rho=rho, T=T_input, param="a") - CP.PropsSI('HELMHOLTZMASS', 'D', rho, 'T', T_input, 'N2O')
 
-a_model = np.array([thermo_span_wagner(rho, T_input, "a") for rho in rhos])
+a_model = np.array([thermo_span_wagner(rho=rho, T=T_input, param="a") for rho in rhos])
 a_cp = np.array([CP.PropsSI('HELMHOLTZMASS', 'D', rho, 'T', T_input, 'N2O') + shift for rho in rhos])
 
 # Plot
@@ -274,3 +345,4 @@ plt.legend()
 plt.grid(True)
 plt.tight_layout()
 plt.show()
+"""
