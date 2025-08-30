@@ -172,18 +172,16 @@ def spi_model(Cd_hem_spi_dyer, A_inj_ox, P_1, P_2, rho_tank_exit):
     return m_dot_spi
 
 
-"""
-#TODO: ADD RHO LIQ GAS AS INPUTS OF FUNCTION
-"""
 def solve_m_dot_evap(liq_state, sat_surf, Q_dot_liq_to_sat_surf, Q_dot_sat_surf_to_gas):
     m_dot_evap = 0
-    #print("evap heat transfer rates: ", (Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas), Q_dot_liq_to_sat_surf, Q_dot_sat_surf_to_gas)
     if (Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas) > 0: #this is negative
 
-        m_dot_evap = (Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas) / ( (sat_surf.h_sat_gas-sat_surf.h_sat_liq) + (sat_surf.h_sat_liq - liq_state.h)  )  #if this doesnt work check functions and if they are as reusable as i treat them
+        m_dot_evap = (Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas) / (sat_surf.h_sat_gas-sat_surf.h_sat_liq) 
+
 
         #print("sign convention in m_dot_evap Q: ", Q_dot_liq_to_sat_surf, - Q_dot_sat_surf_to_gas)
 
+    #print("m_dot_evap, evap heat transfer rates: ", m_dot_evap, (Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas), Q_dot_liq_to_sat_surf, Q_dot_sat_surf_to_gas)
     return m_dot_evap
 
 
@@ -194,7 +192,7 @@ def solve_m_dot_condensed(sat_surf, gas_state, V_gas):
     if (P_tank > sat_surf.P):
         m_dot_cond = ((gas_state.P-sat_surf.P)*V_gas*MW)/( (R_U/MW)*gas_state.T*(TIMESTEP) )   #NOTE EDIT DENOM FOR TESTING, OLD FOR REF: ( preos_g.Z_g*(R_U/MW)*T_gas*(TIMESTEP) )
 
-#NOTE: CONDENSATION FROM PREOS
+    #NOTE: CONDENSATION FROM PREOS
     #if p_tank > p_sat_gas, then condensation to enforce equilibrium
 
     """
@@ -260,17 +258,30 @@ def single_solve_T_dot_liq_gas(V_dot_liq, liq_state, sat_surf, gas_state, m_liq,
 
 
     # NOTE: BROKE FOR TESTING ON PURPOSE  no cond!!!!!
-    U_dot_liq = m_dot_inj*liq_state.h - m_dot_evap*(sat_surf.h_sat_gas - sat_surf.h_sat_liq)  + m_dot_cond*(sat_surf.h_sat_gas - sat_surf.h_sat_liq) - P_tank*V_dot_liq + Q_dot_liq
-    U_dot_gas = m_dot_evap*(sat_surf.h_sat_gas - sat_surf.h_sat_liq)  - m_dot_cond*(sat_surf.h_sat_gas - sat_surf.h_sat_liq) - P_tank*V_dot_gas + Q_dot_gas
+    #U_dot_liq = m_dot_inj*liq_state.h - m_dot_evap*(sat_surf.h_sat_gas - sat_surf.h_sat_liq) + m_dot_cond*(sat_surf.h_sat_gas - sat_surf.h_sat_liq) - P_tank*V_dot_liq + Q_dot_liq
+    #U_dot_gas =                         m_dot_evap*(sat_surf.h_sat_gas - sat_surf.h_sat_liq) - m_dot_cond*(sat_surf.h_sat_gas - sat_surf.h_sat_liq) - P_tank*V_dot_gas + Q_dot_gas
+
+    U_dot_liq = m_dot_inj*liq_state.h - m_dot_evap*(sat_surf.h_sat_liq) + m_dot_cond*(sat_surf.h_sat_liq) - P_tank*V_dot_liq + Q_dot_liq
+    U_dot_gas =                         m_dot_evap*(sat_surf.h_sat_gas) - m_dot_cond*(sat_surf.h_sat_gas) - P_tank*V_dot_gas + Q_dot_gas
+  
 
     T_dot_liq = (1/liq_state.cv)*( (1/m_liq) * (U_dot_liq - (liq_state.u * m_dot_liq)) - (liq_state.du_drho_const_T * d_rho_dt_liq) )
     T_dot_gas = (1/gas_state.cv)*( (1/m_gas) * (U_dot_gas - (gas_state.u * m_dot_gas)) - (gas_state.du_drho_const_T * d_rho_dt_gas) )
 
 
+#BUG
+#BUG
+#SO U DOT IS NEGATIVE BUT T DOT GAS INCREASES WTF IS GOING ON THERE:
+#(U_dot_gas - (gas_state.u * m_dot_gas)) its this term that grows and causes T_gas to increase
+
+
     if debug_mode == True:
         a = 1
 
-        print(T_dot_liq, T_dot_gas, U_dot_gas, m_dot_evap*(sat_surf.h_sat_gas - sat_surf.h_sat_liq), - m_dot_cond*(sat_surf.h_sat_gas - sat_surf.h_sat_liq), - P_tank*V_dot_gas , Q_dot_gas )
+        #print("U_dot_gas: ", U_dot_gas, m_dot_evap*(sat_surf.h_sat_gas - sat_surf.h_sat_liq), - m_dot_cond*(sat_surf.h_sat_gas - sat_surf.h_sat_liq), - P_tank*V_dot_gas , Q_dot_gas )
+        #print("T_dot_gas: ", T_dot_gas, (1/m_gas) * (U_dot_gas - (gas_state.u * m_dot_gas)), U_dot_gas, - (gas_state.u * m_dot_gas), gas_state.u,m_dot_gas,- (gas_state.du_drho_const_T * d_rho_dt_gas) )
+       
+       
 
         #TODO: delete at some point
 
@@ -334,7 +345,7 @@ class model():
         self.V_tank = V_tank
         self.m_nos = m_nos
 
-        initial_eq_state = SpanWagnerEOS_EquilibriumPhase(T_atm, P_tank)
+        initial_eq_state = SpanWagnerEOS_EquilibriumPhase(None, P_tank)
 
         self.rho_liq = initial_eq_state.rho_sat_liq
         self.rho_gas = initial_eq_state.rho_sat_gas
@@ -386,6 +397,9 @@ class model():
         liq_state = SpanWagnerEOS_SingleState(rho_liq, T_liq)
 
 
+        #print("Temps: liq, sat surf, gas: ", T_liq, sat_surf.T, T_gas )
+
+
         # Mass transfer (1) from injector
         m_dot_inj = spi_model(self.Cd_1, self.A_inj_1, P_tank, P_cc, rho_liq)
 
@@ -397,7 +411,7 @@ class model():
     
         # Heat transfer (3)  from liq to saturated surface (sat surface assumed to be a liquid with quality 0)
         T_film_liq = ((sat_surf.T + T_liq)/2 )
-        Q_dot_liq_to_sat_surf = (E)*solve_Q_dot_natural_convection_liq(rho_liq, T_liq, T_gas, T_film_liq, P_tank, 0.15, 0.333, self.diam_in, (0.25*np.pi*(self.diam_in**2)), "N2O" ) #relative to liq cv
+        Q_dot_liq_to_sat_surf = (E)*solve_Q_dot_natural_convection_liq(rho_liq, T_liq, sat_surf.T, T_film_liq, P_tank, 0.15, 0.333, self.diam_in, (0.25*np.pi*(self.diam_in**2)), "N2O" ) #relative to liq cv
         #NOTE:CORRECTION FACTOR for nitrous oxide heat transfer E = (E) to account for blowing as per [7],[8]
 
 
@@ -433,10 +447,28 @@ class model():
 
         ###NOTE: Q_dot eqns: 
         #print("entering Q_dot_liq and Q_dot_gas, look at Q_dot_liq_wall_to_liq, Q_dot_gas_wall_to_gas", Q_dot_liq_wall_to_liq, Q_dot_gas_wall_to_gas)
+        
+
         Q_dot_liq = Q_dot_liq_wall_to_liq - Q_dot_liq_to_sat_surf + m_dot_evap*(liq_state.h - sat_surf.h_sat_liq) + m_dot_cond*(sat_surf.h_sat_liq - liq_state.h) #NOTE: m_dot_cond is signed positive into the liquid
         Q_dot_gas = Q_dot_gas_wall_to_gas + Q_dot_sat_surf_to_gas + m_dot_evap*(sat_surf.h_sat_gas - gas_state.h) + m_dot_cond*(gas_state.h - sat_surf.h_sat_gas)
 
-        #print("Q_dot_gas: ", Q_dot_gas_wall_to_gas , Q_dot_sat_surf_to_gas , m_dot_evap*(sat_surf.h_sat_gas - gas_state.h) , m_dot_cond*(gas_state.h - sat_surf.h_sat_gas))
+        """
+        if sat_surf.T >= gas_state.T : #NO SENSIBLE HEAT IF GAS TEMP IS LOWER THAN T_SAT
+            Q_dot_liq = Q_dot_liq_wall_to_liq - Q_dot_liq_to_sat_surf
+            Q_dot_gas = Q_dot_gas_wall_to_gas + Q_dot_sat_surf_to_gas
+
+        elif sat_surf.T < gas_state.T:
+                                                                        #NOTE: SENSIBLE HEAT TRANSFER!!!
+            Q_dot_liq = Q_dot_liq_wall_to_liq - Q_dot_liq_to_sat_surf + m_dot_evap*(liq_state.h - sat_surf.h_sat_liq) + m_dot_cond*(sat_surf.h_sat_liq - liq_state.h) #NOTE: m_dot_cond is signed positive into the liquid
+            Q_dot_gas = Q_dot_gas_wall_to_gas + Q_dot_sat_surf_to_gas + m_dot_evap*(sat_surf.h_sat_gas - gas_state.h) + m_dot_cond*(gas_state.h - sat_surf.h_sat_gas)
+        """
+
+        #BUG: PROBLEM: NO SENSIBLE HEAT WHEN T_GAS < T_SAT, THIS WOULD BE GOING NONPHYSICAL
+
+        #BUG: is the problem the sign on Q_dot_gas wall to gas?
+
+
+        #print("Q_dot_gas: ", Q_dot_gas, Q_dot_gas_wall_to_gas , Q_dot_sat_surf_to_gas , m_dot_evap*(sat_surf.h_sat_gas - gas_state.h) , m_dot_cond*(gas_state.h - sat_surf.h_sat_gas))
 
         #NOTE: USE ambient properties for air, T_2 will be respective wall temperature (RK var)
         # (6) [natural convection] from atm to liq
@@ -514,7 +546,7 @@ class model():
         y_4 = [y_i + self.TIMESTEP * k3_i for y_i, k3_i in zip(y0, k3)]
         k4 = self.system_of_liq_odes(t + self.TIMESTEP, y_4, P_cc)
 
-        y =[ y_i + (self.TIMESTEP / 6) * (k1_i + 2*k2_i + 2*k3_i + k4_i) for y_i, k1_i,k2_i,k3_i,k4_i in zip(y0, k1,k2,k3,k4)]
+        y = [ y_i + (self.TIMESTEP / 6) * (k1_i + 2*k2_i + 2*k3_i + k4_i) for y_i, k1_i,k2_i,k3_i,k4_i in zip(y0, k1,k2,k3,k4)]
 
         self.T_liq, self.T_gas, self.m_liq, self.m_gas, self.T_wall_liq, self.T_wall_gas = y
 
@@ -626,7 +658,7 @@ rho_liq_arr = []
 try:
     start_time = time.time()  # Start timer
 
-    while(t < 2000*TIMESTEP): #3000*TIMESTEP
+    while(t < 5000*TIMESTEP): #3000*TIMESTEP
         
         tank.inst(P_cc)
         t+=TIMESTEP 
@@ -643,6 +675,8 @@ try:
 
 
         T_liq_arr.append(tank.T_liq)
+        sat_surf = SpanWagnerEOS_EquilibriumPhase(None, tank.P_tank)
+        T_sat_arr.append(sat_surf.T)
         T_gas_arr.append(tank.T_gas)
 
         T_liq_wall_arr.append(tank.T_wall_liq)
@@ -670,7 +704,6 @@ plt.grid(True)
 plt.subplot(1,3,2)
 plt.scatter(time_arr,m_liq_arr, label = "liquid")
 plt.scatter(time_arr,m_gas_arr, label = "gas")
-plt.scatter(time_arr,m_tank_arr, label = "total mass")
 plt.xlabel('Time (s)')
 plt.ylabel('Mass (kg)')
 plt.title('Mass vs. Time')
