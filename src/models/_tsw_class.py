@@ -1,4 +1,4 @@
-from src.models.tmp_tsw_n2o_constants import *
+from src.models._tsw_n2o_constants import *
 import numpy as np
 from scipy.optimize import brentq
 
