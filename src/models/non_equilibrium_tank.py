@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import traceback
 import time
 
-from tmp_tsw_class import SpanWagnerEOS_SingleState, SpanWagnerEOS_EquilibriumPhase, lightweight_span_wagner_eos_pressure, lightweight_span_wagner_eos_cp, lightweight_span_wagner_eos_d_rho_dT_P
+from src.models._tsw_class import SpanWagnerEOS_SingleState, SpanWagnerEOS_EquilibriumPhase, lightweight_span_wagner_eos_pressure, lightweight_span_wagner_eos_cp, lightweight_span_wagner_eos_d_rho_dT_P
 
 # Global Constants:
 R_U = 8.31446 #J/(mol K)
@@ -178,10 +178,6 @@ def solve_m_dot_evap(liq_state, sat_surf, Q_dot_liq_to_sat_surf, Q_dot_sat_surf_
 
         m_dot_evap = (Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas) / (sat_surf.h_sat_gas-sat_surf.h_sat_liq) 
 
-
-        #print("sign convention in m_dot_evap Q: ", Q_dot_liq_to_sat_surf, - Q_dot_sat_surf_to_gas)
-
-    #print("m_dot_evap, evap heat transfer rates: ", m_dot_evap, (Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas), Q_dot_liq_to_sat_surf, Q_dot_sat_surf_to_gas)
     return m_dot_evap
 
 
@@ -247,7 +243,7 @@ def solve_thermo_params(T_liq, T_gas, m_liq, m_gas, rho_liq_prev, rho_gas_prev, 
 
 
 
-def single_solve_T_dot_liq_gas(V_dot_liq, liq_state, sat_surf, gas_state, m_liq, m_gas, V_liq, V_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas, debug_mode):
+def single_solve_T_dot_liq_gas(V_dot_liq, liq_state, sat_surf, gas_state, m_liq, m_gas, V_liq, V_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas):
 
     m_dot_liq, m_dot_gas = solve_m_dot_liq_gas(m_dot_evap, m_dot_cond, m_dot_inj)
 
@@ -269,21 +265,6 @@ def single_solve_T_dot_liq_gas(V_dot_liq, liq_state, sat_surf, gas_state, m_liq,
     T_dot_gas = (1/gas_state.cv)*( (1/m_gas) * (U_dot_gas - (gas_state.u * m_dot_gas)) - (gas_state.du_drho_const_T * d_rho_dt_gas) )
 
 
-#BUG
-#BUG
-#SO U DOT IS NEGATIVE BUT T DOT GAS INCREASES WTF IS GOING ON THERE:
-#(U_dot_gas - (gas_state.u * m_dot_gas)) its this term that grows and causes T_gas to increase
-
-
-    if debug_mode == True:
-        a = 1
-
-        #print("U_dot_gas: ", U_dot_gas, m_dot_evap*(sat_surf.h_sat_gas - sat_surf.h_sat_liq), - m_dot_cond*(sat_surf.h_sat_gas - sat_surf.h_sat_liq), - P_tank*V_dot_gas , Q_dot_gas )
-        #print("T_dot_gas: ", T_dot_gas, (1/m_gas) * (U_dot_gas - (gas_state.u * m_dot_gas)), U_dot_gas, - (gas_state.u * m_dot_gas), gas_state.u,m_dot_gas,- (gas_state.du_drho_const_T * d_rho_dt_gas) )
-       
-       
-
-        #TODO: delete at some point
 
     return T_dot_liq, T_dot_gas 
 
@@ -297,7 +278,7 @@ def P_dot_error(V_dot_guess, liq_state, sat_surf, gas_state, m_liq, m_gas, V_liq
     d_rho_dt_liq = (1/V_liq)*m_dot_liq - (m_liq/(V_liq**2))*V_dot_guess
     d_rho_dt_gas = (1/V_gas)*m_dot_gas - (m_gas/(V_gas**2))*V_dot_gas
 
-    T_dot_liq, T_dot_gas = single_solve_T_dot_liq_gas(V_dot_guess, liq_state, sat_surf, gas_state, m_liq, m_gas, V_liq, V_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas, False)
+    T_dot_liq, T_dot_gas = single_solve_T_dot_liq_gas(V_dot_guess, liq_state, sat_surf, gas_state, m_liq, m_gas, V_liq, V_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas)
 
     P_dot_liq = liq_state.dP_dT_const_rho*T_dot_liq + liq_state.dP_drho_const_T*d_rho_dt_liq
 
@@ -397,9 +378,6 @@ class model():
         liq_state = SpanWagnerEOS_SingleState(rho_liq, T_liq)
 
 
-        #print("Temps: liq, sat surf, gas: ", T_liq, sat_surf.T, T_gas )
-
-
         # Mass transfer (1) from injector
         m_dot_inj = spi_model(self.Cd_1, self.A_inj_1, P_tank, P_cc, rho_liq)
 
@@ -444,11 +422,6 @@ class model():
         Q_dot_gas_wall_to_gas = solve_Q_dot_natural_convection_gas(rho_gas, T_wall_gas, T_gas, T_gas, P_tank, 0.021, 0.4, h_gas_wall, (np.pi*self.diam_in*h_gas_wall), "N2O" ) #relative to gas cv
         
 
-
-        ###NOTE: Q_dot eqns: 
-        #print("entering Q_dot_liq and Q_dot_gas, look at Q_dot_liq_wall_to_liq, Q_dot_gas_wall_to_gas", Q_dot_liq_wall_to_liq, Q_dot_gas_wall_to_gas)
-        
-
         Q_dot_liq = Q_dot_liq_wall_to_liq - Q_dot_liq_to_sat_surf + m_dot_evap*(liq_state.h - sat_surf.h_sat_liq) + m_dot_cond*(sat_surf.h_sat_liq - liq_state.h) #NOTE: m_dot_cond is signed positive into the liquid
         Q_dot_gas = Q_dot_gas_wall_to_gas + Q_dot_sat_surf_to_gas + m_dot_evap*(sat_surf.h_sat_gas - gas_state.h) + m_dot_cond*(gas_state.h - sat_surf.h_sat_gas)
 
@@ -463,13 +436,6 @@ class model():
             Q_dot_gas = Q_dot_gas_wall_to_gas + Q_dot_sat_surf_to_gas + m_dot_evap*(sat_surf.h_sat_gas - gas_state.h) + m_dot_cond*(gas_state.h - sat_surf.h_sat_gas)
         """
 
-        #BUG: PROBLEM: NO SENSIBLE HEAT WHEN T_GAS < T_SAT, THIS WOULD BE GOING NONPHYSICAL
-
-        #BUG: is the problem the sign on Q_dot_gas wall to gas?
-
-
-        #print("Q_dot_gas: ", Q_dot_gas, Q_dot_gas_wall_to_gas , Q_dot_sat_surf_to_gas , m_dot_evap*(sat_surf.h_sat_gas - gas_state.h) , m_dot_cond*(gas_state.h - sat_surf.h_sat_gas))
-
         #NOTE: USE ambient properties for air, T_2 will be respective wall temperature (RK var)
         # (6) [natural convection] from atm to liq
         Q_dot_atm_to_liq_wall = solve_Q_dot_natural_convection_gas(self.rho_atm, self.T_atm, T_wall_liq, self.T_atm, self.P_atm, 0.59, 0.25, self.height_tank, (np.pi*self.diam_in*h_liq_wall), "Air") #relative to wall_liq cv
@@ -477,9 +443,6 @@ class model():
         Q_dot_atm_to_gas_wall = solve_Q_dot_natural_convection_gas(self.rho_atm, self.T_atm, T_wall_gas, self.T_atm, self.P_atm, 0.59, 0.25, self.height_tank, (np.pi*self.diam_in*h_gas_wall), "Air") #relative to wall_gas cv
         # (8) [conduction] from liq wall to gas wall 
         Q_dot_liq_wall_to_gas_wall = solve_Q_dot_conduction( (T_wall_liq-T_wall_gas), self.height_tank, self.k_w, self.diam_in, self.diam_out) #relative to wall_liq cv
-
-        #print("checking wall node magnitude: ", Q_dot_atm_to_liq_wall, Q_dot_atm_to_gas_wall, Q_dot_liq_wall_to_gas_wall)
-
 
         # Iteratively solve change in CV Volume
         V_dot_liq = self.V_dot_liq_prev #initial guess for dV_dt_liq
@@ -502,7 +465,7 @@ class model():
         T_dot_wall_gas = ( -Q_dot_atm_to_gas_wall - Q_dot_gas_wall_to_gas + Q_dot_liq_wall_to_gas_wall + m_dot_gas_wall*CW*( T_wall_liq - T_wall_gas) ) / (CW*m_gas_wall)
 
 
-        T_dot_liq, T_dot_gas = single_solve_T_dot_liq_gas(V_dot_liq, liq_state, sat_surf, gas_state, m_liq, m_gas, V_liq, V_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas, True)
+        T_dot_liq, T_dot_gas = single_solve_T_dot_liq_gas(V_dot_liq, liq_state, sat_surf, gas_state, m_liq, m_gas, V_liq, V_gas, P_tank, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas)
 
         return [T_dot_liq, T_dot_gas, m_dot_liq, m_dot_gas, T_dot_wall_liq, T_dot_wall_gas]
 
