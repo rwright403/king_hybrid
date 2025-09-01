@@ -25,7 +25,7 @@ g = 9.81 #m/s^2
 
 CW = 896 #J/(kg K) ~ this is the specific heat capacity of the wall material, for Al 6061 from MATWEB: https://www.matweb.com/search/datasheet.aspx?MatGUID=b8d536e0b9b54bd7b69e4124d8f1d20a&ckck=1
 
-E = 1.3e3#2.1e4 #NOTE: EMPIRICAL FACTOR E for high mass flow effects to scale Q_liq_to_sat_surf and m_dot_evap. This was obtained from [7], which claims E is an oxidizer property. This is contradicted by [8] which claims E is a function of the tank as a system
+E = 2.1e4 #NOTE: EMPIRICAL FACTOR E for high mass flow effects to scale Q_liq_to_sat_surf and m_dot_evap. This was obtained from [7], which claims E is an oxidizer property. This is contradicted by [8] which claims E is a function of the tank as a system
 
 def secant(func, x1):
     x_eps = x1 * 0.005  # Set the tolerance to be 0.5% of init guess
@@ -358,7 +358,11 @@ class model():
         self.rho_liq_prev = self.rho_liq
         self.rho_gas_prev = self.rho_gas
 
-        self.V_dot_liq_prev = 1E-8
+        self.V_dot_liq_prev = 1E-8 #NOTE: IS THIS USED???
+
+
+        ### GAS PHASE:
+        self.m_tank_heatsink = self.rho_wall*(0.25*np.pi*self.height_tank*((self.diam_out**2)-(self.diam_in**2)))
 
 
 
@@ -415,7 +419,7 @@ class model():
         V_liq_wall = 0.25*np.pi*((self.diam_out**2)-(self.diam_in**2))*h_liq_wall
         m_liq_wall = self.rho_wall*V_liq_wall
 
-        # NOTE: ADIABATIC FOR DEBUGGING
+
         # Heat transfer (4) [natural convection] from liq wall to liq
         Q_dot_liq_wall_to_liq = solve_Q_dot_natural_convection_liq(rho_liq, T_wall_liq, T_liq, T_liq, P_tank, 0.021, 0.4, h_liq_wall, (np.pi*self.diam_in*h_liq_wall), "N2O" ) #relative to liq cv       
         # Heat transfer (5) [natural convection] from gas to gas wall
@@ -478,18 +482,45 @@ class model():
 
 
 
+    #this one is easy! 
+    def system_of_gas_odes(self, t, y, P_cc):
+
+        _, T_gas, _, m_gas, _, T_wall_gas = y  # Unpack state variables
+
+        rho_gas = m_gas/self.V_tank #know V_tank, m_gas so we can find rho_gas!
+
+        gas_state = SpanWagnerEOS_SingleState(rho_gas, T_gas)
+
+        # Mass transfer (1) from injector, then mass balance m_dot_gas = m_dot_inj
+        m_dot_gas = spi_model(self.Cd_1, self.A_inj_1, P_tank, P_cc, rho_gas)
+
+        # Heat transfer (5) [natural convection] from gas to gas wall
+        Q_dot_gas_wall_to_gas = solve_Q_dot_natural_convection_gas(rho_gas, T_wall_gas, T_gas, T_gas, P_tank, 0.021, 0.4, self.height_tank, (np.pi*self.diam_in*self.height_tank), "N2O" ) #relative to gas cv
+
+        U_dot_gas = m_dot_gas*gas_state.h + Q_dot_gas_wall_to_gas
+
+        d_rho_dt_gas = m_dot_gas/self.V_tank
+
+        T_dot_gas = (1/gas_state.cv)*( (1/m_gas) * (U_dot_gas - (gas_state.u * m_dot_gas)) - (gas_state.du_drho_const_T * d_rho_dt_gas) )
+
+        Q_dot_atm_to_gas_wall = solve_Q_dot_natural_convection_gas(self.rho_atm, self.T_atm, T_wall_gas, self.T_atm, self.P_atm, 0.59, 0.25, self.height_tank, (np.pi*self.diam_in*self.height_tank), "Air") #relative to wall_gas cv
+
+        T_dot_wall_gas = Q_dot_atm_to_gas_wall/(CW*self.m_tank_heatsink)
+
+        return [0.0, T_dot_gas, 0.0, m_dot_gas, 0.0, T_dot_wall_gas]
 
 
+    def tank_ode_system(self, t, y, P_cc):
+        """
+        Wrapper that chooses liquid-phase or vapor-only ODEs.
+        """
+        _, _, m_liq, _, _, _ = y
 
-
-
-
-
-
-
-
-
-
+        if m_liq > 0:
+            return self.system_of_liq_odes(t, y, P_cc)
+        else:
+            #we are in the vapor phase (liquid fully drained from tank)
+            return self.system_of_vap_odes(t, y, P_cc)
 
 
     def inst(self, P_cc):
@@ -501,16 +532,16 @@ class model():
         #print(" * * * masses: ", self.m_liq, self.m_gas, self.m_inj)
 
         # NOTE: y is a vector, k1-k4 are derivatives of sol!
-        k1 = self.system_of_liq_odes(t, y0, constants)
+        k1 = self.tank_ode_system(t, y0, constants)
 
         y_2 = [y_i + self.TIMESTEP * k1_i / 2 for y_i, k1_i in zip(y0, k1)]
-        k2 = self.system_of_liq_odes(t + self.TIMESTEP / 2, y_2, P_cc)
+        k2 = self.tank_ode_system(t + self.TIMESTEP / 2, y_2, P_cc)
 
         y_3 = [y_i + self.TIMESTEP * k2_i / 2 for y_i, k2_i in zip(y0, k2)]
-        k3 = self.system_of_liq_odes(t + self.TIMESTEP / 2, y_3, P_cc)
+        k3 = self.tank_ode_system(t + self.TIMESTEP / 2, y_3, P_cc)
 
         y_4 = [y_i + self.TIMESTEP * k3_i for y_i, k3_i in zip(y0, k3)]
-        k4 = self.system_of_liq_odes(t + self.TIMESTEP, y_4, P_cc)
+        k4 = self.tank_ode_system(t + self.TIMESTEP, y_4, P_cc)
 
         y = [ y_i + (self.TIMESTEP / 6) * (k1_i + 2*k2_i + 2*k3_i + k4_i) for y_i, k1_i,k2_i,k3_i,k4_i in zip(y0, k1,k2,k3,k4)]
 
