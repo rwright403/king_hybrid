@@ -2,8 +2,8 @@ from rocketcea.cea_obj_w_units import CEA_Obj
 from rocketcea.cea_obj import add_new_fuel
 import CoolProp.CoolProp as CP #I love coolprop! ~ units: http://www.coolprop.org/v4/apidoc/CoolProp.html
 
-import matplotlib
-matplotlib.use('Qt5Agg')  # Use the TkAgg backend
+#import matplotlib
+#matplotlib.use('Qt5Agg')  # Use the TkAgg backend
 
 import numpy as np
 import matplotlib.pyplot as plt
