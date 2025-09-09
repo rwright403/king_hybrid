@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import traceback
 import time
 
-from src.models._thermo.n2o_thermo_span_wagner_class import SpanWagnerEOS_SingleState, SpanWagnerEOS_EquilibriumPhase, find_spinodal, lightweight_span_wagner_eos_pressure, lightweight_span_wagner_eos_cp, lightweight_span_wagner_eos_d_rho_dT_P
+from src.models._thermo.n2o_thermo_span_wagner_class import SpanWagnerEOS_SingleState, SpanWagnerEOS_EquilibriumPhase, lightweight_span_wagner_eos_pressure, lightweight_span_wagner_eos_cp, lightweight_span_wagner_eos_d_rho_dT_P
 from src.utils.numerical_methods import secant, rk4_step
 
 
@@ -189,7 +189,6 @@ def solve_m_dot_evap(liq_state, sat_surf, Q_dot_liq_to_sat_surf, Q_dot_sat_surf_
     return m_dot_evap
 
 
-#NOTE: this currently bricks everything
 def solve_m_dot_condensed(sat_surf, gas_state, V_gas):
     m_dot_cond = 0
 
@@ -250,65 +249,6 @@ def solve_thermo_params(T_liq, T_gas, m_liq, m_gas, rho_liq_prev, rho_gas_prev, 
 
 
 
-def thermo_residuals_non_eq(rhos, T_liq, T_gas, m_liq, m_gas, V_tank, P_sat_gas):
-    """
-    Residuals for [7]-style non-equilibrium closure.
-    Unknowns: [rho_liq, rho_gas].
-    Constraints:
-      1. Gas EOS must match saturation pressure at T_gas.
-      2. Total volume must equal tank volume.
-    """
-    rho_liq, rho_gas = rhos
-
-    # Residual 1: gas EOS pressure vs clamped saturation
-    P_gas = lightweight_span_wagner_eos_pressure(rho_gas, T_gas)
-    res1 = P_gas - P_sat_gas
-
-    # Residual 2: volume constraint
-    V_est = (m_liq / rho_liq) + (m_gas / rho_gas)
-    res2 = V_est - V_tank
-
-    return [res1, res2]
-
-
-from scipy.optimize import fsolve
-
-def spinodal_residual(vars, P_target):
-    rho, T = vars
-    P = lightweight_span_wagner_eos_pressure(rho, T)
-    dPdrho = SpanWagnerEOS_SingleState(rho, T).dP_drho_const_T
-    return [P - P_target, dPdrho]
-
-def find_spinodal_isobar(P_target, rho_guess, T_guess):
-    sol = fsolve(spinodal_residual, [rho_guess, T_guess], args=(P_target,))
-    rho_sp, T_sp = sol
-    return rho_sp, T_sp
-
-
-def solve_thermo_params_non_eq(T_liq, T_gas, m_liq, m_gas, V_tank):
-    # 1. Saturation clamp: Psat from vapor temperature
-    sat_surf = SpanWagnerEOS_EquilibriumPhase(T=T_gas)
-    P_tank = sat_surf.P
-
-    # 2. Spinodal bounds for vapor root search (at T_gas)
-    rho_v_sp, rho_l_sp = find_spinodal(T_gas)
-
-    # 3. Residual: vapor EOS must match Psat
-    def residual_rho_g(rho_g):
-        return lightweight_span_wagner_eos_pressure(rho_g, T_gas) - P_tank
-
-    # 4. Solve for vapor density (inside vapor spinodal)
-    rho_g = brentq(residual_rho_g, 1, rho_v_sp)
-
-    # 5. Back out liquid density from volume constraint
-    V_gas = m_gas / rho_g
-    V_liq = V_tank - V_gas
-    rho_liq = m_liq / V_liq
-
-    return rho_liq, rho_g, P_tank
-
-
-
 
 def single_solve_T_dot_liq_gas(V_dot_liq, liq_state, sat_surf, gas_state, m_liq, m_gas, V_liq, V_gas, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas, debug_mode):
 
@@ -356,9 +296,6 @@ def P_dot_error(V_dot_guess, liq_state, sat_surf, gas_state, m_liq, m_gas, V_liq
     P_dot_gas = gas_state.dP_dT_const_rho*T_dot_gas + gas_state.dP_drho_const_T*d_rho_dt_gas
 
     return P_dot_liq - P_dot_gas
-
-
-
 
 
 class model():
@@ -447,41 +384,13 @@ class model():
 
         T_liq, T_gas, m_liq, m_gas, T_wall_liq, T_wall_gas = y  # Unpack state variables
 
-        rho_liq, rho_gas, P_tank = solve_thermo_params_non_eq(T_liq, T_gas, m_liq, m_gas, V_tank)
-
-        gas_state = SpanWagnerEOS_SingleState(rho_gas, T_gas) # I get this might be clunky but I was having serious speed issues so I tried a lightweight pressure sol in the iterative method. Yes, there are better ways to setup this entire program in general, my bad, im a lot older and more pythonic than when i started this script
-        sat_surf = SpanWagnerEOS_EquilibriumPhase(None, P_tank)
-        liq_state = SpanWagnerEOS_SingleState(rho_liq, T_liq)
-
-
-        ### try different method P_gas = P_sat
-        """        
-        sat_surf = SpanWagnerEOS_EquilibriumPhase(T_gas, None)
-        P_tank = sat_surf.P
-        rho_gas = sat_surf.rho_v
-
-        V_liq = self.V_tank - (m_gas/sat_surf.rho_v) # V_liq = self.V_tank - V_gas
-        rho_liq = m_liq/V_liq
-
-        liq_state = SpanWagnerEOS_SingleState(rho_liq, T_liq)
-        gas_state = SpanWagnerEOS_SingleState(rho_gas, T_gas)
-        """
-
-        #print("where is the calc err: ", V_liq, (sat_surf.rho_v*m_gas), V_liq+ (sat_surf.rho_v*m_gas), self.V_tank)
-
-
-
-
-
         ### Solve thermo parameters! - old according to [8]
-        """        
         rho_liq, rho_gas, P_tank = solve_thermo_params(T_liq, T_gas, m_liq, m_gas, self.rho_liq_prev, self.rho_gas_prev, V_tank)
 
         gas_state = SpanWagnerEOS_SingleState(rho_gas, T_gas) # I get this might be clunky but I was having serious speed issues so I tried a lightweight pressure sol in the iterative method. Yes, there are better ways to setup this entire program in general, my bad, im a lot older and more pythonic than when i started this script
         sat_surf = SpanWagnerEOS_EquilibriumPhase(None, P_tank)
         liq_state = SpanWagnerEOS_SingleState(rho_liq, T_liq)
-        """
-
+        
         # Mass transfer (1) from injector
         m_dot_inj = spi_model(self.Cd_1, self.A_inj_1, P_tank, P_cc, rho_liq)
 
@@ -495,7 +404,6 @@ class model():
         T_film_liq = ((sat_surf.T + T_liq)/2 )
         Q_dot_liq_to_sat_surf = (E)*solve_Q_dot_natural_convection_liq(rho_liq, T_liq, sat_surf.T, T_film_liq, P_tank, 0.15, 0.333, self.diam_in, (0.25*np.pi*(self.diam_in**2)), "N2O" ) #relative to liq cv
         #NOTE:CORRECTION FACTOR for nitrous oxide heat transfer E = (E) to account for blowing as per [7],[8]
-
 
         # Mass transfer (3) by evaporation 
         m_dot_evap = solve_m_dot_evap(liq_state, sat_surf, Q_dot_liq_to_sat_surf, Q_dot_sat_surf_to_gas)
@@ -543,6 +451,8 @@ class model():
         V_dot_liq = self.V_dot_liq_prev #initial guess for dV_dt_liq
         while np.abs(P_dot_error(V_dot_liq, liq_state, sat_surf, gas_state, m_liq, m_gas, V_liq, V_gas, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas)) > self.P_dot_err_tolerance:
             V_dot_liq = secant((lambda V_dot: P_dot_error(V_dot, liq_state, sat_surf, gas_state, m_liq, m_gas, V_liq, V_gas, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas)), V_dot_liq)
+        
+
 
         ### Wall nodes:
         
@@ -581,7 +491,6 @@ class model():
 
         # Mass transfer (1) from injector, then mass balance m_dot_gas = m_dot_inj
         m_dot_gas = spi_model(self.Cd_1, self.A_inj_1, P_tank, P_cc, rho_gas)
-#TODO: THIS IS PHYSICALLY MEANINGLESS, JUST TO SEE IF ANYTHING EXTRANEOUS, TELLS US NOTHING RN
 
         # Heat transfer (5) [natural convection] from gas to gas wall
         Q_dot_gas_wall_to_gas = solve_Q_dot_natural_convection_gas(rho_gas, T_wall_gas, T_gas, T_gas, P_tank, 0.021, 0.4, self.height_tank, (np.pi*self.diam_in*self.height_tank), "N2O" ) #relative to gas cv
@@ -648,14 +557,7 @@ class model():
 
         # (4) iteratively solve P_tank to update thermodynamic properties in each node
 #NOTE: this is the liquid phase eqn!
-        #self.rho_liq, self.rho_gas, self.P_tank = solve_thermo_params(self.T_liq, self.T_gas, self.m_liq, self.m_gas, self.rho_liq_prev, self.rho_gas_prev, self.V_tank)
-
-        sat_surf = SpanWagnerEOS_EquilibriumPhase(self.T_gas, None)
-        self.P_tank = sat_surf.P
-        self.rho_gas = sat_surf.rho_v
-
-        V_liq = self.V_tank - (sat_surf.rho_v*self.m_gas) # V_liq = self.V_tank - V_gas
-        self.rho_liq = self.m_liq/V_liq
+        self.rho_liq, self.rho_gas, self.P_tank = solve_thermo_params(self.T_liq, self.T_gas, self.m_liq, self.m_gas, self.rho_liq_prev, self.rho_gas_prev, self.V_tank)
 
         #update stored vals for RK est and volumes
         self.rho_liq_prev = self.rho_liq
@@ -709,9 +611,11 @@ P_cc = 1.03e6 #Pa
 published_time_arr = [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5]
 
 published_P_tank_arr = [4.5e6, 4.0e6, 3.75e6, 3.625e6, 3.5e6, 3.375e6, 3.25e6, 3.15e6, 3.05e6, 2.95e6, 2.875e6, 2.625e6, 2.1e6, 1.45e6 ]
+
 """
 published_m_liq_arr = []
-published_m_gas_arr = []"""
+published_m_gas_arr = []
+"""
 
 published_T_liq_arr = [286.5, 286.0, 284.0, 282.5, 280.5, 279.0, 277.5, 275.0, 273.0, 271.0, 269.5, 267.5, None, None]
 published_T_gas_arr = [286.5, 282.5, 280.25, 279.0, 277.5, 276.25, 275.0, 274.0, 272.5, 270.25, 269.0, 267.5, None, None]
