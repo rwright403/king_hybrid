@@ -1,21 +1,20 @@
 import importlib
 
-# Registry maps code → import path
+# Registry maps code --> import path
 OX_TANK_MODEL_MAP = {
     1: "src.models.ox_tank.equilibrium_tank.equilibrium_tank_model",
-    #2 "src.models.ox_tank.non_equilibrium_tank.???",
+    2: "src.models.ox_tank.non_equilibrium_tank.non_equilibrium_tank_model",
 }
 
 
 FUEL_TANK_MODEL_MAP = {
     1: "src.models.fuel_tank.pressurized_liq_fuel_tank.pressurized_liq_fuel_tank"
-    #2: NO MORE MODELLING!
 }
 
 INJECTOR_MODEL_MAP = {
-    1: "src.models.inj.dyer.dyer_model",
-    2: "src.models.inj.spi.spi_model",
-    3: "src.models.inj.hem.hem_model",
+    1: "src.models.inj.spi.spi_model",
+    2: "src.models.inj.hem.hem_model",
+    3: "src.models.inj.dyer.dyer_model",
     4: "src.models.inj.modified_omega.modified_omega_model",
 }
 

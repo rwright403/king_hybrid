@@ -3,8 +3,8 @@
 # ------------------------
 
 # Models
-ox_tank_model = 1
-inj_model     = 1  
+ox_tank_model = 2
+ox_inj_model  = 1  
 cc_model      = 1   
 nozzle_model  = 1
 
@@ -45,7 +45,8 @@ C = CEA_Obj(
 )
 
 
-# Oxidizer Tank
+# Equilibrium Oxidizer Tank
+"""
 ox_tank_kwargs = dict(
     oxidizer="N2O",
     m_ox=5.0,
@@ -54,9 +55,42 @@ ox_tank_kwargs = dict(
     P_atm=101325,
     all_error=1e-3,
 )
+"""
+
+# Equilibrium Oxidizer Tank
+"""
+ox_tank_kwargs = dict(
+    oxidizer="N2O",
+    m_ox=5.0,
+    V_tank=0.01,
+    P_tank=5e6,
+    P_atm=101325,
+    all_error=1e-3,
+)
+"""
+
+# Non-Equilibrium Oxidizer Tank
+
+ox_tank_kwargs = dict(
+    m_nos=5.0,              # [kg] initial nitrous oxide mass
+    P_tank=5e6,             # [Pa] initial tank pressure (~50 bar)
+    P_cc=3e6,               # [Pa] chamber back pressure (~30 bar)
+    P_atm=101325,           # [Pa] ambient pressure
+    T_atm=298.15,           # [K] ambient temperature (~25 °C)
+    rho_atm=1.225,          # [kg/m3] air density at STP
+    V_tank=0.010,           # [m3] total tank volume (10 L)
+    diam_out=0.152,         # [m] outer tank diameter (6 in)
+    diam_in=0.146,          # [m] inner tank diameter (~5.75 in)
+    rho_wall=2700.0,        # [kg/m3] Al 6061 density
+    k_w=167.0,              # [W/m-K] Al 6061 thermal conductivity
+    volume_err_tol=1e-6,    # [-] convergence tolerance for volume solver
+    P_dot_err_tol=1e-3,     # [-] convergence tolerance for dP/dt match
+)
+
+
 
 # Oxidizer Injector
-inj_kwargs = dict(
+ox_inj_kwargs = dict(
     Cd=0.85,
     A_inj=1e-5,
 )
