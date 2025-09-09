@@ -132,7 +132,7 @@ class SpanWagnerEOS_SingleState(SpanWagnerEOS_BASE):
 
 
 class SpanWagnerEOS_EquilibriumPhase(SpanWagnerEOS_BASE):
-    """Equilibrium (saturation) properties using Span-Wagner EOS."""
+    """NOTE: NOT FULLY THERMODYNAMICALLY CLOSED, look here for where I cheat and use COOLPROP. Equilibrium (saturation) properties using Span-Wagner EOS."""
 
     def __init__(self, T=None, P=None):
         if T is None and P is None:
