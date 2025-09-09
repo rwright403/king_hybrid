@@ -189,7 +189,6 @@ def solve_m_dot_evap(liq_state, sat_surf, Q_dot_liq_to_sat_surf, Q_dot_sat_surf_
     return m_dot_evap
 
 
-#NOTE: this currently bricks everything
 def solve_m_dot_condensed(sat_surf, gas_state, V_gas):
     m_dot_cond = 0
 
@@ -385,7 +384,6 @@ class model():
 
         T_liq, T_gas, m_liq, m_gas, T_wall_liq, T_wall_gas = y  # Unpack state variables
 
-
         ### Solve thermo parameters! - old according to [8]
         rho_liq, rho_gas, P_tank = solve_thermo_params(T_liq, T_gas, m_liq, m_gas, self.rho_liq_prev, self.rho_gas_prev, V_tank)
 
@@ -406,7 +404,6 @@ class model():
         T_film_liq = ((sat_surf.T + T_liq)/2 )
         Q_dot_liq_to_sat_surf = (E)*solve_Q_dot_natural_convection_liq(rho_liq, T_liq, sat_surf.T, T_film_liq, P_tank, 0.15, 0.333, self.diam_in, (0.25*np.pi*(self.diam_in**2)), "N2O" ) #relative to liq cv
         #NOTE:CORRECTION FACTOR for nitrous oxide heat transfer E = (E) to account for blowing as per [7],[8]
-
 
         # Mass transfer (3) by evaporation 
         m_dot_evap = solve_m_dot_evap(liq_state, sat_surf, Q_dot_liq_to_sat_surf, Q_dot_sat_surf_to_gas)
@@ -614,9 +611,11 @@ P_cc = 1.03e6 #Pa
 published_time_arr = [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5]
 
 published_P_tank_arr = [4.5e6, 4.0e6, 3.75e6, 3.625e6, 3.5e6, 3.375e6, 3.25e6, 3.15e6, 3.05e6, 2.95e6, 2.875e6, 2.625e6, 2.1e6, 1.45e6 ]
+
 """
 published_m_liq_arr = []
-published_m_gas_arr = []"""
+published_m_gas_arr = []
+"""
 
 published_T_liq_arr = [286.5, 286.0, 284.0, 282.5, 280.5, 279.0, 277.5, 275.0, 273.0, 271.0, 269.5, 267.5, None, None]
 published_T_gas_arr = [286.5, 282.5, 280.25, 279.0, 277.5, 276.25, 275.0, 274.0, 272.5, 270.25, 269.0, 267.5, None, None]
@@ -677,7 +676,7 @@ rho_liq_arr = []
 try:
     start_time = time.time()  # Start timer
 
-    while(t < 1000*TIMESTEP): #3000*TIMESTEP
+    while(t < 6000*TIMESTEP): #3000*TIMESTEP
         
         tank.inst(P_cc)
         t+=TIMESTEP 

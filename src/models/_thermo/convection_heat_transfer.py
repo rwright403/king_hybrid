@@ -9,7 +9,6 @@ g = 9.81 #m/s^2
 #NOTE: SIGN CONVENTION: Q_dot dir: (+) T_1 --> T_2 (f is fluid)
 def solve_Q_dot_natural_convection_liq(rho_f, T_1, T_2, T_f, P_f, c, n, L, Area, fluid):
     if fluid == "N2O":
-        print("fluid", fluid)
         n2o = Chemical('N2O', T=T_f, P=P_f) 
         k_f = n2o.kl # Conductivity W/(m K)
         dyn_visc_f = liq_dynamic_visc_polynomial(T_f)
