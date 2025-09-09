@@ -677,7 +677,7 @@ rho_liq_arr = []
 try:
     start_time = time.time()  # Start timer
 
-    while(t < 1000*TIMESTEP): #3000*TIMESTEP
+    while(t < 6000*TIMESTEP): #3000*TIMESTEP
         
         tank.inst(P_cc)
         t+=TIMESTEP 

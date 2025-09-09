@@ -1,29 +1,12 @@
-from src.models._thermo.n2o_thermo_span_wagner_n2o_constants import *
 import numpy as np
 from scipy.optimize import brentq
+from src.utils.numerical_methods import secant
+from src.models._thermo.n2o_thermo_span_wagner_n2o_constants import *
 
 REF_SHIFT = 7.3397e+05 #Convert from Span-Wagner enthalpy convention to NIST
 
 
-def secant(func, x1):
-    x_eps = x1 * 0.005  # Set the tolerance to be 0.5% of init guess
-    x2 = x1 -x1 * 0.01  # Set a second point 1% away from the original guess
-    F1 = func(x1)  # Evaluate function at x1
-    F2 = func(x2)  # Evaluate function at x2
-    kk = 1  # Set up counter
-    kk_max = 1000
-
-    while np.abs(x2 - x1) >= (x_eps) and kk < kk_max:  # While error is too large and counter is less than max
-        x3 = x2 - (F2 * (x2 - x1) / (F2 - F1)) 
-        x1 = x2  # Move everything forward
-        x2 = x3
-        F1 = F2
-        F2 = func(x2) 
-        if (F1 == F2):
-            return x2
-        kk = kk + 1
-    x = x2
-    return x
+import CoolProp.CoolProp as CP
 
 
 class SpanWagnerEOS_BASE:
@@ -164,7 +147,10 @@ class SpanWagnerEOS_EquilibriumPhase(SpanWagnerEOS_BASE):
 
         # If P given, solve T_sat
         if P is not None and T is None:
-            self.T = self.T_sat(P)
+#NOTE: TESTING W COOLPROP:
+            # OLD self.T = self.T_sat(P)
+            self.T = CP.PropsSI('T', 'P', P, 'Q', 1, "N2O")
+
 
         # Find coexisting densities
         self.rho_v, self.rho_l = self.find_density_roots(self.T, self.P) #NOTE: UNITS [kg/m^3]
