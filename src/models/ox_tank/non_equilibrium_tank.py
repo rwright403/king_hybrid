@@ -286,40 +286,27 @@ def find_spinodal_isobar(P_target, rho_guess, T_guess):
 
 
 def solve_thermo_params_non_eq(T_liq, T_gas, m_liq, m_gas, V_tank):
-    # 1. Saturation clamp
+    # 1. Saturation clamp: Psat from vapor temperature
     sat_surf = SpanWagnerEOS_EquilibriumPhase(T=T_gas)
     P_tank = sat_surf.P
 
-    # 2. Spinodal bounds (isobaric, consistent with clamp)
-    # use ancillaries as starting guesses
-    rho_v_guess = sat_surf.rho_sat_gas * 0.8
-    rho_l_guess = sat_surf.rho_sat_liq * 1.2
+    # 2. Spinodal bounds for vapor root search (at T_gas)
+    rho_v_sp, rho_l_sp = find_spinodal(T_gas)
 
-    rho_v_sp, T_v_sp = find_spinodal_isobar(P_tank, rho_guess=rho_v_guess, T_guess=T_gas)
-    rho_l_sp, T_l_sp = find_spinodal_isobar(P_tank, rho_guess=rho_l_guess, T_guess=T_liq)
-
-    # 3. Define residual in rho_g
+    # 3. Residual: vapor EOS must match Psat
     def residual_rho_g(rho_g):
-        V_gas = m_gas / rho_g
-        V_liq = V_tank - V_gas
-        rho_liq = m_liq / V_liq
+        return lightweight_span_wagner_eos_pressure(rho_g, T_gas) - P_tank
 
-        P_liq = lightweight_span_wagner_eos_pressure(rho_liq, T_liq)
+    # 4. Solve for vapor density (inside vapor spinodal)
+    rho_g = brentq(residual_rho_g, 1, rho_v_sp)
 
-        print("pressures: ", P_liq - P_tank, P_liq, P_tank)
-        return P_liq - P_tank
-
-    # 4. Root solve for rho_g
-
-    print("rho_v_sp, ", rho_v_sp, sat_surf.rho_v)
-    rho_g = brentq(residual_rho_g, 1e-6, rho_v_sp)
-
-    # 5. Back out rho_liq
+    # 5. Back out liquid density from volume constraint
     V_gas = m_gas / rho_g
     V_liq = V_tank - V_gas
     rho_liq = m_liq / V_liq
 
     return rho_liq, rho_g, P_tank
+
 
 
 
@@ -594,6 +581,7 @@ class model():
 
         # Mass transfer (1) from injector, then mass balance m_dot_gas = m_dot_inj
         m_dot_gas = spi_model(self.Cd_1, self.A_inj_1, P_tank, P_cc, rho_gas)
+#TODO: THIS IS PHYSICALLY MEANINGLESS, JUST TO SEE IF ANYTHING EXTRANEOUS, TELLS US NOTHING RN
 
         # Heat transfer (5) [natural convection] from gas to gas wall
         Q_dot_gas_wall_to_gas = solve_Q_dot_natural_convection_gas(rho_gas, T_wall_gas, T_gas, T_gas, P_tank, 0.021, 0.4, self.height_tank, (np.pi*self.diam_in*self.height_tank), "N2O" ) #relative to gas cv
@@ -784,7 +772,7 @@ rho_liq_arr = []
 try:
     start_time = time.time()  # Start timer
 
-    while(t < 1000*TIMESTEP): #3000*TIMESTEP
+    while(t < 6000*TIMESTEP): #3000*TIMESTEP
         
         tank.inst(P_cc)
         t+=TIMESTEP 
