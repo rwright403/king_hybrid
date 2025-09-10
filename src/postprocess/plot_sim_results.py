@@ -18,6 +18,7 @@ def plot_sim_results(inputs, results: dict, mode: str, save_path: str = None):
 
 
     elif mode == "fuel_tank":
+        print("program thinks we have a fuel tank")
         plt.plot(time, results["P_fuel_tank"], label="P_fuel Tank")
         plt.xlabel("Time [s]")
         plt.ylabel("Pressure [Pa]")
@@ -26,10 +27,9 @@ def plot_sim_results(inputs, results: dict, mode: str, save_path: str = None):
         plt.grid(True)
 
     elif mode == "full_stack":
-        if len(results["P_fuel_tank"]) > 0: # P_tank added if this col has results
-            plot_liquid_full_stack(time, results["P_ox_tank"], results["P_fuel_tank"], results["P_cc"], results["thrust"])
-        else:
-            plot_hybrid_full_stack(time, results["P_ox_tank"], results["P_cc"], results["thrust"])
+
+        plot_full_stack(time, results["P_ox_tank"], results["P_fuel_tank"], results["P_cc"], results["thrust"])
+
 
 
     # Save/show logic
