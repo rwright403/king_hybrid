@@ -1,9 +1,7 @@
 import numpy as np
-from scipy.optimize import root, brentq
+from scipy.optimize import root, root_scalar, brentq
 from src.models.ox_tank._base import BaseTank
-#import CoolProp.CoolProp as CP
 from thermo import Chemical
-#from thermo.eos import PR
 import matplotlib.pyplot as plt
 import traceback
 #import time
@@ -15,7 +13,7 @@ from src.models._thermo.conduction_heat_transfer import *
 
 from src.models._thermo.n2o_thermo_span_wagner_class import SpanWagnerEOS_SingleState, SpanWagnerEOS_EquilibriumPhase, lightweight_span_wagner_eos_pressure, lightweight_span_wagner_eos_cp, lightweight_span_wagner_eos_d_rho_dT_P
 #from src.models._thermo.n2o_viscosity_polynomials import *
-from src.utils.numerical_methods import secant, rk4_step
+from src.utils.numerical_methods import rk4_step
 
 
 # Global Constants:
@@ -174,7 +172,7 @@ def P_dot_error(V_dot_guess, liq_state, sat_surf, gas_state, P_tank, m_liq, m_ga
 
 
 class non_equilibrium_tank_model(BaseTank):
-    def __init__(self, timestep, m_nos, P_tank, P_cc, P_atm, T_atm, rho_atm, V_tank, diam_out, diam_in, rho_wall, k_w, volume_err_tol, P_dot_err_tol, injector):
+    def __init__(self, timestep, m_ox, P_tank, P_cc, P_atm, T_atm, rho_atm, V_tank, diam_out, diam_in, rho_wall, k_w, volume_err_tol, P_dot_err_tol, injector):
         super().__init__(injector, timestep)
         self.TIMESTEP = timestep
         self.volume_err_tolerance = volume_err_tol
@@ -208,26 +206,26 @@ class non_equilibrium_tank_model(BaseTank):
         #### Setup Thermo Properties - Assuming Tank Starts at thermal equilibrium --> Sat Conditions
 
         self.V_tank = V_tank
-        self.m_nos = m_nos
+        self.m_ox = m_ox
 
         initial_eq_state = SpanWagnerEOS_EquilibriumPhase(None, P_tank)
 
         self.rho_liq = initial_eq_state.rho_sat_liq
         self.rho_gas = initial_eq_state.rho_sat_gas
         
-        rho_sat_tank = self.m_nos/V_tank
+        rho_sat_tank = self.m_ox/V_tank
         x_tank = ( (1/rho_sat_tank)-(1/self.rho_liq) ) / ( (1/self.rho_gas)-(1/self.rho_liq) )
 
 
         #gas cv setup
         self.T_gas = T_atm
-        self.m_gas = x_tank*self.m_nos
+        self.m_gas = x_tank*self.m_ox
         v_gas = 1/self.rho_gas
         self.V_gas = v_gas*self.m_gas
 
         #liquid cv
         self.T_liq = T_atm
-        self.m_liq = self.m_nos-self.m_gas
+        self.m_liq = self.m_ox-self.m_gas
         v_liq = 1/self.rho_liq
         self.V_liq = v_liq*self.m_liq
 
@@ -275,7 +273,7 @@ class non_equilibrium_tank_model(BaseTank):
         ## NOTE: how to integrate this? - should it just be 0 ???
         self.state["x_1"] = 0# self.x_tank
 
-        m_dot_inj = self.injector.m_dot(self.state)
+        m_dot_inj = -self.injector.m_dot(self.state)
 
 
         # Heat transfer (2) from saturated surface to gas                       (T_1, T_2, P_tank, rho_2, c, n, tank_diam, fluid)
@@ -333,8 +331,28 @@ class non_equilibrium_tank_model(BaseTank):
 
         # Iteratively solve change in CV Volume
         V_dot_liq = self.V_dot_liq_prev #initial guess for dV_dt_liq
-        while np.abs(P_dot_error(V_dot_liq, liq_state, sat_surf, gas_state, P_tank, m_liq, m_gas, V_liq, V_gas, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas)) > self.P_dot_err_tolerance:
-            V_dot_liq = secant((lambda V_dot: P_dot_error(V_dot, liq_state, sat_surf, gas_state, P_tank, m_liq, m_gas, V_liq, V_gas, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas)), V_dot_liq)
+        
+        sol = root_scalar(
+            lambda V_dot: P_dot_error(
+                V_dot, liq_state, sat_surf, gas_state,
+                P_tank, m_liq, m_gas, V_liq, V_gas,
+                m_dot_inj, m_dot_evap, m_dot_cond,
+                Q_dot_liq, Q_dot_gas
+            ),
+            method="secant",
+            x0=V_dot_liq,
+            x1=V_dot_liq * 0.99 if V_dot_liq != 0 else 1e-8,  # perturbation
+            xtol=self.P_dot_err_tolerance,
+            maxiter=100
+        )
+
+        if not sol.converged:
+            raise RuntimeError("P_dot_error secant solver did not converge")
+
+        V_dot_liq = sol.root        
+        
+        #while np.abs(P_dot_error(V_dot_liq, liq_state, sat_surf, gas_state, P_tank, m_liq, m_gas, V_liq, V_gas, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas)) > self.P_dot_err_tolerance:
+        #    V_dot_liq = secant((lambda V_dot: P_dot_error(V_dot, liq_state, sat_surf, gas_state, P_tank, m_liq, m_gas, V_liq, V_gas, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas)), V_dot_liq)
         
 
 
@@ -388,7 +406,7 @@ class non_equilibrium_tank_model(BaseTank):
         ## NOTE: how to integrate this? - should it just be 0 ???
         self.state["x_1"] = 0# self.x_tank
 
-        m_dot_gas = self.injector.m_dot(self.state)
+        m_dot_gas = -self.injector.m_dot(self.state)
 
         # Heat transfer (5) [natural convection] from gas to gas wall
         Q_dot_gas_wall_to_gas = solve_Q_dot_natural_convection_gas(rho_gas, T_wall_gas, T_gas, T_gas, gas_state.P, 0.021, 0.4, self.height_tank, (np.pi*self.diam_in*self.height_tank), "N2O" ) #relative to gas cv
@@ -474,11 +492,11 @@ class non_equilibrium_tank_model(BaseTank):
             self.state["x_1"] = 1#self.x_tank
         
 
-        m_dot= self.injector.m_dot(self.state)
+        m_dot= self.injector.m_dot(self.state) #this one pos
 
-        print("non eq ox: ", m_dot, self.P_tank)
+        print("non eq ox: ", m_dot, self.m_liq, self.P_tank)
 
-        return {"m_dot_ox": m_dot, "P_tank": self.P_tank, "state": self.state}
+        return {"m_dot_ox": m_dot, "P_ox_tank": self.P_tank, "state": self.state}
 
 
 
