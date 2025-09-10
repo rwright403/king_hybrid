@@ -1,8 +1,8 @@
 import numpy as np
+from scipy.optimize import root_scalar
 import CoolProp.CoolProp as CP
 from src.models.inj._base import BaseInjector
 from src.models.inj.dyer import dyer_model
-from src.utils.numerical_methods import secant
 
 
 def TWOPHASEerror(eta_crit, omega):
@@ -75,9 +75,23 @@ class modified_omega_model(BaseInjector):
         #solve critical pressure
         #implicitly solve eta_crit
         
-        eta_crit_sat = eta_sat #initial guess for critical pressure ratio
-        while np.abs(TWOPHASEerror(eta_crit_sat, omega_sat) ) > all_err:
-            eta_crit_sat = secant((lambda T: TWOPHASEerror(T, omega_sat)), eta_crit_sat)
+        # eta_sat is the initial guess for critical pressure ratio
+
+        sol = root_scalar(
+            lambda eta: TWOPHASEerror(eta, omega_sat),
+            method="secant",
+            x0=eta_sat,
+            x1=eta_sat * 0.99,
+            xtol=all_err,
+            maxiter=100
+        )
+        if not sol.converged:
+            raise RuntimeError("TWOPHASEerror solver did not converge")
+        eta_crit_sat = sol.root
+
+
+        #while np.abs(TWOPHASEerror(eta_crit_sat, omega_sat) ) > all_err:
+        #    eta_crit_sat = secant((lambda T: TWOPHASEerror(T, omega_sat)), eta_crit_sat)
         
 
         #print("eta sat: ", eta_sat, eta_crit_sat)
@@ -164,8 +178,22 @@ class modified_omega_model(BaseInjector):
                 eta = P_2 / P_1
                 eta_crit_low = eta #initial guess for critical pressure ratio
 
-                while np.abs(LOWSUBCOOLEDerror(eta_crit_low, eta_sat, omega_sat) ) > all_err:
-                    eta_crit_low = secant((lambda T: LOWSUBCOOLEDerror(T, eta_sat, omega_sat)), eta_crit_low)
+                #while np.abs(LOWSUBCOOLEDerror(eta_crit_low, eta_sat, omega_sat) ) > all_err:
+                #    eta_crit_low = secant((lambda T: LOWSUBCOOLEDerror(T, eta_sat, omega_sat)), eta_crit_low)
+                
+                sol = root_scalar(
+                    lambda eta: LOWSUBCOOLEDerror(eta, eta_sat, omega_sat),
+                    method="secant",
+                    x0=eta,
+                    x1=eta * 0.99,
+                    xtol=all_err,
+                    maxiter=100
+                )
+                if not sol.converged:
+                    raise RuntimeError("LOWSUBCOOLEDerror solver did not converge")
+                eta_crit_low = sol.root
+
+
                 P_crit_low = eta_crit_low * P_1
 
                 P_crit = eta_sat*P_crit_sat + (1-eta_sat)*P_crit_low #NOTE: using modified omega model to predict choking pressure and mass flow rate
@@ -182,10 +210,22 @@ class modified_omega_model(BaseInjector):
                     G_sat_choked = eta_crit_sat * np.sqrt(P_1*rho_1/omega_sat)
                     #implicitly solve eta_crit_low
                     eta = P_2 / P_1
-                    eta_crit_low = eta #initial guess for critical pressure ratio
+                    #eta_crit_low = eta #initial guess for critical pressure ratio
 
-                    while np.abs(LOWSUBCOOLEDerror(eta_crit_low, eta_sat, omega_sat) ) > all_err:
-                        eta_crit_low = secant((lambda T: LOWSUBCOOLEDerror(T, eta_sat, omega_sat)), eta_crit_low)
+                    sol = root_scalar(
+                        lambda eta: LOWSUBCOOLEDerror(eta, eta_sat, omega_sat),
+                        method="secant",
+                        x0=eta,
+                        x1=eta * 0.99,
+                        xtol=all_err,
+                        maxiter=100
+                    )
+                    if not sol.converged:
+                        raise RuntimeError("LOWSUBCOOLEDerror solver did not converge")
+                    eta_crit_low = sol.root
+
+                    #while np.abs(LOWSUBCOOLEDerror(eta_crit_low, eta_sat, omega_sat) ) > all_err:
+                    #    eta_crit_low = secant((lambda T: LOWSUBCOOLEDerror(T, eta_sat, omega_sat)), eta_crit_low)
                     
                     G_low_choked = np.sqrt(rho_1_l * P_1) * np.sqrt( 2*(1-eta_sat) + 2*(omega_sat*eta_sat*np.log(eta_sat/eta_crit_low) - (omega_sat-1)*(eta_sat-eta_crit_low))) / (omega_sat*((eta_sat/eta_crit_low) - 1) + 1)
                     m_dot_choked = self.A_inj *( (P_sat/P_1)*G_sat_choked + (1-(P_sat/P_1))*G_low_choked )

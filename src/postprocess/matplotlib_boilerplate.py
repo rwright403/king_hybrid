@@ -59,25 +59,8 @@ def plot_non_eq_ox_tank(time, P_ox_tank, m_ox_tank_liq, m_ox_tank_gas, T_liq_ox_
     plt.grid(True)
     plt.show()
 
-def plot_hybrid_full_stack(time, P_ox_tank, P_cc, thrust):
-        plt.subplot(1,2,1)
-        plt.plot(time,thrust)
-        plt.xlabel('Time (s)')
-        plt.ylabel('Thrust (N)')
-        plt.title('Thrust Curve')
-        plt.grid(True)
-
-        plt.subplot(1,2,2)
-        plt.plot(time,P_ox_tank, label = "P_ox_tank")
-        plt.plot(time,P_cc, label = "P_cc")
-        plt.xlabel('Time (s)')
-        plt.ylabel('Pressure (Pa)')
-        plt.title('System Pressures Over Time')
-        plt.grid(True)
-        plt.legend()
-
-
-def plot_liquid_full_stack(time, P_ox_tank, P_fuel_tank, P_cc, thrust):
+#works for both hybrid and liquid
+def plot_full_stack(time, P_ox_tank, P_fuel_tank, P_cc, thrust):
         plt.subplot(1,2,1)
         plt.plot(time,thrust)
         plt.xlabel('Time (s)')

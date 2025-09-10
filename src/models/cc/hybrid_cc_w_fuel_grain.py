@@ -87,7 +87,7 @@ class hybrid_cc_w_fuel_grain_model(BaseChamber):
             R_spec = (R_UNIV/MW)
             self.P_cc = R_spec * (T_cc*self.m_cc/self.V_cc)
 
-            print("P_cc: ", self.P_cc, R_spec, T_cc, self.V_cc)
+            #print("P_cc: ", self.P_cc, R_spec, T_cc, self.V_cc)
 
             instThrust, self.m_dot_reactants_out = self.nozzle.sol_thrust(self.P_cc, T_cc, y, R_spec)
 

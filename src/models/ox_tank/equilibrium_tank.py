@@ -1,6 +1,6 @@
 import CoolProp.CoolProp as CP
 import numpy as np
-from src.utils.numerical_methods import secant
+from scipy.optimize import root_scalar
 from src.models.inj._base import build_state
 from src.models._thermo.n2o_thermo_span_wagner_class import SpanWagnerEOS_SingleState
 from src.models.ox_tank._base import BaseTank
@@ -90,8 +90,18 @@ class equilibrium_tank_model(BaseTank):
 
         ### start
         if self.x_tank < 1:
-            while np.abs(Verror(self.T_tank, self.U_tank, self.m_ox, self.V_tank ) ) > self.V_tank_err:
-                self.T_tank = secant((lambda T: Verror(T, self.U_tank, self.m_ox, self.V_tank)), self.T_tank)
+
+            sol = root_scalar(
+                lambda T: Verror(T, self.U_tank, self.m_ox, self.V_tank),
+                method="secant",
+                x0=self.T_tank,
+                x1=self.T_tank * 0.99,
+                xtol=self.all_error,
+                maxiter=1000
+            )
+            if not sol.converged:
+                raise RuntimeError("root_scalar failed to converge in equilibrium tank (liquid phase)")
+            self.T_tank = sol.root
 
 
             self.P_tank = CP.PropsSI('P', 'Q', self.x_tank, 'T', self.T_tank, 'N2O')
@@ -129,8 +139,17 @@ class equilibrium_tank_model(BaseTank):
             self.rho_tank = self.m_ox/self.V_tank
             self.u_tank = self.U_tank/self.m_ox
 
-            while np.abs(uerror(self.T_tank, self.rho_tank, self.u_tank) ) > self.u_tank_err:
-                self.T_tank = secant((lambda T: uerror(T, self.rho_tank, self.u_tank)), self.T_tank)
+            sol = root_scalar(
+                lambda T: uerror(T, self.rho_tank, self.u_tank),
+                method="secant",
+                x0=self.T_tank,
+                x1=self.T_tank * 0.99,
+                xtol=self.all_error,
+                maxiter=1000
+            )
+            if not sol.converged:
+                raise RuntimeError("root_scalar failed to converge in equilibrium tank (vapor phase)")
+            self.T_tank = sol.root
 
             self.P_tank = SpanWagnerEOS_SingleState(self.rho_tank, self.T_tank).P
 

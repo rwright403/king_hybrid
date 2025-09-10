@@ -1,6 +1,6 @@
 import numpy as np
-from numba import njit
 
+"""
 def secant(func, x1):
     x_eps = x1 * 0.005  # Set the tolerance to be 0.5% of init guess
     x2 = x1 -x1 * 0.01  # Set a second point 1% away from the original guess
@@ -20,8 +20,8 @@ def secant(func, x1):
         kk = kk + 1
     x = x2
     return x
-
-
+"""
+"""
 def rk4_step(ode_func, t, y, dt, *args):
     k1 = ode_func(t, y, *args)
     y2 = [y_i + 0.5*dt*k1_i for y_i, k1_i in zip(y, k1)]
@@ -37,3 +37,16 @@ def rk4_step(ode_func, t, y, dt, *args):
              for y_i, k1_i, k2_i, k3_i, k4_i in zip(y, k1, k2, k3, k4)]
 
     return y_new
+"""
+
+import numpy as np
+
+def rk4_step(ode_func, t, y, dt, *args):
+    y = np.asarray(y, dtype=float)
+
+    k1 = np.asarray(ode_func(t, y, *args))
+    k2 = np.asarray(ode_func(t + 0.5*dt, y + 0.5*dt*k1, *args))
+    k3 = np.asarray(ode_func(t + 0.5*dt, y + 0.5*dt*k2, *args))
+    k4 = np.asarray(ode_func(t + dt, y + dt*k3, *args))
+
+    return y + (dt/6.0)*(k1 + 2*k2 + 2*k3 + k4)

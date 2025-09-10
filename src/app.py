@@ -1,5 +1,6 @@
 import argparse
 import importlib
+from src.utils.kwargs_builder import build_kwargs
 from src.sim.sim import sim
 from src.prelim_wizard import prelim_wizard
 from src.sensitivity_analysis import sensitivity_analysis
@@ -26,7 +27,9 @@ def run(input_file):
         user_input = input("Enter number to select analysis: ")
 
     if user_input =='1':
-        results = sim(program_input)
+
+        kwargs = build_kwargs(program_input)
+        results = sim(kwargs)
         plot_sim_results(program_input, results, program_input.mode, program_input.save_path)
 
     if user_input =='2':

@@ -1,155 +1,88 @@
-import numpy as np
-"""Sim Variables"""
+# ------------------------
+# Std Engine Input File (Converted Test Case - Liquid Rocket)
+# ------------------------
 
-# analysis mode (select models for sim):
-#                               oxidizer tank model 
-#                              v
-#analysis mode for liquid = [A,B,C]
-#                            ^   ^
-#                            |    fuel tank model (if liquid rocket engine, otherwise vector should be 2 numbers long w hybrid cc)
-#                            cc model
-analysis_mode = [2,1,4]
+# Models
+ox_tank_model   = 2   # bens_ox_tank (non-equilibrium style)
+fuel_tank_model = 4   # piping_real_fuel_tank_data
+ox_inj_model    = 4   # injector model (from inj_model=4)
+cc_model        = 2   # adiabatic_lre_cc
+nozzle_model    = 1   # nozzle model
 
-timestep = 0.05 #s
-all_error = 0.01
-sim_time = 8 #s
-
-### PROGRAM OUTPUT:
+# Global settings
 thrust_curve_graphs = True
+mode = "full_stack"
+save_path = None
 
-### ENVIRONMENTAL DATA
-P_atm = 101325 #Pa
-T_amb = 295 #K
+# Environment
+timestep = 0.05       # [s]
+sim_time = 8.0        # [s]
+P_atm    = 101325     # [Pa]
+T_atm    = 295.0      # [K]
+rho_atm  = None       # not provided
 
-### Launch Canada Timmins Pad
-latitude = 47.989083
-longitude = -81.853361
-elevation = 370.3
+# ------------------------
+# Propellant properties
+# ------------------------
+oxidizer_name   = "N2O"
+fuel_name       = "Ethanol"
+fuel_properties = None      # not needed for LRE
+fuel_str        = "Ethanol"
+pres_str        = "N2"      # pressurant gas
 
-launch_rail_length =25 #m
-inclination = 85 #deg from ground
-heading = 0
+# ------------------------
+# Oxidizer Tank
+# ------------------------
+m_ox        = 12.0
+P_ox_tank   = 5.51581e6     # [Pa]
+P_cc        = None          # not specified
+V_ox_tank   = 0.25*np.pi*((0.0254*5.625)**2 - (0.0254*2.84)**2) * (0.0254*64)
+diam_out    = None
+diam_in     = None
+rho_wall    = None
+k_w         = None
+volume_err_tol = 0.01
+P_dot_err_tol  = None
 
-year = 2023
-month = 10
-date = 24
-hour = 13
+# ------------------------
+# Injector parameters
+# ------------------------
+Cd_inj   = 0.8      # guessed
+A_inj_ox = 0.25*np.pi*(1.2*(0.0254*0.06793)**2)*6
+A_inj_fuel = 0.25*np.pi*((0.0254*0.06793)**2)*5*6
 
-### Propellant and Pressurants 
-oxidizer_name = 'N2O'
-fuel_name = 'Ethanol'
-pressurant_name = 'N2' 
-
-### CC models ###
-
-""" 1 --> hybrid_cc_w_fuel_grain"""
-#
-"""
-oxName = None
-fuelName = None
-timestep  = None
-m_fuel_i = None
-rho_fuel = None
-
-# RocketCEA doesnt have paraffin built in: CREATE IT BELOW
-#C32H66 from RPA Paraffin Wax Composition
-#CEA_fuel_str = f"""
-#fuel paraffin  C 20   H 42    wt%=100.00
-#h,KJ/mol=-13313.49  t(k)=298.15   rho,kg/m3={rho_fuel}
-"""
-
-a = None
-n = None
-L = None
-A_port_i = None
-P_atm = P_atm
-A_throat = None
-A_exit = None
-"""
-     
-""" 2 --> adiabatic_lre_cc"""
-#
-oxidizer_name = oxidizer_name
-fuel_name = fuel_name
-A_throat = 0.25*np.pi*(0.0254*(1.975))**2
-A_exit = A_throat * 4.1
-P_atm = P_atm
-TIMESTEP = timestep
-
-
-
-### Tank models ###
-
-""" 1 --> bens_ox_tank"""
-#
-oxName = oxidizer_name
-timestep = timestep 
-m_ox = 12 #NOTE: guess
-Cd_1 = 0.8 #guess, most likely v wrong
-A_inj_1 = 0.25*np.pi*(1.2*(0.0254*0.06793)**2)*6
-V_tank = 0.25*np.pi*( (0.0254*5.625)**2 - (0.0254*2.84)**2 ) * (0.0254*64)
-P_tank = 5.51581e6
-P_atm = P_atm 
-all_error = all_error 
-
-### SELECT INJECTOR MODEL!
-# 1 --> SPI 
-# 2 --> HEM
-# 3 --> Dyer
-inj_model = 4
-
-
-"""awful liquid"""
-#
-"""
-propellant = None 
-pressurant = None 
-id_PROPTANK = None
-P_proptank = None
-m_prop = None 
-V_PROPTANK = None 
-TIMESTEP = timestep
-pressurant_name = None 
-P_prestank = None 
-m_pres = None 
-P_oxtank = None
-V_PRESTANK = None
-OUTLET_DIAM = None
-"""
-
-"""simpleAdiabaticPressurizedTank"""
-#NOTE:piston fed tank can't use this model for this engine
-"""
-pressurant_name = pressurant_name 
-m_pressurant  = 0.125 #NOTE: Random guess for now
-fuel_name = fuel_name #NOTE: This might not work, assuming 100% when they used 95% as well
-m_fuel = 4.25 #kg 
-P_fueltank = 5.51581e6 #Pa
-ID_PROPTANK = 0.0254*2.84 #m 
-V_tank_2 = 0.25*np.pi*(0.0254*2.84**2 ) * (0.0254*64) #m^3
-Cd_2 = 0.66 #NOTE: could be very wrong
-A_inj_2 = 0.25*np.pi*((0.0254*0.06793)**2)*5*6 #m^2
-T_amb = T_amb
-TIMESTEP = timestep
-"""
-
-"""piping_real_fuel_tank_data"""
-#
-
-T_tank = T_amb
-Cd_2 = 0.1 #guess, could be v wrong
-print("NOTE*** COAXIAL INJECTOR UNKNOWN DISCHARGE COEFFS")
-A_inj_2 = 0.25*np.pi*((0.0254*0.06793)**2)*5*6
-fuel_name = fuel_name
+# ------------------------
+# Fuel tank (piping_real_fuel_tank_data)
+# ------------------------
+m_fuel       = None
+m_pres       = None
+P_pres_tank  = None
+V_tank       = None
+V_pres_tank  = None
+diam_out_fuel = None
+diam_in_fuel  = 0.0254*2.84
+rho_wall_fuel = None
+k_w_fuel      = None
+T_tank        = T_atm
 fuel_tank_pressure_filepath = r'./src/inputs/liquid_validation_data/Waterloo_2024/Waterloo_2024_Fuel_Tank_Pressure.csv'
 
+# ------------------------
+# Chamber (liquid engine)
+# ------------------------
+L_star    = None
 
+# ------------------------
+# Nozzle
+# ------------------------
+A_throat = 0.25*np.pi*(0.0254*(1.975))**2
+A_exit   = A_throat * 4.1
+d_throat = None
+expratio = None
 
-
-### Plotting
-exp_thrust_file_path = r'./src/inputs/liquid_validation_data/Waterloo_2024/Waterloo_2024_Thrust.csv'
-exp_p_cc_file_path = r'./src/inputs/liquid_validation_data/Waterloo_2024/Waterloo_2024_CC_Pressure.csv'
+# ------------------------
+# Experimental validation data
+# ------------------------
+exp_thrust_file_path    = r'./src/inputs/liquid_validation_data/Waterloo_2024/Waterloo_2024_Thrust.csv'
+exp_p_cc_file_path      = r'./src/inputs/liquid_validation_data/Waterloo_2024/Waterloo_2024_CC_Pressure.csv'
 exp_p_ox_tank_file_path = r'./src/inputs/liquid_validation_data/Waterloo_2024/Waterloo_2024_Oxidizer_Tank_Pressure.csv'
 exp_p_fuel_tank_file_path = r'./src/inputs/liquid_validation_data/Waterloo_2024/Waterloo_2024_Fuel_Tank_Pressure.csv'
-
-### TODO: Add rocket definition

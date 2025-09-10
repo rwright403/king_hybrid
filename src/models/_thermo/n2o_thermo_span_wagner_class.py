@@ -1,6 +1,5 @@
 import numpy as np
 from scipy.optimize import brentq
-from src.utils.numerical_methods import secant
 from src.models._thermo.n2o_thermo_span_wagner_n2o_constants import *
 
 REF_SHIFT = 7.3397e+05 #Convert from Span-Wagner enthalpy convention to NIST
@@ -217,10 +216,13 @@ class SpanWagnerEOS_EquilibriumPhase(SpanWagnerEOS_BASE):
                 pcnt += 0.05
         raise RuntimeError("P_sat solver failed")
 
-    @classmethod
+    
+    """   
+    @classmethod 
     def T_sat(cls, P):
         T_guess = SpanWagnerEOS_EquilibriumPhase.T_sat_anc(P)
-        return secant(lambda T: cls.P_sat(T) - P, T_guess)
+        return #secant(lambda T: cls.P_sat(T) - P, T_guess)
+    """
 
     @property
     def h_sat_liq(self):

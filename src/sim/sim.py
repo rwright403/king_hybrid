@@ -48,57 +48,64 @@ def check_nan(value):
 
 
 
-def sim(inputs):
-    mode = inputs.mode
-    timestep = inputs.TIMESTEP
-    sim_time = inputs.sim_time
+def sim(kwargs: dict):
+    # ------------------------
+    # Globals
+    # ------------------------
+    g = kwargs["globals_kwargs"]
+    mode = g["mode"]
+    timestep = g["timestep"]
+    sim_time = g["sim_time"]
+    P_atm = g["P_atm"]
 
-    # Build components if available
-    ox_tank, fuel_tank, cc, nozzle = None, None, None, None
+    m = kwargs["models_kwargs"]
 
-    if hasattr(inputs, "ox_tank_model"):
-        TankClass = get_model("T", inputs.ox_tank_model)
-        InjClass  = get_model("I", inputs.ox_inj_model)
+    # ------------------------
+    # Build components
+    # ------------------------
+    ox_tank = None
+    fuel_tank = None
+    nozzle = None
+    cc = None
 
-        ox_inj    = InjClass(**inputs.ox_inj_kwargs)
-        ox_tank   = TankClass(injector=ox_inj, timestep=timestep, **inputs.ox_tank_kwargs)
+    if "ox_tank_kwargs" in kwargs:
+        TankClass = get_model("T", m["ox_tank_model"])
+        InjClass  = get_model("I", m["ox_inj_model"])
+        ox_inj    = InjClass(**kwargs["ox_inj_kwargs"])
+        ox_tank   = TankClass(injector=ox_inj, timestep=timestep, **kwargs["ox_tank_kwargs"])
 
-    if hasattr(inputs, "fuel_tank_model"):
-        FuelTankClass = get_model("F", inputs.fuel_tank_model)
-        fuel_tank = FuelTankClass(timestep=timestep, **inputs.fuel_tank_kwargs)
-        # SPI injector is hardcoded inside fuel tank class
+    if "fuel_tank_kwargs" in kwargs and kwargs["fuel_tank_kwargs"] is not None:
+        FuelTankClass = get_model("F", m["fuel_tank_model"])
+        fuel_tank = FuelTankClass(timestep=timestep, **kwargs["fuel_tank_kwargs"])
 
-    if hasattr(inputs, "nozzle_model"):
-            NozClass = get_model("N", inputs.nozzle_model)
-            nozzle = NozClass(**inputs.nozzle_kwargs)
+    if "nozzle_kwargs" in kwargs:
+        NozClass = get_model("N", m["nozzle_model"])
+        nozzle = NozClass(**kwargs["nozzle_kwargs"])
 
-    if hasattr(inputs, "cc_model"):
-        CCClass = get_model("C", inputs.cc_model)
-        cc = CCClass(nozzle=nozzle, P_atm=inputs.P_atm, timestep=timestep, **inputs.cc_kwargs)
+    if "cc_kwargs" in kwargs:
+        CCClass = get_model("C", m["cc_model"])
+        cc = CCClass(nozzle=nozzle, P_atm=P_atm, timestep=timestep, **kwargs["cc_kwargs"])
 
-        # you don’t need to rebuild nozzle again here
-        # nozzle already exists above if nozzle_model was defined
-
+    # ------------------------
+    # Simulation loop
+    # ------------------------
     t = 0.0
     records = []
-    P_cc = inputs.P_atm
+    P_cc = P_atm
 
     if mode == "ox_tank":
         while t < sim_time:
             ox_out = ox_tank.inst(P_cc) or {}
-            record = {"time": t, **ox_out}
-            records.append(record)
+            records.append({"time": t, **ox_out})
             t += timestep
 
     elif mode == "fuel_tank":
         while t < sim_time:
             fuel_out = fuel_tank.inst(P_cc) or {}
-            record = {"time": t, **fuel_out}
-            records.append(record)
+            records.append({"time": t, **fuel_out})
             t += timestep
 
     elif mode == "full_stack":
-        # default dicts so they're always defined
         ox_out   = {"m_dot_ox": 0.0, "P_ox_tank": None}
         fuel_out = {"m_dot_fuel": 0.0, "P_fuel_tank": None}
         cc_out   = {"P_cc": P_cc, "thrust": 0.0, "m_dot_cc": 0.0}
@@ -109,19 +116,18 @@ def sim(inputs):
             if fuel_tank:
                 fuel_out = fuel_tank.inst(P_cc) or fuel_out
 
-            cc_out = cc.inst(
-                ox_out["m_dot_ox"],
-                fuel_out.get("m_dot_fuel", 0.0),
-            ) or cc_out
+            if cc:
+                cc_out = cc.inst(
+                    ox_out.get("m_dot_ox", 0.0),
+                    fuel_out.get("m_dot_fuel", 0.0),
+                ) or cc_out
 
-            record = {"time": t, **ox_out, **fuel_out, **cc_out}
-            records.append(record)
-
-            P_cc = cc_out.get("P_cc", P_cc)  # feedback chamber pressure to tanks
+            records.append({"time": t, **ox_out, **fuel_out, **cc_out})
+            P_cc = cc_out.get("P_cc", P_cc)
             t += timestep
 
-    df = pd.DataFrame(records)
-    return df
+    return pd.DataFrame(records)
+
 
 
 
