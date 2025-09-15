@@ -10,6 +10,8 @@ class spi_model(BaseInjector):
         P_1 = state["P_1"]
         P_2 = state["P_2"]
         rho_1 = state["rho_1"]
+
+        print("p1, p2: ", P_1, P_2)
         
         m_dot_spi = self.C_inj * np.sqrt( 2 * rho_1 * (P_1-P_2) )
 

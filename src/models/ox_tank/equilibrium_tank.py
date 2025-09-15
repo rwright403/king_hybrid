@@ -28,16 +28,15 @@ def uerror(T, rho_tank, u_tank):
 Adapted From Ben Klammer's Mech 498 work
 """
 class equilibrium_tank_model(BaseTank):
-    def __init__(self, oxidizer, timestep, m_ox, V_tank, P_tank, P_atm, all_error, injector):
+    def __init__(self, timestep, m_ox, V_tank, P_tank, P_atm, all_error, injector):
             super().__init__(injector, timestep)
-            self.oxidizer = oxidizer
+            self.oxidizer = "N2O"
             self.m_ox = m_ox
             self.V_tank = V_tank
             self.P_tank = P_tank
             self.all_error = all_error
 
 
-            self.oxidizer = oxidizer
             self.timestep = timestep
             self.P_cc = P_atm
             self.all_error = all_error
@@ -67,6 +66,10 @@ class equilibrium_tank_model(BaseTank):
 
             self.y_ox = 0
 
+            #setup iteration error tolerance
+            self.V_tank_err = self.all_error*self.V_tank
+            self.u_tank_err = self.all_error*self.u_tank
+
 
             #print("\n------------\nsummary of bens ox tank inputs: \nOxidizer: ", oxidizer ,"\nTimestep: ", timestep,"\nm_ox: ", m_ox ,"(kg)\nCd: ", Cd_1, "(-)\nA_inj_1: ", A_inj_1, "(m^2)\nV_tank: ", V_tank, "(m^3)\nP_tank: ", P_tank, "(Pa)\nP_cc: ", P_cc, "(Pa)\n------------\n\n\n")     
             #Calculate fill levelfor user reference
@@ -84,11 +87,9 @@ class equilibrium_tank_model(BaseTank):
     def inst(self, P_cc: float):
 
 
-        #setup iteration error tolerance
-        self.V_tank_err = self.all_error*self.V_tank
-        self.u_tank_err = self.all_error*self.u_tank
-
         ### start
+
+        print("x_tank! ", self.x_tank)
         if self.x_tank < 1:
 
             sol = root_scalar(
@@ -172,16 +173,17 @@ class equilibrium_tank_model(BaseTank):
         self.t = self.t + self.timestep #update current time
 
         #Ben does this to eliminate numerical instability
+        
         if self.t == self.timestep:
             self.m_dot_ox = 0.5 * self.m_dot_ox
         else:
             self.m_dot_ox = 0.5 * self.m_dot_ox + 0.5 * self.m_dot_ox_prev
-
+        
 
         self.m_ox = self.m_ox - self.m_dot_ox*self.timestep
         self.m_dot_ox_prev = self.m_dot_ox
         self.U_tank = self.U_tank -self.m_dot_ox*h_tank_exit*self.timestep
 
-        return {"P_ox_tank": self.P_tank, "m_dot_ox": self.m_dot_ox, "m_ox": self.m_ox, "T_ox_tank": self.T_tank}
+        return {"P_ox_tank": self.P_tank, "m_dot_ox_tank": self.m_dot_ox, "m_ox_tank": self.m_ox, "T_ox_tank": self.T_tank}
 
 

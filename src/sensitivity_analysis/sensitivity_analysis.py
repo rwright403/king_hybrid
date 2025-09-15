@@ -70,7 +70,7 @@ def sensitivityAnalysis(inputs):
 
     if inputs.analysis_mode[0] == 1:
         r1cc = cc_model_class(inputs.oxName, inputs.fuelName, inputs.CEA_fuel_str, inputs.m_fuel_i, 
-                inputs.rho_fuel, inputs.a, inputs.n, inputs.L, inputs.A_port_i, 
+                inputs.rho_fuel, inputs.a, inputs.n, inputs.L, inputs.A_port, 
                 inputs.P_atm, inputs.A_throat, inputs.A_exit, inputs.timestep,)
         
     if inputs.analysis_mode[0] == 2:
@@ -342,7 +342,7 @@ def run_sensitivity_analysis(inputs):
     print(f"a = {inputs.a}")
     print(f"n = {inputs.n}")
     print(f"L = {inputs.L}")
-    print(f"A_port_i = {inputs.A_port_i}")
+    print(f"A_port = {inputs.A_port}")
     print(f"A_throat = {inputs.A_throat}")
     print(f"A_exit = {inputs.A_exit}")
     print(f"r_tank = {inputs.r_tank}")

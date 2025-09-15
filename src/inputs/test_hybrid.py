@@ -58,10 +58,15 @@ rho_fuel  = 930.0         # [kg/m^3] solid fuel density
 a_reg     = 0.2e-3        # regression rate coefficient
 n_reg     = 0.5           # regression rate exponent
 L_port    = 0.5           # [m] port length
-A_port_i  = 1e-4          # [m^2] initial port cross-sectional area
+A_port  = 1e-4          # [m^2] initial port cross-sectional area
 
 # ------------------------
 # Nozzle
 # ------------------------
 d_throat = 0.0381         # [m] throat diameter
 expratio = 2.0            # A_exit / A_throat
+
+validation_files = {
+    "P_ox_tank": "validation/ox_tank_pressure.csv",
+    "T_ox_tank": "validation/ox_tank_temperature.csv"
+}

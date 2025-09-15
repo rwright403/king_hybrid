@@ -10,6 +10,11 @@ from src.postprocess.plot_sim_results import plot_sim_results
 
 def run(input_file):
 
+    print("WARNING, THE FOLLOWING TEST CODE HAS BEEN ADDED FOR DEBUGGING:\n" \
+    "caviatation constant in mod omega inj set to 1" \
+    "logic added in hybrid cc to reduce P_cc if it goes too high" \
+    "")
+
     # Dynamically import the input file
     program_input = importlib.import_module(f"src.inputs.{input_file}")
 
