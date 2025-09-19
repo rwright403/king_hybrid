@@ -4,7 +4,6 @@ from src.models.ox_tank._base import BaseTank
 from thermo import Chemical
 import matplotlib.pyplot as plt
 import traceback
-#import time
 
 from src.models.inj._base import build_state
 
@@ -12,7 +11,7 @@ from src.models._thermo.convection_heat_transfer import *
 from src.models._thermo.conduction_heat_transfer import *
 
 from src.models._thermo.n2o_thermo_span_wagner_class import SpanWagnerEOS_SingleState, SpanWagnerEOS_EquilibriumPhase, lightweight_span_wagner_eos_pressure, lightweight_span_wagner_eos_cp, lightweight_span_wagner_eos_d_rho_dT_P
-#from src.models._thermo.n2o_viscosity_polynomials import *
+
 from src.utils.numerical_methods import rk4_step
 
 
@@ -172,7 +171,7 @@ def P_dot_error(V_dot_guess, liq_state, sat_surf, gas_state, P_tank, m_liq, m_ga
 
 
 class non_equilibrium_tank_model(BaseTank):
-    def __init__(self, timestep, m_ox, P_tank, P_cc, P_atm, T_atm, rho_atm, V_tank, diam_out, diam_in, rho_wall, k_w, volume_err_tol, P_dot_err_tol, injector):
+    def __init__(self, timestep, m_ox, P_tank, P_atm, T_atm, rho_atm, V_tank, diam_out, diam_in, rho_wall, k_w, volume_err_tol, P_dot_err_tol, injector):
         super().__init__(injector, timestep)
         self.TIMESTEP = timestep
         self.volume_err_tolerance = volume_err_tol
@@ -243,8 +242,11 @@ class non_equilibrium_tank_model(BaseTank):
 
         self.V_dot_liq_prev = 1E-8
 
+        self.t = 0.0
+        self.m_dot_ox_prev = 0.0
 
-        self.m_tank_heatsink = 0.25*np.pi*(self.diam_out**2-self.diam_in**2) * self.height_tank
+
+        self.m_tank = 0.25*np.pi*(self.diam_out**2-self.diam_in**2) * self.height_tank
 
         self.state = build_state()
    
@@ -265,15 +267,18 @@ class non_equilibrium_tank_model(BaseTank):
         # Mass transfer (1) from injector
         
         self.state["P_1"] = P_tank
+        self.state["P_sat"] = P_tank
         self.state["P_2"] = P_cc
         self.state["rho_1"] = rho_liq
         self.state["h_1"] = liq_state.h
         self.state["T_1"] = T_liq
-        
-        ## NOTE: how to integrate this? - should it just be 0 ???
-        self.state["x_1"] = 0# self.x_tank
 
         m_dot_inj = -self.injector.m_dot(self.state)
+        # Apply smoothing like equilibrium tank
+        if self.t <= (self.timestep*2):   # first step
+            m_dot_inj = 0.5 * m_dot_inj
+        else:
+            m_dot_inj = 0.5 * m_dot_inj + 0.5 * (-self.m_dot_ox_prev)
 
 
         # Heat transfer (2) from saturated surface to gas                       (T_1, T_2, P_tank, rho_2, c, n, tank_diam, fluid)
@@ -373,6 +378,8 @@ class non_equilibrium_tank_model(BaseTank):
 
         #print("T_dot_liq_gas: ", T_dot_liq, T_dot_gas)
 
+        print("rk vars: ", P_tank, T_liq, T_gas, m_liq, m_gas)
+
         return [T_dot_liq, T_dot_gas, m_dot_liq, m_dot_gas, T_dot_wall_liq, T_dot_wall_gas]
 
 
@@ -409,7 +416,7 @@ class non_equilibrium_tank_model(BaseTank):
         m_dot_gas = -self.injector.m_dot(self.state)
 
         # Heat transfer (5) [natural convection] from gas to gas wall
-        Q_dot_gas_wall_to_gas = solve_Q_dot_natural_convection_gas(rho_gas, T_wall_gas, T_gas, T_gas, gas_state.P, 0.021, 0.4, self.height_tank, (np.pi*self.diam_in*self.height_tank), "N2O" ) #relative to gas cv
+        Q_dot_gas_wall_to_gas = 0# solve_Q_dot_natural_convection_gas(rho_gas, T_wall_gas, T_gas, T_gas, gas_state.P, 0.021, 0.4, self.height_tank, (np.pi*self.diam_in*self.height_tank), "N2O" ) #relative to gas cv
 
         U_dot_gas = m_dot_gas*gas_state.h + Q_dot_gas_wall_to_gas
 
@@ -417,9 +424,11 @@ class non_equilibrium_tank_model(BaseTank):
 
         T_dot_gas = (1/gas_state.cv)*( (1/m_gas) * (U_dot_gas - (gas_state.u * m_dot_gas)) - (gas_state.du_drho_const_T * d_rho_dt_gas) )
 
-        Q_dot_atm_to_gas_wall = solve_Q_dot_natural_convection_gas(self.rho_atm, self.T_atm, T_wall_gas, self.T_atm, self.P_atm, 0.59, 0.25, self.height_tank, (np.pi*self.diam_in*self.height_tank), "Air") #relative to wall_gas cv
+        Q_dot_atm_to_gas_wall = 0 # solve_Q_dot_natural_convection_gas(self.rho_atm, self.T_atm, T_wall_gas, self.T_atm, self.P_atm, 0.59, 0.25, self.height_tank, (np.pi*self.diam_in*self.height_tank), "Air") #relative to wall_gas cv
 
-        T_dot_wall_gas = Q_dot_atm_to_gas_wall/(CW*self.m_tank_heatsink)
+        T_dot_wall_gas = Q_dot_atm_to_gas_wall/(CW*self.m_tank)
+
+        print("rk vars: ", gas_state.P, T_gas, m_gas)
 
         return [0.0, T_dot_gas, 0.0, m_dot_gas, 0.0, T_dot_wall_gas]
 
@@ -429,6 +438,8 @@ class non_equilibrium_tank_model(BaseTank):
         Wrapper that chooses liquid-phase or vapor-only ODEs.
         """
         _, _, m_liq, _, _, _ = y
+
+        #print("m_liq in non eq tank: ", t, m_liq)
 
         if m_liq > 0:
             return self.system_of_liq_odes(t, y, P_cc)
@@ -466,8 +477,8 @@ class non_equilibrium_tank_model(BaseTank):
         self.V_liq = self.m_liq/self.rho_liq
         self.V_gas = self.V_tank - self.V_liq
 
-        
-### NOTE: need a little bit of extra logic here to get m_dot!
+        T_sat = self.T_gas #override in liq phase
+
         if self.m_liq >= 0.0:
             liq_state = SpanWagnerEOS_SingleState(self.rho_liq, self.T_liq)
 
@@ -476,9 +487,9 @@ class non_equilibrium_tank_model(BaseTank):
             self.state["rho_1"] = self.rho_liq
             self.state["h_1"] = liq_state.h
             self.state["T_1"] = self.T_liq
-            
-            ## NOTE: how to integrate this? - should it just be 0 ???
-            self.state["x_1"] = 0#self.x_tank
+
+            sat_surf = SpanWagnerEOS_EquilibriumPhase(None, self.P_tank)
+            T_sat = sat_surf.T
         else:
             gas_state = SpanWagnerEOS_SingleState(self.rho_gas, self.T_gas)
 
@@ -488,16 +499,27 @@ class non_equilibrium_tank_model(BaseTank):
             self.state["h_1"] = gas_state.h
             self.state["T_1"] = self.T_gas
 
-            ## NOTE: how to integrate this? - should it just be 0 ???
-            self.state["x_1"] = 1#self.x_tank
         
 
         m_dot= self.injector.m_dot(self.state) #this one pos
 
-        print("non eq ox: ", m_dot, self.m_liq, self.P_tank)
+        # Apply smoothing like equilibrium tank
+        if self.t <= (self.timestep*2):   # first step
+            m_dot = 0.5 * m_dot
+        else:
+            m_dot = 0.5 * m_dot + 0.5 * self.m_dot_ox_prev
+        # Store previous for next call
+        self.m_dot_ox_prev = m_dot
 
-        return {"m_dot_ox": m_dot, "P_ox_tank": self.P_tank, "state": self.state}
+        # Advance simulation clock
+        self.t += self.timestep
 
+        print(self.t)
+
+        if self.m_liq > 0.0:
+            return {"m_ox_tank": (self.m_gas+self.m_liq), "m_dot_ox_tank": m_dot, "P_ox_tank": self.P_tank, "T_liq_ox_tank": self.T_liq, "T_sat_ox_tank": T_sat, "T_gas_ox_tank": self.T_gas, "state": self.state }
+        else: #gas phase
+            return {"m_ox_tank": (self.m_gas+self.m_liq), "m_dot_ox_tank": m_dot, "P_ox_tank": self.P_tank, "T_liq_ox_tank": self.T_gas, "T_sat_ox_tank": self.T_gas, "T_gas_ox_tank": self.T_gas, "state": self.state }
 
 
 
