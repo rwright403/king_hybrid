@@ -21,6 +21,7 @@ INJECTOR_MODEL_MAP = {
 CC_MODEL_MAP = {
     1: "src.models.cc.hybrid_cc_w_fuel_grain.hybrid_cc_w_fuel_grain_model",
     2: "src.models.cc.adiabatic_lre_cc.adiabatic_lre_cc_model",
+    3: "src.models.cc.pipe_downstream_p_cc.pipe_downstream_p_cc"
 }
 
 NOZZLE_MODEL_MAP = {

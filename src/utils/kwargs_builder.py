@@ -4,16 +4,15 @@ from rocketcea.cea_obj import add_new_fuel
 from src.utils.enum import FillType
 
 
-
 @dataclass
 class SimInputs:
     globals_kwargs: dict
-    C: object
-    ox_tank_kwargs: dict
-    ox_inj_kwargs: dict
+    C: object | None
+    ox_tank_kwargs: dict | None
+    ox_inj_kwargs: dict | None
     fuel_tank_kwargs: dict | None
-    cc_kwargs: dict
-    nozzle_kwargs: dict
+    cc_kwargs: dict | None
+    nozzle_kwargs: dict | None
 
 
 def build_kwargs(cfg):
@@ -23,69 +22,88 @@ def build_kwargs(cfg):
     # Global + environment
     # ------------------------
     globals_kwargs = dict(
-        thrust_curve_graphs=cfg.thrust_curve_graphs,
-        mode=cfg.mode,
-        save_path=cfg.save_path,
-        timestep=cfg.timestep,
-        sim_time=cfg.sim_time,
-        P_atm=cfg.P_atm,
-        T_atm=cfg.T_atm,
-        rho_atm=cfg.rho_atm,
+        thrust_curve_graphs=getattr(cfg, "thrust_curve_graphs", None),
+        mode=getattr(cfg, "mode", None),
+        save_path=getattr(cfg, "save_path", None),
+        timestep=getattr(cfg, "timestep", None),
+        sim_time=getattr(cfg, "sim_time", None),
+        P_atm=getattr(cfg, "P_atm", None),
+        T_atm=getattr(cfg, "T_atm", None),
+        rho_atm=getattr(cfg, "rho_atm", None),
     )
+
 
     models_kwargs = dict(
-        ox_tank_model=cfg.ox_tank_model,
+        ox_tank_model=getattr(cfg, "ox_tank_model", None),
         fuel_tank_model=getattr(cfg, "fuel_tank_model", None),
-        ox_inj_model=cfg.ox_inj_model,
-        cc_model=cfg.cc_model,
-        nozzle_model=cfg.nozzle_model,
+        ox_inj_model=getattr(cfg, "ox_inj_model", None),
+        cc_model=getattr(cfg, "cc_model", None),
+        nozzle_model=getattr(cfg, "nozzle_model", None),
     )
 
     # ------------------------
-    # Build CEA object
+    # Build CEA object (only if CC/nozzle exists)
     # ------------------------
-    if cfg.fuel_properties is not None:  # hybrid case (custom solid fuel)
-        add_new_fuel(cfg.fuel_name, cfg.fuel_properties)
+    C = None
+    if (models_kwargs["cc_model"] or models_kwargs["nozzle_model"]) \
+   and getattr(cfg, "fuel_name", None) is not None \
+   and getattr(cfg, "oxidizer_name", None) is not None:
 
-    C = CEA_Obj(
-        oxName=cfg.oxidizer_name,
-        fuelName=cfg.fuel_name,
-        pressure_units="Pa",
-        isp_units="sec",
-        cstar_units="m/s",
-        temperature_units="K",
-        sonic_velocity_units="m/s",
-        enthalpy_units="kJ/kg",
-        density_units="kg/m^3",
-        specific_heat_units="kJ/kg-K",
-    )
+        if getattr(cfg, "fuel_properties", None) is not None:
+            add_new_fuel(cfg.fuel_name, cfg.fuel_properties)
+
+        C = CEA_Obj(
+            oxName=cfg.oxidizer_name,
+            fuelName=cfg.fuel_name,
+            pressure_units="Pa",
+            isp_units="sec",
+            cstar_units="m/s",
+            temperature_units="K",
+            sonic_velocity_units="m/s",
+            enthalpy_units="J/kg",
+            density_units="kg/m^3",
+            specific_heat_units="J/kg-K",
+        )
+
+        print("kwargs builder MW: unit check: ", C.get_Chamber_MolWt_gamma(1e6, 6.0, 40)[0]) #: return the tuple (mw, gam)
 
     # ------------------------
     # Oxidizer tank
     # ------------------------
-    ox_tank_kwargs = dict(
-        m_ox=cfg.m_ox,
-        P_tank=cfg.P_ox_tank,
-        P_cc=cfg.P_cc,
-        P_atm=cfg.P_atm,
-        T_atm=cfg.T_atm,
-        rho_atm=cfg.rho_atm,
-        V_tank=cfg.V_tank,
-        diam_out=cfg.diam_out,
-        diam_in=cfg.diam_in,
-        rho_wall=cfg.rho_wall,
-        k_w=cfg.k_w,
-        volume_err_tol=cfg.volume_err_tol,
-        P_dot_err_tol=cfg.P_dot_err_tol,
-    )
+    ox_tank_kwargs = None
+    if models_kwargs["ox_tank_model"] == 1:
+        ox_tank_kwargs = dict(
+            m_ox=cfg.m_ox,
+            V_tank=cfg.V_tank,
+            P_tank=cfg.P_ox_tank,
+            P_atm=cfg.P_atm,
+            all_error=cfg.volume_err_tol,
+        )
+    elif models_kwargs["ox_tank_model"] == 2:
+        ox_tank_kwargs = dict(
+            m_ox=cfg.m_ox,
+            P_tank=cfg.P_ox_tank,
+            P_atm=cfg.P_atm,
+            T_atm=cfg.T_atm,
+            rho_atm=cfg.rho_atm,
+            V_tank=cfg.V_tank,
+            diam_out=cfg.diam_out,
+            diam_in=cfg.diam_in,
+            rho_wall=cfg.rho_wall,
+            k_w=cfg.k_w,
+            volume_err_tol=cfg.volume_err_tol,
+            P_dot_err_tol=cfg.P_dot_err_tol,
+        )
 
     # ------------------------
     # Oxidizer injector
     # ------------------------
-    ox_inj_kwargs = dict(
-        Cd=cfg.Cd_inj,
-        A_inj=cfg.A_inj_ox,
-    )
+    ox_inj_kwargs = None
+    if models_kwargs["ox_inj_model"] is not None:
+        ox_inj_kwargs = dict(
+            Cd=cfg.Cd_inj,
+            A_inj=cfg.A_inj_ox,
+        )
 
     # ------------------------
     # Decide: Hybrid vs Liquid
@@ -93,7 +111,7 @@ def build_kwargs(cfg):
     fuel_tank_kwargs = None
     cc_kwargs = None
 
-    if hasattr(cfg, "fuel_tank_model"):  # Liquid engine path
+    if models_kwargs["fuel_tank_model"]:  # Liquid engine path
         fuel_tank_kwargs = dict(
             m_fuel=cfg.m_fuel,
             m_pres=cfg.m_pres,
@@ -118,8 +136,7 @@ def build_kwargs(cfg):
             L_star=cfg.L_star,
             C=C,   # no regression terms for liquid chamber
         )
-
-    else:  # Hybrid engine path
+    elif models_kwargs["cc_model"] == 1:  # Hybrid engine path
         cc_kwargs = dict(
             L_star=cfg.L_star,
             m_fuel_i=cfg.m_fuel_i,
@@ -127,19 +144,27 @@ def build_kwargs(cfg):
             a=cfg.a_reg,
             n=cfg.n_reg,
             L=cfg.L_port,
-            A_port_i=cfg.A_port_i,
+            A_port=cfg.A_port,
             C=C,
+        )
+
+    elif models_kwargs["cc_model"] == 3:
+        cc_kwargs = dict(
+            filepath=cfg.validation_files["P_cc"],
+            timestep=cfg.timestep
         )
 
     # ------------------------
     # Nozzle
     # ------------------------
-    nozzle_kwargs = dict(
-        d_throat=cfg.d_throat,
-        expratio=cfg.expratio,
-        P_atm=cfg.P_atm,
-        C=C,
-    )
+    nozzle_kwargs = None
+    if models_kwargs["nozzle_model"] == 1:
+        nozzle_kwargs = dict(
+            d_throat=cfg.d_throat,
+            expratio=cfg.expratio,
+            P_atm=cfg.P_atm,
+            C=C,
+        )
 
     return dict(
         globals_kwargs=globals_kwargs,

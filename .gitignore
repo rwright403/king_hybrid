@@ -1,6 +1,8 @@
 m_dot_ox.csv
+m_dot_cc_t.csv
 p_cc.csv
-p_tank.csv
+p_ox_tank.csv
+p_fuel_tank.csv
 thrust.csv
 
 /prelim_sizing_tools_and_other_msc_programs/old_stuff_i_might_want_to_ref_later

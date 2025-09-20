@@ -68,23 +68,38 @@ def sim(kwargs: dict):
     nozzle = None
     cc = None
 
-    if "ox_tank_kwargs" in kwargs:
+    if kwargs.get("ox_tank_kwargs") is not None:
         TankClass = get_model("T", m["ox_tank_model"])
         InjClass  = get_model("I", m["ox_inj_model"])
         ox_inj    = InjClass(**kwargs["ox_inj_kwargs"])
         ox_tank   = TankClass(injector=ox_inj, timestep=timestep, **kwargs["ox_tank_kwargs"])
 
-    if "fuel_tank_kwargs" in kwargs and kwargs["fuel_tank_kwargs"] is not None:
+    if kwargs.get("fuel_tank_kwargs") is not None:
         FuelTankClass = get_model("F", m["fuel_tank_model"])
         fuel_tank = FuelTankClass(timestep=timestep, **kwargs["fuel_tank_kwargs"])
 
-    if "nozzle_kwargs" in kwargs:
+    if kwargs.get("nozzle_kwargs") is not None:
         NozClass = get_model("N", m["nozzle_model"])
         nozzle = NozClass(**kwargs["nozzle_kwargs"])
 
-    if "cc_kwargs" in kwargs:
+
+    cc = None
+
+    if m["cc_model"] == 3:  # validation CC (needs P_cc file)
+        if kwargs.get("cc_kwargs") is not None:
+            CCClass = get_model("C", 3)
+            cc = CCClass(**kwargs["cc_kwargs"])
+        else:
+            # no P_cc file --> skip CC instantiation
+            cc = None
+
+    else:  # all other CC models
         CCClass = get_model("C", m["cc_model"])
-        cc = CCClass(nozzle=nozzle, P_atm=P_atm, timestep=timestep, **kwargs["cc_kwargs"])
+        base_kwargs = dict(nozzle=nozzle, P_atm=P_atm, timestep=timestep)
+        cc = CCClass(**base_kwargs, **kwargs["cc_kwargs"])
+
+
+
 
     # ------------------------
     # Simulation loop
@@ -97,7 +112,15 @@ def sim(kwargs: dict):
         while t < sim_time:
             ox_out = ox_tank.inst(P_cc) or {}
             records.append({"time": t, **ox_out})
+
+            if cc is not None:  # only update if a chamber exists
+                cc_out = cc.inst() or cc_out
+                P_cc = cc_out.get("P_cc", P_cc)
+                #print("P_cc: ", P_cc)
+            # else: keep using the last P_cc (initialized to P_atm)
+
             t += timestep
+
 
     elif mode == "fuel_tank":
         while t < sim_time:
@@ -106,6 +129,7 @@ def sim(kwargs: dict):
             t += timestep
 
     elif mode == "full_stack":
+
         ox_out   = {"m_dot_ox": 0.0, "P_ox_tank": None}
         fuel_out = {"m_dot_fuel": 0.0, "P_fuel_tank": None}
         cc_out   = {"P_cc": P_cc, "thrust": 0.0, "m_dot_cc": 0.0}
@@ -116,14 +140,15 @@ def sim(kwargs: dict):
             if fuel_tank:
                 fuel_out = fuel_tank.inst(P_cc) or fuel_out
 
+            print(cc)
             if cc:
-                cc_out = cc.inst(
-                    ox_out.get("m_dot_ox", 0.0),
-                    fuel_out.get("m_dot_fuel", 0.0),
-                ) or cc_out
+                cc_out = cc.inst(ox_out.get("m_dot_ox_tank", 0.0),fuel_out.get("m_dot_fuel_tank", 0.0)) #or cc_out
 
             records.append({"time": t, **ox_out, **fuel_out, **cc_out})
             P_cc = cc_out.get("P_cc", P_cc)
+
+            print("P_cc: ", P_cc, ox_out.get("m_dot_ox_tank", 0.0),fuel_out.get("m_dot_fuel_tank", 0.0))
+
             t += timestep
 
     return pd.DataFrame(records)
@@ -169,7 +194,7 @@ def run_thrust_curve(inputs):
 
     if inputs.analysis_mode[0] == 1:
         r1cc = cc_model_class(inputs.oxName, inputs.fuelName, inputs.CEA_fuel_str, inputs.m_fuel_i, 
-                inputs.rho_fuel, inputs.a, inputs.n, inputs.L, inputs.A_port_i, 
+                inputs.rho_fuel, inputs.a, inputs.n, inputs.L, inputs.A_port, 
                 inputs.P_atm, inputs.A_throat, inputs.A_exit, inputs.TIMESTEP,)
         
     if inputs.analysis_mode[0] == 2:

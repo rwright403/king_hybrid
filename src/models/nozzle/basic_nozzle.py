@@ -25,14 +25,16 @@ class basic_nozzle_model(BaseNozzle):
 
         # Choking at throat
         if Actual_PR <= Critical_PR: # Find exit mass flow rate:
+            #print("choked")
             M_exit = brentq(area_mach_func, 1.0001, 6, args=(gamma, self.A_exit/self.A_throat) ) # brent's method between Ma 1 and Ma 6             
             m_dot_exit = self.A_throat * P_cc * np.sqrt(gamma/(R*T_cc)) * ( (gamma+1)/2 )**(-(gamma+1)/(2*(gamma-1)))
 
         
         # Subsonic at throat
         else: # Find exit mass flow rate:
+            #print("unchoked")
             M_exit = brentq(area_mach_func, 0.0001, .99999, args=(gamma, self.A_exit/self.A_throat) ) # brent's method between Ma 1 and Ma 6
-            m_dot_exit = self.A_exit * P_cc * np.sqrt(gamma/(R*T_cc)) * (1 + (gamma-1)/2*M_exit**2)**(-(gamma+1)/(2*(gamma-1)))
+            m_dot_exit = self.A_throat * P_cc * np.sqrt(gamma/(R*T_cc)) * (1 + (gamma-1)/2*M_exit**2)**(-(gamma+1)/(2*(gamma-1)))
         
         T_exit = T_cc / (1 +(gamma-1)/2*M_exit**2) # Approximating T_0 = T_cc
 
@@ -40,9 +42,12 @@ class basic_nozzle_model(BaseNozzle):
 
         v_exit = a_exit*M_exit
         
-        P_exit = P_cc / ((1 + (gamma-1)/2 * M_exit**2)**(gamma/(gamma-1)) )    
+        P_exit = P_cc / ((1 + (gamma-1)/2 * M_exit**2)**(gamma/(gamma-1)) )   
 
-        self.instThrust = m_dot_exit*v_exit + self.A_exit*(P_exit - self.P_atm)
+
+        self.instThrust = m_dot_exit*v_exit #+ self.A_exit*(P_exit - self.P_atm)
+
+        print("nozzle: ", self.instThrust, m_dot_exit, P_exit) 
 
         return self.instThrust, m_dot_exit
 

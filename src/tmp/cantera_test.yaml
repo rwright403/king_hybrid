@@ -1,0 +1,24 @@
+phases:
+- name: N2Oparaffin
+  thermo: ideal-gas
+  species: [N2O, ]
+  kinetics: none
+  state: {T: 300.0, P: 1 atm}
+
+
+species:
+- name: N2O
+  composition: {N: 2, O: 1} 
+  thermo:
+    model: NASA7
+    temperature-ranges:  [200.0, 1000.0, 6000.0]
+    data:
+    - [42882.25970, -644.0118440, 6.034351430, 0.0002265394436, 3.47278285e-06,
+      -3627.74864e-03, 1.137969552e-12]
+    - [343844.8040, -2404.557558, 9.125636220, -0.0005401667930, 1.315124031e-07,
+      -1.414215100e-11, 6.38106687e-16]
+    note: CEA thermo.inp: Gurvich,1989 pt1 p337 pt2 p210.
+  equation-of-state:
+    model: Redlich-Kwong
+    a: 1.74102e+12
+    b: 22.08100907

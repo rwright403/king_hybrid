@@ -36,6 +36,7 @@ class modified_omega_model(BaseInjector):
 
         #1) --> check inlet fluid state (sat liq. or subcooled)
         phase = CP.PropsSI('Phase', 'P', P_1, 'D', rho_1, 'N2O')
+        #BUG: THIS IS BAD, NEED TO ACCOUNT FOR METASTABLE STATES
 
 
 
@@ -51,12 +52,14 @@ class modified_omega_model(BaseInjector):
 
         # Start --> solve for two phase case at inlet
 
-        P_sat = CP.PropsSI('P', 'T', T_1, 'Q', 0, 'N2O')
+        # TODO: PASS THIS IN FROM TANK, DO NOT SOLVE HERE OR USE THE SAME EOS AS THE TANK
+
+        P_sat = CP.PropsSI('P', 'T', T_1, 'Q', 0, 'N2O') #TODO: PASS THIS FROM TANK
 
         v_1_g = 1/CP.PropsSI('D', 'Q', 1, 'P', P_1, 'N2O')
         v_1_l = 1/CP.PropsSI('D', 'Q', 0, 'P', P_1, 'N2O')
         v_1_lg = v_1_g - v_1_l
-        h_1_g = CP.PropsSI('H', 'Q', 1, 'P', P_1, 'N2O')
+        h_1_g = CP.PropsSI('H', 'Q', 1, 'P', P_1, 'N2O') #NOTE: AM I MIXING ENTHALPY REFRENCE STATES RN
         h_1_l = CP.PropsSI('H', 'Q', 0, 'P', P_1, 'N2O')
         h_1_lg = h_1_g - h_1_l
 
@@ -109,16 +112,19 @@ class modified_omega_model(BaseInjector):
             G_sat = np.sqrt(P_1*rho_1) *np.sqrt( -2*(omega_sat * np.log(pratio) + (omega_sat -1)*(1 - pratio)) ) / (omega_sat*((1/(pratio)) - 1) + 1)
 
 
-
             #print("sat inlet not choked", G_sat,  (-2*(omega_sat * np.log(eta_sat))) , ((omega_sat -1)*(1 - eta_sat)), omega_sat, eta_sat)
 
         if phase == 6: #saturated liquid vapor
-            k_cavitation_const = (P_1 - P_sat) / (P_1 - P_2)
+
+            print("check sign", P_1 - P_sat)
+
+#NOTE: SET TO 1 FOR TESTING
+            k_cavitation_const = 1#(P_1 - P_sat) / (P_1 - P_2)
             if k_cavitation_const == 0:
                 k_cavitation_const = 1 #cavitation constant only valid for P_sat > P_2, otherwise K = 1
             Cd_twophase = 0.386 + 0.361*np.sqrt(k_cavitation_const)
             m_dot =  ( Cd_twophase * self.A_inj) * G_sat  
-            print("sat liq vap")
+            #print("sat liq vap")
 
             
             #print("line 232", m_dot, rho_1, P_1, eta_crit_sat, omega_sat, x_1)
@@ -134,7 +140,7 @@ class modified_omega_model(BaseInjector):
 
             ### High subcooled
             if P_sat <= (eta_transition * P_1):
-                print("HIGH SUBCOOLED")
+                #print("HIGH SUBCOOLED")
 
                 P_sat = 0.9*CP.PropsSI('P', 'T', T_1, 'Q', 0, 'N2O')
                 #print("correction factor of 0.9")
@@ -160,9 +166,21 @@ class modified_omega_model(BaseInjector):
                 ###NOTE: this seemed to fix low subcooled choked flow case
                 eta = P_2 / P_1
                 eta_crit_sat = eta #initial guess for critical pressure ratio
-
-                while np.abs(LOWSUBCOOLEDerror(eta_crit_sat, eta_sat, omega_sat) ) > all_err:
-                    eta_crit_sat = secant((lambda T: LOWSUBCOOLEDerror(T, eta_sat, omega_sat)), eta_crit_sat)
+                
+                sol = root_scalar(
+                    lambda T: LOWSUBCOOLEDerror(T, eta_sat, omega_sat),
+                    x0=eta_crit_sat,         # initial guess
+                    x1=eta_crit_sat * 0.99,  # second guess (like your old secant setup)
+                    method="secant",
+                    xtol=1e-6,               # tolerance (adjust as needed)
+                    maxiter=100
+                )
+                if sol.converged:
+                    eta_crit_sat = sol.root
+                else:
+                    raise RuntimeError("Secant solver did not converge")
+                #while np.abs(LOWSUBCOOLEDerror(eta_crit_sat, eta_sat, omega_sat) ) > all_err:
+                #    eta_crit_sat = secant((lambda T: LOWSUBCOOLEDerror(T, eta_sat, omega_sat)), eta_crit_sat)
 
                 P_crit_low = eta_crit_sat * P_1
 

@@ -1,78 +1,75 @@
 # ------------------------
-# Std Engine Input File (Converted Test Case - Hybrid Rocket)
+# Tomacz Test Case Input File
 # ------------------------
 
 # Models
-ox_tank_model = 1   # bens_ox_tank
-ox_inj_model  = 4   # injector model (from inj_model=4)
-cc_model      = 1   # hybrid_cc_w_fuel_grain
-nozzle_model  = 1   # nozzle model
+ox_tank_model = 2     # non-equilibrium tank
+ox_inj_model  = 3     
+cc_model      = 3     # pass in downstream chamber pressures
+nozzle_model  = None  # no nozzle
 
 # Global settings
 thrust_curve_graphs = True
-mode = "full_stack"
+mode = "ox_tank"
 save_path = None
 
 # Environment
-timestep = 0.05       # [s]
-sim_time = 3.0        # [s]
-P_atm    = 101325     # [Pa]
-T_atm    = 295.0      # [K]
-rho_atm  = None       # not given
+timestep = 0.05         # [s]
+sim_time = 4.9            # [s]  
+P_atm    = 101325       # [Pa]
+T_atm    = 296.0        # [K]  (approx lab ambient, adjust if needed)
+rho_atm  = 1.225        # [kg/m^3]
 
 # ------------------------
 # Propellant properties
 # ------------------------
-fuel_name       = "paraffin"
-fuel_properties = """fuel paraffin  C 20   H 42    wt%=100.00
-h,KJ/mol=-13313.49  t(k)=298.15   rho,kg/m3=900
-"""
-oxidizer_name   = "N2O"
+oxidizer_name = "N2O"
+fuel_name     = None
+fuel_properties = None
 
 # ------------------------
 # Oxidizer Tank
 # ------------------------
-m_ox        = 0.180          # [kg]
+m_ox        = 0.180          # [kg] from Tomacz run
 P_ox_tank   = 5.2e6          # [Pa]
-P_cc        = None           # not specified
-V_tank      = 0.25*np.pi*((40e-3)**2)*(220e-3)   # [m^3]
-diam_out    = None
-diam_in     = None
-rho_wall    = None
-k_w         = None
-volume_err_tol = 0.01
-P_dot_err_tol  = None
+V_tank      = 0.25 * 3.14159 * (0.040**2) * 0.220   # [m^3] from cylinder geometry
+diam_in     = 0.040          # [m]
+diam_out    = 0.0475         # [m]
+rho_wall    = 2770           # [kg/m^3] Al6061
+k_w         = 237            # [W/m-K]
+volume_err_tol = 0.01        # default
+P_dot_err_tol  = 1e-3        # small tolerance for secant solve
 
 # ------------------------
 # Injector parameters
 # ------------------------
-Cd_inj   = 0.66
-A_inj_ox = 0.25*np.pi*((1.5e-3)**2)   # [m^2]
-A_inj_fuel = None                     # hybrid has no fuel injector
+Cd_inj   = 0.57#0.45
+A_inj_ox = 1.76714E-06  # [m^2]
+A_inj_fuel = None  # no fuel injector
 
 # ------------------------
-# Chamber (hybrid regression model)
+# Chamber
 # ------------------------
-L_star    = None
-m_fuel_i  = 1.5           # [kg]
-rho_fuel  = 900.0         # [kg/m^3]
-a_reg     = 0.155e-3      # [m/s*(kg/s)^n]
-n_reg     = 0.5
-L_port    = 0.3852333     # [m]
-A_port_i  = 0.0038319753  # [m^2]
+L_star   = None
+m_fuel_i = None
+rho_fuel = None
+a_reg    = None
+n_reg    = None
+L_port   = None
+A_port   = None
 
 # ------------------------
 # Nozzle
 # ------------------------
-A_throat = 0.0010653525   # [m^2]
-A_exit   = 0.00531921243  # [m^2]
 d_throat = None
 expratio = None
 
 # ------------------------
-# Experimental validation data
+# Validation Files
 # ------------------------
-exp_thrust_file_path    = None
-exp_p_cc_file_path      = r'./src/inputs/msc_test_cases/tomasz_test_case_CC_Pressure.csv'
-exp_p_ox_tank_file_path = r'./src/inputs/msc_test_cases/tomasz_test_case_Ox_Tank_Pressure.csv'
-exp_p_fuel_tank_file_path = None
+validation_files = {
+    "P_cc": "src/inputs/tomasz_test_case/tomasz_test_case_CC_Pressure.csv",
+    "P_ox_tank": "src/inputs/tomasz_test_case/tomasz_test_case_Ox_Tank_Pressure.csv",
+    "m_ox_tank": "src/inputs/tomasz_test_case/tomasz_test_case_m.csv",
+    "m_dot_ox_tank": "src/inputs/tomasz_test_case/tomasz_test_case_m_dot.csv"
+}

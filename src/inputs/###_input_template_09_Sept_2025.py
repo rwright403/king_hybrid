@@ -78,7 +78,7 @@ rho_fuel   = 930.0      # [kg/m^3]
 a_reg      = 0.2e-3     # [m/s*(kg/s)^n] regression rate coeff
 n_reg      = 0.5        # [-] regression rate exponent
 L_port     = 0.5        # [m] port length
-A_port_i   = 1e-4       # [m^2] initial port cross-sectional area
+A_port   = 1e-4       # [m^2] initial port cross-sectional area
 
 # ------------------------
 # Nozzle
