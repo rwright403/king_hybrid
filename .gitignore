@@ -9,4 +9,6 @@ thrust.csv
 /venv
 __pycache__/
 0 - research_papers/
-src/inputs/_team_reports
+/prelim_sizing_tools_and_other_msc_programs/
+src/inputs/_team_reports/
+src/inputs
