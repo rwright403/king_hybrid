@@ -57,6 +57,12 @@ I got some of the liquid stuff to work and accidentally broke the hybrid models.
 | [17]  | Span, Multiparameter Equations of State An Accurate Source of Thermodynamic Property Data | Understanding how to implement the Span Wagner EOS | https://www.researchgate.net/publication/40381676_Multiparameter_equations_of_state_an_accurate_source_of_thermodynamic_property_data_with_151_figures_and_tables |
 | [18]  | A Reliable and Useful Method to Determine the Saturation State from Helmholtz Energy Equations of State | Another source that helps explain the iterative algo to solve saturation properties w helmholtz eos | https://www.jstage.jst.go.jp/article/jtst/3/3/3_3_442/_pdf |
 | [19]  | Modeling Feed System Flow Physics for Self-Pressurizing Propellants, Stanford | Span Wagner Coeffs | https://www.researchgate.net/publication/268482381_Modeling_Feed_System_Flow_Physics_for_Self-Pressurizing_Propellants |
-| [20]  | Implementing CEA calculations using Cantera - Kyle Niemeyer | Starting to outgrow rocketcea, looking into using cantera for cc model because it is more compatible with differential eqns | https://kyleniemeyer.github.io/rocket-propulsion/thermochemistry/cea_cantera.html |
+| [20]  | AIAA Liquid Rocket Thrust Chambers | | |
+| [21]  | Huzel + Huang | | |
+| [22]  | Ben Klammer 446 CC model | | |
+| [23]  | Implementing CEA calculations using Cantera - Kyle Niemeyer | Starting to outgrow rocketcea, looking into using cantera for cc model because it is more compatible with differential eqns | https://kyleniemeyer.github.io/rocket-propulsion/thermochemistry/cea_cantera.html |
+| [24]  | NASA SP-1311-2 | fixing paraffin definition in rocketcea. see PARAFFIN_DEFFINITION.md | https://shepherd.caltech.edu/EDL/PublicResources/sdt/refs/NASA-RP-1311-2.pdf |
+
+
 
 Ryan Wright, From Calgary, Alberta, Canada                                                        

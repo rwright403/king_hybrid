@@ -140,14 +140,12 @@ def sim(kwargs: dict):
             if fuel_tank:
                 fuel_out = fuel_tank.inst(P_cc) or fuel_out
 
-            print(cc)
             if cc:
+                print(t)
                 cc_out = cc.inst(ox_out.get("m_dot_ox_tank", 0.0),fuel_out.get("m_dot_fuel_tank", 0.0)) #or cc_out
 
             records.append({"time": t, **ox_out, **fuel_out, **cc_out})
             P_cc = cc_out.get("P_cc", P_cc)
-
-            print("P_cc: ", P_cc, ox_out.get("m_dot_ox_tank", 0.0),fuel_out.get("m_dot_fuel_tank", 0.0))
 
             t += timestep
 

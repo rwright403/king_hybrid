@@ -89,7 +89,7 @@ class equilibrium_tank_model(BaseTank):
 
         ### start
 
-        print("x_tank! ", self.x_tank)
+        #print("x_tank! ", self.x_tank)
         if self.x_tank < 1:
 
             sol = root_scalar(

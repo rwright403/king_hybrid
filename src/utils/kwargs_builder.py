@@ -49,9 +49,11 @@ def build_kwargs(cfg):
    and getattr(cfg, "fuel_name", None) is not None \
    and getattr(cfg, "oxidizer_name", None) is not None:
 
+        """
         if getattr(cfg, "fuel_properties", None) is not None:
             add_new_fuel(cfg.fuel_name, cfg.fuel_properties)
-
+        """
+            
         C = CEA_Obj(
             oxName=cfg.oxidizer_name,
             fuelName=cfg.fuel_name,
@@ -60,9 +62,9 @@ def build_kwargs(cfg):
             cstar_units="m/s",
             temperature_units="K",
             sonic_velocity_units="m/s",
-            enthalpy_units="J/kg",
+            enthalpy_units="kJ/kg",
             density_units="kg/m^3",
-            specific_heat_units="J/kg-K",
+            specific_heat_units="kJ/kg-K",
         )
 
         print("kwargs builder MW: unit check: ", C.get_Chamber_MolWt_gamma(1e6, 6.0, 40)[0]) #: return the tuple (mw, gam)
@@ -138,7 +140,7 @@ def build_kwargs(cfg):
         )
     elif models_kwargs["cc_model"] == 1:  # Hybrid engine path
         cc_kwargs = dict(
-            L_star=cfg.L_star,
+            V_pre_post_cc=cfg.V_pre_post_cc,
             m_fuel_i=cfg.m_fuel_i,
             rho_fuel=cfg.rho_fuel,
             a=cfg.a_reg,
