@@ -270,6 +270,8 @@ class hybrid_cc_w_fuel_grain_model(BaseChamber):
         P_dot = 1/(1 - (P_cc /(V_cc-1))*dgamma_dPcc) * ( ((gamma-1)/V_cc)*m_dot_cc*cp*T_cc - gamma*(P_cc/V_cc)*V_dot )#+ (P_cc/((V_cc-1)*max(m_fuel, 1e-6)))*dgamma_dOF*(m_dot_ox_in-OF*m_dot_fuel_in) )
 
 
+        print("vars: ", m_dot_exit, OF, P_dot, ((gamma-1)/V_cc)*m_dot_cc*cp*T_cc, - gamma*(P_cc/V_cc)*V_dot , (P_cc/((V_cc-1)*max(m_fuel, 1e-6)))*dgamma_dOF*(m_dot_ox_in-OF*m_dot_fuel_in) )
+
         #(P_cc / ((V_cc - 1) * m_dot_fuel_in)) * dgamma_dOF * (m_dot_ox_in - OF*m_dot_fuel_in)
 
         #print("P_dot: ", P_dot,  ((gamma-1)/V_cc)*m_dot_cc*cp*T_cc, - gamma*(P_cc/V_cc)*V_dot , + (P_cc/((V_cc-1)*max(m_fuel, 1e-6)))*dgamma_dOF*(m_dot_ox_in-OF*m_dot_fuel_in) )
@@ -291,6 +293,9 @@ class hybrid_cc_w_fuel_grain_model(BaseChamber):
 
         print("P_cc: ", self.P_cc, self.m_cc)
         return out
+    
+
+
 """
 
 import numpy as np

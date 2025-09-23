@@ -23,11 +23,7 @@ rho_atm  = 1.225      # [kg/m^3]
 # ------------------------
 # Propellant properties
 # ------------------------
-fuel_name       = "paraffin"
-fuel_properties = """#fuel paraffin  C 20   H 42    wt%=100.00
-#h,KJ/mol=-13313.49  t(k)=298.15   rho,kg/m3=900
-"""
-#BUG: above commented out! check this!
+fuel_name       = "paraffin" # NOTE: had issues with the rocketcea add fuel method so I modified library and added this card
 oxidizer_name   = "N2O"
 
 # ------------------------
@@ -39,14 +35,14 @@ V_tank      = 0.02532569531   # [m^3]
 diam_out    = 0.2032        # [m]
 diam_in     = 0.1905        # [m]
 rho_wall    = 2700          # [kg/m^3]
-k_w         = 237
-volume_err_tol = 0.001       # mapped from all_error
-P_dot_err_tol  = None
+k_w         = 237           # [W/(m K)]
+volume_err_tol = 0.001       # 
+P_dot_err_tol = None #TODO: RM
 
 # ------------------------
 # Injector parameters
 # ------------------------
-Cd_inj   = 0.6
+Cd_inj   = 0.6 # guess, provided best fit
 A_inj_ox = 8.75591e-5   # [m^2]
 A_inj_fuel = None           # hybrid has no fuel injector
 

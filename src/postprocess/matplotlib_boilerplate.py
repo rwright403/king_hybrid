@@ -1,5 +1,8 @@
 import matplotlib.pyplot as plt
 
+
+#TODO: DELETE? IS THIS OLD
+
 def plot_eq_ox_tank(time, P_ox_tank, m_ox_tank, T_ox_tank):
     plt.subplot(1,3,1)
     plt.plot(time, P_ox_tank, label = "Tank Pressure vs Time")

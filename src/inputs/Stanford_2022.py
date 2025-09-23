@@ -1,11 +1,12 @@
 # ------------------------
 # Std Engine Input File (Converted Test Case - Liquid Rocket)
 # ------------------------
+import numpy as np
 
 # Models
 ox_tank_model   = 2   # bens_ox_tank (non-equilibrium style)
-fuel_tank_model = 3   # simpleAdiabaticPressurizedTank
-ox_inj_model    = 1   # SPI injector
+fuel_tank_model = 1
+ox_inj_model    = 3
 cc_model        = 2   # adiabatic_lre_cc
 nozzle_model    = 1   # nozzle model
 

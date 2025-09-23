@@ -67,7 +67,7 @@ def build_kwargs(cfg):
             specific_heat_units="kJ/kg-K",
         )
 
-        print("kwargs builder MW: unit check: ", C.get_Chamber_MolWt_gamma(1e6, 6.0, 40)[0]) #: return the tuple (mw, gam)
+        #print("kwargs builder MW: unit check: ", C.get_Chamber_MolWt_gamma(1e6, 6.0, 40)[0]) #: return the tuple (mw, gam)
 
     # ------------------------
     # Oxidizer tank

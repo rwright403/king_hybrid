@@ -378,7 +378,7 @@ class non_equilibrium_tank_model(BaseTank):
 
         #print("T_dot_liq_gas: ", T_dot_liq, T_dot_gas)
 
-        print("rk vars: ", P_tank, T_liq, T_gas, m_liq, m_gas)
+        #print("rk vars: ", P_tank, T_liq, T_gas, m_liq, m_gas)
 
         return [T_dot_liq, T_dot_gas, m_dot_liq, m_dot_gas, T_dot_wall_liq, T_dot_wall_gas]
 
@@ -428,7 +428,7 @@ class non_equilibrium_tank_model(BaseTank):
 
         T_dot_wall_gas = Q_dot_atm_to_gas_wall/(CW*self.m_tank)
 
-        print("rk vars: ", gas_state.P, T_gas, m_gas)
+        #print("rk vars: ", gas_state.P, T_gas, m_gas)
 
         return [0.0, T_dot_gas, 0.0, m_dot_gas, 0.0, T_dot_wall_gas]
 
