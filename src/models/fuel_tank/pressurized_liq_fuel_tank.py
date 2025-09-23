@@ -93,7 +93,10 @@ class pressurized_liq_fuel_tank(BaseTank):
         self.rho_fuel = CP.PropsSI('D', 'P', P_tank, 'T', T_atm, self.fuel_str)
         self.m_fuel = m_fuel
         self.V_fuel = self.m_fuel/self.rho_fuel
-        V_pres_ullage = self.V_fuel_tank - self.V_fuel
+        V_pres_ullage = self.V_fuel_tank - self.V_fuel #Problem, this is (-)
+
+        print("initial conditions: ", self.rho_fuel, self.m_fuel, self.V_fuel, V_pres_ullage)
+
         
         rho_pres = CP.PropsSI('D', 'P', P_tank, 'T', T_atm, self.pres_str)
 

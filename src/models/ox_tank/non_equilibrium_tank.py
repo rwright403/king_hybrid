@@ -378,7 +378,7 @@ class non_equilibrium_tank_model(BaseTank):
 
         #print("T_dot_liq_gas: ", T_dot_liq, T_dot_gas)
 
-        #print("rk vars: ", P_tank, T_liq, T_gas, m_liq, m_gas)
+        print("rk vars: ", P_tank, T_liq, T_gas, m_liq, m_gas)
 
         return [T_dot_liq, T_dot_gas, m_dot_liq, m_dot_gas, T_dot_wall_liq, T_dot_wall_gas]
 

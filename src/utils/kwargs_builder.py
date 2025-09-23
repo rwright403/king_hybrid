@@ -135,7 +135,7 @@ def build_kwargs(cfg):
         )
 
         cc_kwargs = dict(
-            L_star=cfg.L_star,
+            V_cc=cfg.V_cc,
             C=C,   # no regression terms for liquid chamber
         )
     elif models_kwargs["cc_model"] == 1:  # Hybrid engine path

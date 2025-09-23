@@ -4,11 +4,11 @@
 import numpy as np
 
 # Models
-ox_tank_model   = 2   # bens_ox_tank (non-equilibrium style)
+ox_tank_model   = 2  
 fuel_tank_model = 1
 ox_inj_model    = 3
-cc_model        = 2   # adiabatic_lre_cc
-nozzle_model    = 1   # nozzle model
+cc_model        = 2 
+nozzle_model    = 1
 
 # Global settings
 thrust_curve_graphs = True
@@ -16,11 +16,11 @@ mode = "full_stack"
 save_path = None
 
 # Environment
-timestep = 0.05       # [s]
-sim_time = 15.0       # [s]
+timestep = 0.005       # [s]
+sim_time = 6           # [s]
 P_atm    = 101325     # [Pa]
-T_atm    = 293.15     # [K]
-rho_atm  = None       # not provided
+T_atm    = 284.0      # [K]
+rho_atm  = 1.225      # [kg/m^3]
 
 # ------------------------
 # Propellant properties
@@ -35,13 +35,12 @@ pres_str        = "N2"            # pressurant gas
 # Oxidizer Tank
 # ------------------------
 m_ox        = 10.0
-P_ox_tank   = 6894.76 * 590   # [Pa]
-P_cc        = None            # not provided
-V_tank      = (0.0254*42.47) * 0.25*np.pi*((0.0254*4.75)**2)  # [m^3]
-diam_out    = None
-diam_in     = None
-rho_wall    = None
-k_w         = None
+P_ox_tank   = 4067908.4         # [Pa]
+V_tank      = 0.01289902263     # [m^3]
+diam_out    = 0.127             # [m]
+diam_in     = 0.12065           # [m]
+rho_wall    = 2700          # [kg/m^3]
+k_w         = 237           # [W/(m K)]
 volume_err_tol = 0.01
 P_dot_err_tol  = None
 
@@ -58,26 +57,23 @@ A_inj_fuel = 2.4e-6      # [m^2]
 m_fuel       = 1.75
 m_pres       = 0.12
 P_pres_tank  = 6894.76 * 610   # [Pa]
-V_tank       = (0.0254*13.90) * 0.25*np.pi*((0.0254*4.75)**2)  # [m^3]
-V_pres_tank  = None
-diam_out_fuel = 0.0254*4.75
-diam_in_fuel  = None
-rho_wall_fuel = None
-k_w_fuel      = None
+V_tank       = 0.0021875 # [m^3]
+V_pres_tank  = 0.00133780695             # [m^3] #NOTE: STANFORD DIRECTLY PRESSURIZES FUEL TANK, V_tank is psace fuel takes up and V_pres_tank is the ullage vol of the same tank (this is defined because of how my program takes in inputs)
+diam_out_fuel = 0.127           # [m]
+diam_in_fuel  = 0.12065           # [m]
+rho_wall    = 2700          # [kg/m^3]
+k_w         = 237           # [W/(m K)]
 
 # ------------------------
 # Chamber (liquid engine)
 # ------------------------
-L_star    = None  # not provided
+V_cc = 0.00141961201   # [m^3]
 
 # ------------------------
 # Nozzle
 # ------------------------
-# Provided A_throat, A_exit but leave as None unless we compute
-A_throat = 0.25*np.pi*((0.0254*1)**2)
-A_exit   = 3*A_throat
-d_throat = None
-expratio = None
+d_throat = 0.0254
+expratio = 3
 
 # ------------------------
 # Experimental validation data
@@ -87,18 +83,3 @@ exp_p_cc_file_path      = r'./src/inputs/liquid_validation_data/Stanford_2022/St
 exp_p_ox_tank_file_path = r'./src/inputs/liquid_validation_data/Stanford_2022/Stanford_2022_Ox_Tank_Pressure.csv'
 exp_p_fuel_tank_file_path = r'./src/inputs/liquid_validation_data/Stanford_2022/Stanford_2022_Fuel_Tank_Pressure.csv'
 
-# ------------------------
-# Sensitivity Analysis (not part of runtime input, kept for reference)
-# ------------------------
-test_var_name = "Cd_inj"
-min_bound = 0.5
-max_bound = 0.7
-num_iterations = 3
-
-# ------------------------
-# Sizing wizard estimates (kept for reference, not used in runtime)
-# ------------------------
-min_TW_ratio = 11
-Cd_est = 0.6
-mass_fraction_estimate = 0.2657741984
-characteristic_len = 1.0
