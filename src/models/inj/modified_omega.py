@@ -118,8 +118,7 @@ class modified_omega_model(BaseInjector):
 
             print("check sign", P_1 - P_sat)
 
-#NOTE: SET TO 1 FOR TESTING
-            k_cavitation_const = 1#(P_1 - P_sat) / (P_1 - P_2)
+            k_cavitation_const = (P_1 - P_sat) / (P_1 - P_2)
             if k_cavitation_const == 0:
                 k_cavitation_const = 1 #cavitation constant only valid for P_sat > P_2, otherwise K = 1
             Cd_twophase = 0.386 + 0.361*np.sqrt(k_cavitation_const)

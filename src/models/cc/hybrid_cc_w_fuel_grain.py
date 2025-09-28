@@ -218,13 +218,17 @@ class hybrid_cc_w_fuel_grain_model(BaseChamber):
         self.r = np.sqrt(A_port / np.pi)
         self.A_port = A_port
         self.A_fuel_grain_od = (m_fuel_i / (rho_fuel * L)) + A_port
+        self.r_fuel_grain_outer = np.sqrt(self.A_fuel_grain_od/np.pi)
         self.V_pre_post_cc = V_pre_post_cc
 
         # chamber state variables
         self.m_cc = 0.0       # total mass in chamber (fuel + ox)
+        self.V_cc = 0.0       # initialized here, will be sol for
         self.P_cc = P_atm     # start at ambient
         self.P_atm = P_atm
         self.timestep = timestep
+
+#NOTE: THIS IS A QUICK MODEL, I DID NOT TRACK FUEL GRAIN MASS, SO CASES WHERE FUEL GRAIN FULLY BURNS, THIS MODEL WILL FAIL
 
     def cc_ode_system(self, t, y, m_dot_ox_in):
         r, m_cc, P_cc = y
@@ -252,8 +256,15 @@ class hybrid_cc_w_fuel_grain_model(BaseChamber):
         # --- Chamber mass balance (total)
         m_dot_cc = m_dot_ox_in + m_dot_fuel_in - m_dot_exit
 
+        print("m_dot_cc: ", m_dot_cc, m_dot_ox_in, m_dot_fuel_in, - m_dot_exit )
+
         # --- Chamber volume
-        V_cc = self.L * (self.A_fuel_grain_od - A_port) + self.V_pre_post_cc
+        self.V_cc = self.L * A_port + self.V_pre_post_cc
+        
+
+
+        print("V_cc: ", self.V_cc, (self.A_fuel_grain_od - A_port), self.A_fuel_grain_od, - A_port)
+
 
         # --- Gamma derivatives
         dgamma_dPcc, dgamma_dOF = partial_derivatives_gamma(self.C, P_cc, OF, self.nozzle.expratio)
@@ -263,19 +274,22 @@ class hybrid_cc_w_fuel_grain_model(BaseChamber):
         # --- cp from CEA (convert kJ/kg-K -> J/kg-K)
         cp = self.C.get_Chamber_Cp(P_cc, OF, self.nozzle.expratio) * 1000
 
-        m_fuel = m_cc/OF
-        #NOTE: added this before it was just m_cc
+        #m_fuel_chamber = m_cc/OF
+        #NOTE: added this before it was just m_cc, also this is just in cc, not the fuel grain accounting!
 
         # --- Pressure ODE (Zimmerman/McGill style form)
-        P_dot = 1/(1 - (P_cc /(V_cc-1))*dgamma_dPcc) * ( ((gamma-1)/V_cc)*m_dot_cc*cp*T_cc - gamma*(P_cc/V_cc)*V_dot )#+ (P_cc/((V_cc-1)*max(m_fuel, 1e-6)))*dgamma_dOF*(m_dot_ox_in-OF*m_dot_fuel_in) )
+        P_dot = 1/(1 - (P_cc /(gamma-1))*dgamma_dPcc) * ( ((gamma-1)/self.V_cc)*m_dot_cc*cp*T_cc - gamma*(P_cc/self.V_cc)*V_dot )#+ (P_cc/((gamma-1)*max(m_fuel, 1e-6)))*dgamma_dOF*(m_dot_ox_in-OF*m_dot_fuel_in) )
 
 
-        print("vars: ", m_dot_exit, OF, P_dot, ((gamma-1)/V_cc)*m_dot_cc*cp*T_cc, - gamma*(P_cc/V_cc)*V_dot , (P_cc/((V_cc-1)*max(m_fuel, 1e-6)))*dgamma_dOF*(m_dot_ox_in-OF*m_dot_fuel_in) )
+        #print("vars: ", m_dot_exit, OF, P_dot, ((gamma-1)/V_cc)*m_dot_cc*cp*T_cc, - gamma*(P_cc/V_cc)*V_dot , (P_cc/((V_cc-1)*max(m_fuel_chamber, 1e-6)))*dgamma_dOF*(m_dot_ox_in-OF*m_dot_fuel_in) )
+        
+        #NOTE: INSTABILITY IN THIS TERM: ((gamma-1)/V_cc)*m_dot_cc*cp*T_cc
+        #print("m_fuel_chamber: ", m_fuel_chamber, m_dot_cc, cp, T_cc)
 
         #(P_cc / ((V_cc - 1) * m_dot_fuel_in)) * dgamma_dOF * (m_dot_ox_in - OF*m_dot_fuel_in)
 
         #print("P_dot: ", P_dot,  ((gamma-1)/V_cc)*m_dot_cc*cp*T_cc, - gamma*(P_cc/V_cc)*V_dot , + (P_cc/((V_cc-1)*max(m_fuel, 1e-6)))*dgamma_dOF*(m_dot_ox_in-OF*m_dot_fuel_in) )
-
+        
 
 
         return [r_dot, m_dot_cc, P_dot], {"P_cc": P_cc, "thrust": instThrust}

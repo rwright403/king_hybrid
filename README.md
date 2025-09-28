@@ -65,4 +65,6 @@ I got some of the liquid stuff to work and accidentally broke the hybrid models.
 
 
 
-Ryan Wright, From Calgary, Alberta, Canada                                                        
+Ryan Wright, From Calgary, Alberta, Canada   
+
+<!--pyenv shell king-hybrid-env -->

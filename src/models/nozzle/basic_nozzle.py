@@ -28,7 +28,7 @@ class basic_nozzle_model(BaseNozzle):
         m_dot_exit = 0.0
         M_exit=0.0
 
-        #print("nozzle PR: ", Actual_PR, Critical_PR, P_cc)
+        print("nozzle PR: ", Actual_PR, Critical_PR, P_cc)
         
         # Choking at throat
         if Actual_PR >= Critical_PR: # Find exit mass flow rate:
@@ -47,8 +47,13 @@ class basic_nozzle_model(BaseNozzle):
         else: # Find exit mass flow rate:
             M_exit = brentq(area_mach_func, 0.0001, .99999, args=(gamma, self.A_exit/self.A_throat) ) # brent's method between Ma 1 and Ma 6
             
+            print("into T_exit: ", T_cc, gamma, M_exit)
+
             T_exit = T_cc / (1 +(gamma-1)/2*M_exit**2)
             P_exit = P_cc / ((1 + (gamma-1)/2 * M_exit**2)**(gamma/(gamma-1))) 
+            
+            print("denom: ", R, T_exit)
+            
             rho_exit = P_exit / (R*T_exit)
             a_exit = np.sqrt(gamma*R*T_exit)
             v_exit = M_exit * a_exit

@@ -17,7 +17,7 @@ save_path = None
 
 # Environment
 timestep = 0.005       # [s]
-sim_time = 6           # [s]
+sim_time = 12           # [s]
 P_atm    = 101325     # [Pa]
 T_atm    = 284.0      # [K]
 rho_atm  = 1.225      # [kg/m^3]
@@ -34,9 +34,9 @@ pres_str        = "N2"            # pressurant gas
 # ------------------------
 # Oxidizer Tank
 # ------------------------
-m_ox        = 10.0
+m_ox        = 10.0              # [kg]
 P_ox_tank   = 4067908.4         # [Pa]
-V_tank      = 0.01289902263     # [m^3]
+V_ox_tank   = 0.01289902263     # [m^3]
 diam_out    = 0.127             # [m]
 diam_in     = 0.12065           # [m]
 rho_wall    = 2700          # [kg/m^3]
@@ -45,24 +45,31 @@ volume_err_tol = 0.01
 P_dot_err_tol  = None
 
 # ------------------------
-# Injector parameters
-# ------------------------
-Cd_inj   = 1.0
+# Ox Injector parameters
+# ------------------------2
+Cd_inj_ox   = 0.6#1.0
 A_inj_ox = 27.08e-6      # [m^2]
-A_inj_fuel = 2.4e-6      # [m^2]
 
 # ------------------------
 # Fuel tank & pressurant
 # ------------------------
-m_fuel       = 1.75
-m_pres       = 0.12
-P_pres_tank  = 6894.76 * 610   # [Pa]
-V_tank       = 0.0021875 # [m^3]
-V_pres_tank  = 0.00133780695             # [m^3] #NOTE: STANFORD DIRECTLY PRESSURIZES FUEL TANK, V_tank is psace fuel takes up and V_pres_tank is the ullage vol of the same tank (this is defined because of how my program takes in inputs)
+m_fuel       = 1.25
+m_pres       = 0.092
+P_pres_tank  = 4067908.4    # [Pa]
+V_fuel_tank  = 0.00352530695  # [m^3]
+V_pres_tank  = 0             # [m^3]  #NOTE: NO EXT PRESSURANT TANK!
 diam_out_fuel = 0.127           # [m]
 diam_in_fuel  = 0.12065           # [m]
 rho_wall    = 2700          # [kg/m^3]
 k_w         = 237           # [W/(m K)]
+
+
+# ------------------------
+# Fuel Injector parameters
+# ------------------------
+Cd_inj_fuel   = 1.0
+A_inj_fuel = 1.2e-6 # [m^2] #NOTE: 2.4e-6 reported but also shown in a graph it seems like it corresponds to a peak discharge and 1.2 is more 
+
 
 # ------------------------
 # Chamber (liquid engine)
@@ -78,8 +85,10 @@ expratio = 3
 # ------------------------
 # Experimental validation data
 # ------------------------
-exp_thrust_file_path    = r'./src/inputs/liquid_validation_data/Stanford_2022/Stanford_2022_Thrust.csv'
-exp_p_cc_file_path      = r'./src/inputs/liquid_validation_data/Stanford_2022/Stanford_2022_CC_Pressure.csv'
-exp_p_ox_tank_file_path = r'./src/inputs/liquid_validation_data/Stanford_2022/Stanford_2022_Ox_Tank_Pressure.csv'
-exp_p_fuel_tank_file_path = r'./src/inputs/liquid_validation_data/Stanford_2022/Stanford_2022_Fuel_Tank_Pressure.csv'
+validation_files={
+        #"P_cc":         "src/inputs/Stanford_2022/Stanford_2022_CC_Pressure.csv", #NOTE: empty csv
+        "P_ox_tank":    "src/inputs/Stanford_2022/Stanford_2022_Ox_Tank_Pressure.csv",
+        "P_fuel_tank":  "src/inputs/Stanford_2022/Stanford_2022_Fuel_Tank_Pressure.csv",
+        "thrust":       "src/inputs/Stanford_2022/Stanford_2022_Thrust.csv"
+}
 

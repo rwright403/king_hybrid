@@ -42,6 +42,9 @@ class adiabatic_lre_cc_model(BaseChamber):
         #print("OF", OF, G_ox)
 
         # --- Thermochem
+
+        print("enter thermochem: ", P_cc, OF, m_dot_ox_in, m_dot_fuel_in)
+
         T_cc = self.C.get_Tcomb(P_cc, OF)
         MW, gamma = self.C.get_Chamber_MolWt_gamma(P_cc, OF, self.nozzle.expratio)
         R_spec = R_UNIV / MW
@@ -54,21 +57,21 @@ class adiabatic_lre_cc_model(BaseChamber):
 
 
         # --- Gamma derivatives
-        dgamma_dPcc, dgamma_dOF = partial_derivatives_gamma(self.C, P_cc, OF, self.nozzle.expratio)
+        dgamma_dPcc, _ = partial_derivatives_gamma(self.C, P_cc, OF, self.nozzle.expratio)
 
         #print("partials: ", dgamma_dPcc, dgamma_dOF)
 
         # --- cp from CEA (convert kJ/kg-K -> J/kg-K)
         cp = self.C.get_Chamber_Cp(P_cc, OF, self.nozzle.expratio) * 1000
 
-        m_fuel = m_cc/OF
+        #m_fuel = m_cc/OF
         #NOTE: added this before it was just m_cc
 
         # --- Pressure ODE (Zimmerman/McGill style form)
-        P_dot = 1/(1 - (P_cc /(self.V_cc-1))*dgamma_dPcc) * ( ((gamma-1)/self.V_cc)*m_dot_cc*cp*T_cc )#+ (P_cc/((V_cc-1)*max(m_fuel, 1e-6)))*dgamma_dOF*(m_dot_ox_in-OF*m_dot_fuel_in) )
+        P_dot = 1/(1 - (P_cc /(gamma-1))*dgamma_dPcc) * ( ((gamma-1)/self.V_cc)*m_dot_cc*cp*T_cc ) #+ (P_cc/((V_cc-1)*max(m_fuel, 1e-6)))*dgamma_dOF*(m_dot_ox_in-OF*m_dot_fuel_in) )
 
 
-        print("vars: ", m_dot_exit, OF, P_dot, ((gamma-1)/self.V_cc)*m_dot_cc*cp*T_cc, (P_cc/((self.V_cc-1)*max(m_fuel, 1e-6)))*dgamma_dOF*(m_dot_ox_in-OF*m_dot_fuel_in) )
+        #print("vars: ", m_dot_exit, OF, P_dot, ((gamma-1)/self.V_cc)*m_dot_cc*cp*T_cc, (P_cc/((self.V_cc-1)*max(m_fuel, 1e-6)))*dgamma_dOF*(m_dot_ox_in-OF*m_dot_fuel_in) )
 
 
         return [m_dot_cc, P_dot], {"P_cc": P_cc, "thrust": instThrust}
@@ -82,7 +85,7 @@ class adiabatic_lre_cc_model(BaseChamber):
         y_new = rk4_step(self.cc_ode_system_rk, 0.0, y0, self.timestep, m_dot_ox, m_dot_fuel)
         self.m_cc, self.P_cc = y_new
 
-        _, out = self.cc_ode_system(0, y_new, m_dot_ox)
+        _, out = self.cc_ode_system(0, y_new, m_dot_ox, m_dot_fuel)
 
         print("P_cc: ", self.P_cc, self.m_cc)
         return out

@@ -31,7 +31,7 @@ oxidizer_name   = "N2O"
 # ------------------------
 m_ox        = 15.4221       # [kg]
 P_ox_tank   = 4933902       # [Pa]
-V_tank      = 0.02532569531   # [m^3]
+V_ox_tank      = 0.02532569531   # [m^3]
 diam_out    = 0.2032        # [m]
 diam_in     = 0.1905        # [m]
 rho_wall    = 2700          # [kg/m^3]
@@ -42,7 +42,7 @@ P_dot_err_tol = None #TODO: RM
 # ------------------------
 # Injector parameters
 # ------------------------
-Cd_inj   = 0.6 # guess, provided best fit
+Cd_inj_ox   = 0.6 # guess, provided best fit
 A_inj_ox = 8.75591e-5   # [m^2]
 A_inj_fuel = None           # hybrid has no fuel injector
 

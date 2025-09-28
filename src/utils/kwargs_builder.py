@@ -88,7 +88,7 @@ def build_kwargs(cfg):
             P_atm=cfg.P_atm,
             T_atm=cfg.T_atm,
             rho_atm=cfg.rho_atm,
-            V_tank=cfg.V_tank,
+            V_tank=cfg.V_ox_tank,
             diam_out=cfg.diam_out,
             diam_in=cfg.diam_in,
             rho_wall=cfg.rho_wall,
@@ -103,7 +103,7 @@ def build_kwargs(cfg):
     ox_inj_kwargs = None
     if models_kwargs["ox_inj_model"] is not None:
         ox_inj_kwargs = dict(
-            Cd=cfg.Cd_inj,
+            Cd=cfg.Cd_inj_ox,
             A_inj=cfg.A_inj_ox,
         )
 
@@ -113,7 +113,8 @@ def build_kwargs(cfg):
     fuel_tank_kwargs = None
     cc_kwargs = None
 
-    if models_kwargs["fuel_tank_model"]:  # Liquid engine path
+
+    if models_kwargs["fuel_tank_model"] is not None:  # Liquid engine path
         fuel_tank_kwargs = dict(
             m_fuel=cfg.m_fuel,
             m_pres=cfg.m_pres,
@@ -121,24 +122,20 @@ def build_kwargs(cfg):
             P_atm=cfg.P_atm,
             T_atm=cfg.T_atm,
             rho_atm=cfg.rho_atm,
-            V_fuel_tank=cfg.V_tank,
+            V_fuel_tank=cfg.V_fuel_tank,
             V_pres_tank=cfg.V_pres_tank,
             diam_out=getattr(cfg, "diam_out_fuel", cfg.diam_out),
             diam_in=getattr(cfg, "diam_in_fuel", cfg.diam_in),
             rho_wall=getattr(cfg, "rho_wall_fuel", cfg.rho_wall),
             k_w=getattr(cfg, "k_w_fuel", cfg.k_w),
-            Cd=cfg.Cd_inj,
+            Cd=cfg.Cd_inj_fuel,
             A_inj=cfg.A_inj_fuel,
             fuel_str=cfg.fuel_str,
             pres_str=cfg.pres_str,
             fill_type=FillType.ISOTHERMAL,
         )
 
-        cc_kwargs = dict(
-            V_cc=cfg.V_cc,
-            C=C,   # no regression terms for liquid chamber
-        )
-    elif models_kwargs["cc_model"] == 1:  # Hybrid engine path
+    if models_kwargs["cc_model"] == 1:  # Hybrid engine path
         cc_kwargs = dict(
             V_pre_post_cc=cfg.V_pre_post_cc,
             m_fuel_i=cfg.m_fuel_i,
@@ -149,7 +146,11 @@ def build_kwargs(cfg):
             A_port=cfg.A_port,
             C=C,
         )
-
+    elif models_kwargs["cc_model"] == 2:  # Liquid Engine Path
+        cc_kwargs = dict(
+            V_cc=cfg.V_cc,
+            C=C,
+        )
     elif models_kwargs["cc_model"] == 3:
         cc_kwargs = dict(
             filepath=cfg.validation_files["P_cc"],

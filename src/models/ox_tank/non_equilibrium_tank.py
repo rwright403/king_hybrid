@@ -212,8 +212,8 @@ class non_equilibrium_tank_model(BaseTank):
         self.rho_liq = initial_eq_state.rho_sat_liq
         self.rho_gas = initial_eq_state.rho_sat_gas
         
-        rho_sat_tank = self.m_ox/V_tank
-        x_tank = ( (1/rho_sat_tank)-(1/self.rho_liq) ) / ( (1/self.rho_gas)-(1/self.rho_liq) )
+        rho_bulk_tank = self.m_ox/V_tank
+        x_tank = ( (1/rho_bulk_tank)-(1/self.rho_liq) ) / ( (1/self.rho_gas)-(1/self.rho_liq) )
 
 
         #gas cv setup
@@ -247,6 +247,8 @@ class non_equilibrium_tank_model(BaseTank):
 
 
         self.m_tank = 0.25*np.pi*(self.diam_out**2-self.diam_in**2) * self.height_tank
+
+        print("init non eq tank: ", x_tank, self.V_tank, self.rho_liq, rho_bulk_tank, self.rho_gas)
 
         self.state = build_state()
    
@@ -378,7 +380,7 @@ class non_equilibrium_tank_model(BaseTank):
 
         #print("T_dot_liq_gas: ", T_dot_liq, T_dot_gas)
 
-        print("rk vars: ", P_tank, T_liq, T_gas, m_liq, m_gas)
+        #print("rk vars: ", P_tank, T_liq, T_gas, m_liq, m_gas)
 
         return [T_dot_liq, T_dot_gas, m_dot_liq, m_dot_gas, T_dot_wall_liq, T_dot_wall_gas]
 
@@ -513,8 +515,6 @@ class non_equilibrium_tank_model(BaseTank):
 
         # Advance simulation clock
         self.t += self.timestep
-
-        print(self.t)
 
         if self.m_liq > 0.0:
             return {"m_ox_tank": (self.m_gas+self.m_liq), "m_dot_ox_tank": m_dot, "P_ox_tank": self.P_tank, "T_liq_ox_tank": self.T_liq, "T_sat_ox_tank": T_sat, "T_gas_ox_tank": self.T_gas, "state": self.state }

@@ -31,7 +31,7 @@ oxidizer_name   = "N2O"
 # ------------------------
 m_ox        = 8.2           # [kg]
 P_ox_tank   = 3920207.656   # [Pa]
-V_tank      = 0.012         # [m^3]
+V_ox_tank      = 0.012         # [m^3]
 diam_out    = 0.1397        # [m]
 diam_in     = 0.128524      # [m]
 rho_wall    = 2700          # [kg/m^3]
@@ -42,7 +42,7 @@ P_dot_err_tol = None #TODO: RM
 # ------------------------
 # Injector parameters
 # ------------------------
-Cd_inj   = 0.611 # UTAT theoretically determined cd published in their report
+Cd_inj_ox   = 0.611 # UTAT theoretically determined cd published in their report
 A_inj_ox = 6.54E-05   # [m^2]
 A_inj_fuel = None          # hybrid has no fuel injector
 

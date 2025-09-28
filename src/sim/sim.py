@@ -138,13 +138,14 @@ def sim(kwargs: dict):
             cc_out   = {"P_cc": P_cc, "thrust": 0.0, "m_dot_cc": 0.0}
 
             while t < sim_time:
+                print("time: ", t)
+
                 if ox_tank:
                     ox_out = ox_tank.inst(P_cc) or ox_out
                 if fuel_tank:
                     fuel_out = fuel_tank.inst(P_cc) or fuel_out
 
                 if cc:
-                    print(t)
                     cc_out = cc.inst(ox_out.get("m_dot_ox_tank", 0.0),fuel_out.get("m_dot_fuel_tank", 0.0)) #or cc_out
 
                 records.append({"time": t, **ox_out, **fuel_out, **cc_out})

@@ -28,7 +28,7 @@ class hem_model(BaseInjector):
                 
             m_dot_hem_arr.append(m_dot_hem)
 
-        m_dot_hem_crit = np.max(m_dot_hem_arr) #TODO: USE BRENT'S METHOD MAYBE?
+        m_dot_hem_crit = np.max(m_dot_hem_arr)
         P_crit = downstream_pres_arr[np.argmax(m_dot_hem_arr)]
         
         if P_2 < P_crit: #flow is choked

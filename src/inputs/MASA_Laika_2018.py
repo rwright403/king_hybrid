@@ -1,13 +1,13 @@
 # ------------------------
-# Std Engine Input File (Converted Test Case - Liquid Rocket)
+# MASA Laika 3/17/18 Hotfire Analysis
 # ------------------------
 
 # Models
-ox_tank_model   = 2   # bens_ox_tank (non-equilibrium style)
-fuel_tank_model = 3   # simpleAdiabaticPressurizedTank
-ox_inj_model    = 1   # SPI injector (from inj_model=1)
-cc_model        = 2   # adiabatic_lre_cc
-nozzle_model    = 1   # nozzle model
+ox_tank_model   = 2  
+fuel_tank_model = 1
+ox_inj_model    = 3
+cc_model        = 2 
+nozzle_model    = 1 
 
 # Global settings
 thrust_curve_graphs = True
@@ -16,10 +16,10 @@ save_path = None
 
 # Environment
 timestep = 0.05       # [s]
-sim_time = 3.4        # [s]
+sim_time = 6           # [s]
 P_atm    = 101325     # [Pa]
-T_atm    = 293.15     # [K]
-rho_atm  = None       # not provided
+T_atm    = 284.0      # [K]
+rho_atm  = 1.225      # [kg/m^3]
 
 # ------------------------
 # Propellant properties
@@ -35,21 +35,20 @@ pres_str        = "N2"     # pressurant gas
 # ------------------------
 m_ox        = 4.48         # [kg]
 P_ox_tank   = 5.171e6      # [Pa]
-P_cc        = None         # not given
-V_tank      = 6.4e-3       # [m^3]
-diam_out    = None
-diam_in     = None
-rho_wall    = None
-k_w         = None
+V_ox_tank   = 6.4e-3       # [m^3]
+diam_out    = 0.135128      # [m]
+diam_in     = 0.127         # [m]
+rho_wall    = 2700          # [kg/m^3]
+k_w         = 237           # [W/(m K)]
 volume_err_tol = 0.01
 P_dot_err_tol  = None
 
 # ------------------------
-# Injector parameters
+# Ox Injector parameters
 # ------------------------
-Cd_inj   = 0.66
+Cd_inj_ox   = 0.66
 A_inj_ox = 7.471705e-5     # [m^2]
-A_inj_fuel = 1.36284e-5    # [m^2]
+
 
 # ------------------------
 # Fuel tank & pressurant
@@ -57,22 +56,37 @@ A_inj_fuel = 1.36284e-5    # [m^2]
 m_fuel       = 1.12        # [kg]
 m_pres       = 0.12        # [kg] pressurant mass (estimated)
 P_pres_tank  = 4.82633e6   # [Pa] (from P_fueltank)
-V_tank       = 2.16e-3     # [m^3] fuel tank volume
-V_pres_tank  = None        # not given
-diam_out_fuel = 0.0254*5   # [m] ID_PROPTANK, assuming as inner diameter
-diam_in_fuel  = None
-rho_wall_fuel = None
-k_w_fuel      = None
+V_fuel_tank  = 3.25E-03     # [m^3] fuel tank volume
+V_pres_tank  = 0.0        # NOTE: GUESS
+diam_out_fuel = 0.135128      # [m]
+diam_in_fuel  = 0.127       # [m]
+rho_wall    = 2700          # [kg/m^3]
+k_w         = 237           # [W/(m K)]
+
+
+# ------------------------
+# Fuel Injector parameters
+# ------------------------
+Cd_inj_fuel   = 0.8 #NOTE: GUESS
+A_inj_fuel = 1.36284e-5    # [m^2]
 
 # ------------------------
 # Chamber (liquid engine)
 # ------------------------
-L_star    = None           # not given, can be filled if available
+V_cc      = 0.002221466077      # [m^3]
 
 # ------------------------
 # Nozzle
 # ------------------------
-# A_throat and A_exit provided → compute equivalent geometry
-d_throat = None             # can compute if needed
-expratio = None             # can compute if needed
+d_throat = 0.0360426        # [m]
+expratio = 5.168493033     
 
+# ------------------------
+# Experimental validation data
+# ------------------------
+validation_files={
+        "P_cc": "src/inputs/MASA_Laika_2018/MASA_Laika_2018_CC_Pressure.csv",
+        "P_ox_tank": "src/inputs/MASA_Laika_2018/MASA_Laika_2018_Ox_Tank_Pressure.csv",
+        "P_fuel_tank": "src/inputs/MASA_Laika_2018/MASA_Laika_2018_Fuel_Tank_Pressure.csv",
+        "thrust": "src/inputs/MASA_Laika_2018/MASA_Laika_2018_Thrust.csv"
+}
