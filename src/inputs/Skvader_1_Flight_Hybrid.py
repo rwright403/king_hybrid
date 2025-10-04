@@ -73,3 +73,18 @@ validation_files={
 }
 
 A_inj_fuel = None          # hybrid has no fuel injector
+
+
+
+"""
+From Rocketpy Delivarance Mk. IV example flight (Launched at LC 2024)
+
+https://docs.rocketpy.org/en/latest/examples/defiance_flight_sim.html
+"""
+"""
+flight_date = datetime.date(2024, 8, 24)
+env = Environment(latitude=47.966527, longitude=-81.87413, elevation=1383.4)
+
+env.set_date((flight_date.year, flight_date.month, flight_date.day, 0))
+env.set_atmospheric_model(type="custom_atmosphere", wind_v=0.0, wind_u=0.0)
+"""

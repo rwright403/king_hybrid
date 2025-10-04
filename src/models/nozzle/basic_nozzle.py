@@ -28,7 +28,7 @@ class basic_nozzle_model(BaseNozzle):
         m_dot_exit = 0.0
         M_exit=0.0
 
-        print("nozzle PR: ", Actual_PR, Critical_PR, P_cc)
+        #print("nozzle PR: ", Actual_PR, Critical_PR, P_cc)
         
         # Choking at throat
         if Actual_PR >= Critical_PR: # Find exit mass flow rate:

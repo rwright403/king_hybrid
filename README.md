@@ -1,38 +1,62 @@
-### Note: mostly broken code! do not use right now lol --> see DEV LRE Progress Update... for the most recent documentation and explaination for where this program is rn
-
 ### Rocket Engine Simulation 🚀
 
-This program was designed to be a framework for a user to combine and use different models to simulate a rocket engine.
+This project is a continuation of Ben Klammer's Mech 498 Thesis on Hybrid Modelling [1]. 
+
+This program was designed to be a modular framework for a user to combine and use different models to simulate rocket engines. This decision to make the program modular will hopefully allow us to add more detail if/as required throughout the engine design cycle.
+
+The modelling is especially focused on nitrous oxide as a self-pressurant.
+
 
 ## RUNNING THE PROGRAM:
 This file takes input in the form of a python module file. 
 
-In the directory this file is in:  #python3 -m src <filename of a desired python module file without the .py>
+Ensure the terminal is in the directory this file is in:  #python3 -m src <filename of a desired python module file without the .py>
 
 The inputs folder contains the input files where the user can update the inputs the program uses.
 
-the analysis_mode list is used to select the types of models used by the program.
+The analysis_mode list in the input file selects which models are active.
 
-[TODO: DOCUMENT MODELS IN EACH FILE]
+The user interface isn't great, but if the user interface is good, are you really innovating?
 
+## Getting Started (instructions for windows)
+
+This project is intended to run inside WSL (Windows Subsystem for Linux) with a Python virtual environment (venv). This is because I was only able to get the rocketCEA package to work here. Allegedly there have been some changes that make this install easier since then, but I have not tried them.
+
+Setup Steps:
+
+Install WSL
+
+Microsoft Guide: https://learn.microsoft.com/en-us/windows/wsl/install
+
+Recommended distro: Ubuntu 22.04
+
+Install the fortran compiler (Ubuntu instructions): https://rocketcea.readthedocs.io/en/latest/installgfortran.html
+
+Install Python (via pyenv)
+
+Guide: https://github.com/pyenv/pyenv#installation
+
+Tested with Python 3.11.x
+
+Clone the repo
+>git clone <repo_url>
+>cd <repo>
+
+Create and activate a virtual environment
+python3 -m venv venv
 source venv/bin/activate
 
+Install required libraries
+A requirements.txt file is included so everyone uses the same library versions.
+>pip install -r requirements.txt
 
-## Context:
-This is part of my personal rocket engine design project. It started as a continuation of Ben Klammer's work [1]
-He does some really cool things like optimization that this program does not do. 
-I would recommend checking his thesis and program out. His work taught me a good amount of what I know about propulsion
+To see what’s currently installed in your venv:
+>pip list
 
-I decided to make this program over already built software packages because my small scale engine's design loads are very dependent on the self-pressurized
-feed system, and I want to build design tools that will help me understand performance when I build my engine.
+To update requirements.txt after adding a new library:
+>pip freeze > requirements.txt
 
-Through working with different system models, the program has evolved into a relatively modular framework where the user can easily add new models.
-
-I have definitely learned a lot through making this program. Even when the program is broken, its cool to see how the errors propagate through the program. I have read about vehicle failures where the failure of a component causes several effects that propagate through the system, and I definitely see that when I have extraneous inputs.
-
-I got some of the liquid stuff to work and accidentally broke the hybrid models. I likely won't fix the hybrid stuff for a while.
-
-#Use at your own risk lol, I am still developing and debugging this program. When things are more stable I will do better at documentation
+Always create a new branch for edits (git checkout -b <branch_name>).
 
 
 ## Sources and Citations:

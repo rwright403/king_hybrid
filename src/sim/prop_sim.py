@@ -49,7 +49,7 @@ def check_nan(value):
 
 
 
-def sim(kwargs: dict):
+def prop_sim(kwargs: dict):
     # ------------------------
     # Globals
     # ------------------------

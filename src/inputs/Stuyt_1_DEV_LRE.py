@@ -100,3 +100,19 @@ min_TW_ratio = 11
 Cd_est = 0.6
 mass_fraction_estimate = 0.2657741984
 characteristic_len = 1.0
+
+
+
+
+"""
+From Rocketpy Delivarance Mk. IV example flight (Launched at LC 2024)
+
+https://docs.rocketpy.org/en/latest/examples/defiance_flight_sim.html
+"""
+"""
+flight_date = datetime.date(2024, 8, 24)
+env = Environment(latitude=47.966527, longitude=-81.87413, elevation=1383.4)
+
+env.set_date((flight_date.year, flight_date.month, flight_date.day, 0))
+env.set_atmospheric_model(type="custom_atmosphere", wind_v=0.0, wind_u=0.0)
+"""

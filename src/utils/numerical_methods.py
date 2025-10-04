@@ -39,8 +39,15 @@ def rk4_step(ode_func, t, y, dt, *args):
     return y_new
 """
 
-import numpy as np
-
+"""
+This exists because I made bad decisions that seemed ok at the time:
+My development of this script involved testing a lot of models, so I decided to make
+them loosely coupled so I could quickly try things.
+Because they are loosely coupled, I couldn't use any RK implementation with adaptive timestepping
+I only ended up using really 2 different models. My original algo was really slow so I was planning
+to use the equilibrium tank more, but I refactored my algo and vectorized some things to improve speed.
+This made the previous idea redundant.
+"""
 def rk4_step(ode_func, t, y, dt, *args):
     y = np.asarray(y, dtype=float)
 

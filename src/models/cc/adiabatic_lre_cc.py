@@ -43,7 +43,7 @@ class adiabatic_lre_cc_model(BaseChamber):
 
         # --- Thermochem
 
-        print("enter thermochem: ", P_cc, OF, m_dot_ox_in, m_dot_fuel_in)
+        print("enter thermochem: ", P_cc, OF, m_dot_ox_in, m_dot_fuel_in, m_cc)
 
         T_cc = self.C.get_Tcomb(P_cc, OF)
         MW, gamma = self.C.get_Chamber_MolWt_gamma(P_cc, OF, self.nozzle.expratio)
