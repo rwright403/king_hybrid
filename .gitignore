@@ -3,3 +3,7 @@ __pycache__/
 0 - research_papers/
 prelim_sizing_tools_and_other_msc_programs/
 src/tmp
+src/inputs/_team_reports
+
+__pycache__/
+*.pyc
