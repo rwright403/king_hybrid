@@ -15,8 +15,6 @@ def bar_to_psi(x):
 
 def magic(inputs):
 
-    print("\nBefore we begin... Compliments from the chef:\nhttps://open.spotify.com/playlist/3cPxQYAYeNGvGk50DC2Edd?si=a4789e8167e44244\n")
-
     ### Setup
     apogee_height = 3048 #m
     optimal_height = (2/3)*apogee_height #m above launch pad - #NOTE: this uses a rule of thumb, works rlly well for small change in alt sounding rocket flight
