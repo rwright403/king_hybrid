@@ -18,6 +18,8 @@ The analysis_mode list in the input file selects which models are active.
 
 The user interface isn't great, but if the user interface is good, are you really innovating?
 
+### Running Paraffin Hybrids --> See the instructions in PARAFFIN_DEFINITION.md
+
 ## Getting Started (instructions for windows)
 
 This project is intended to run inside WSL (Windows Subsystem for Linux) with a Python virtual environment (venv). This is because I was only able to get the rocketCEA package to work here. Allegedly there have been some changes that make this install easier since then, but I have not tried them.

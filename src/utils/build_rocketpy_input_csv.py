@@ -15,12 +15,8 @@ def build_rocketpy_input_csv(df: pd.DataFrame, key: str, time_col="time", output
         The column representing time (default: 'time').
     output_dir : str
         Directory to save CSV (default: 'src/tmp').
-
-    Returns
-    -------
-    str
-        Path to the saved CSV file.
     """
+
     if time_col not in df.columns:
         raise ValueError(f"Time column '{time_col}' not found in DataFrame")
     if key not in df.columns:
@@ -35,6 +31,3 @@ def build_rocketpy_input_csv(df: pd.DataFrame, key: str, time_col="time", output
         "time": df[time_col],
         "value": df[key]
     }).to_csv(output_path, index=False)
-
-    return output_path
-

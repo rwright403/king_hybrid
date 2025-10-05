@@ -125,7 +125,7 @@ validation_files={
 # ==========================
 # ROCKETPY FLIGHT DESVAR
 # ==========================
-from datetime import datetime
+import datetime
 from rocketpy import Environment
 
 # --- LAUNCH CANADA TIMMINS ONT. LAUNCH PAD ---
@@ -139,40 +139,41 @@ env = Environment(latitude=47.966527, longitude=-81.87413, elevation=1383.4)
 env.set_date((flight_date.year, flight_date.month, flight_date.day, 0))
 env.set_atmospheric_model(type="custom_atmosphere", wind_v=0.0, wind_u=0.0)
 
-rail_length = 1
-inclination = 1
-heading = 1
+rail_length = 1             # [m]
+inclination = 1             # [degrees]
+heading = 1                 # [degrees]
 
 # --- Rocket Geometry and Mass Properties ---
-fuselage_radius = 1
-rkt_dry_mass = 1
-rkt_dry_inertia = 1
-rkt_dry_cg = 1
-power_off_drag = 1
-power_on_drag = 1
-rkt_csys = 1
+fuselage_radius = 1             # [m]
+rkt_dry_mass = 1                # [kg]
+rkt_dry_inertia = 1             # [kg m^2] (Tuple of Ixx Iyy Izz)
+rkt_dry_cg = 1                   # [m]
+power_off_drag = ".csv"         # .csv where first column is Ma and second col is Cd
+power_on_drag = ".csv"         # .csv where first column is Ma and second col is Cd
+rkt_csys = "str"
 
-upper_launch_lug_pos = 1
-lower_launch_lug_pos = 1
-launch_lug_angular_pos = 1
+upper_launch_lug_pos = 1     # [m]
+lower_launch_lug_pos = 1     # [m]
+launch_lug_angular_pos = 1      # [degrees]
 
-nose_length = 1
-nose_kind = 1
-nose_position = 1
+nose_length = 1     # [m]
+nose_kind = "str"
+nose_position = 1     # [m]
 
-fins_n = 1
-fins_span = 1
-fins_root_chord = 1
-fins_tip_chord = 1
-fins_position = 1
+fins_n = 1              # [-]
+fins_span = 1           # [m]
+fins_root_chord = 1     # [m]
+fins_tip_chord = 1     # [m]
+fins_position = 1     # [m]
 
 ### NOTE: is this cg or location actually??
-ox_tank_cg = 1
-fuel_tank_cg = 1
-engine_cg = 1
+ox_tank_cg = 1      # [m]
+fuel_tank_cg = 1      # [m]
+engine_cg = 1      # [m]
 
 # --- Chamber / Motor Properties ---
-cc_cg = 1
-cc_dry_inertia = 1
-cc_dry_mass = 1
-noz_pos = 1
+cc_cg = 1               # [m]
+cc_dry_inertia = 1      # [kg m^2] (Tuple of Ixx Iyy Izz)
+cc_dry_mass = 1         # [kg]
+noz_pos = 1             # [m]
+r_nozzle_exit = 1           # [m]

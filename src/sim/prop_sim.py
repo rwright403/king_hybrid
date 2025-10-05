@@ -135,7 +135,7 @@ def prop_sim(kwargs: dict):
 
             ox_out   = {"m_dot_ox": 0.0, "P_ox_tank": None}
             fuel_out = {"m_dot_fuel": 0.0, "P_fuel_tank": None}
-            cc_out   = {"P_cc": P_cc, "thrust": 0.0, "m_dot_cc": 0.0}
+            cc_out   = {"P_cc": P_cc, "thrust": 0.0, "m_dot_fuel": 0.0}
 
             while t < sim_time:
                 print("time: ", t)
@@ -146,7 +146,7 @@ def prop_sim(kwargs: dict):
                     fuel_out = fuel_tank.inst(P_cc) or fuel_out
 
                 if cc:
-                    cc_out = cc.inst(ox_out.get("m_dot_ox_tank", 0.0),fuel_out.get("m_dot_fuel_tank", 0.0)) #or cc_out
+                    cc_out = cc.inst(ox_out.get("m_dot_ox", 0.0),fuel_out.get("m_dot_fuel", 0.0)) #or cc_out
 
                 records.append({"time": t, **ox_out, **fuel_out, **cc_out})
                 P_cc = cc_out.get("P_cc", P_cc)
@@ -191,4 +191,6 @@ def prop_sim(kwargs: dict):
             return x
         df[col] = df[col].apply(_fix)
 
+
+    print(list(df.keys()))
     return df
