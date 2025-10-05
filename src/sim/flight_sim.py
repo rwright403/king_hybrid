@@ -60,12 +60,16 @@ def flight_sim(kwargs):
         angular_position=kwargs["rocketpy_rocket_kwargs"]["launch_lug_angular_pos"],
     )
 
+    rocket.draw()
+
     flight = Flight(
         rocket=rocket,
         environment=kwargs["rocketpy_launchpad_kwargs"]["env"],
-        railLength=kwargs["rocketpy_launchpad_kwargs"]["rail_length"],
+        rail_length=kwargs["rocketpy_launchpad_kwargs"]["rail_length"],
         inclination=kwargs["rocketpy_launchpad_kwargs"]["inclination"],
         heading=kwargs["rocketpy_launchpad_kwargs"]["heading"],
     )
+    flight.prints.out_of_rail_conditions()
+    flight.plots.trajectory_3d()
 
     return flight

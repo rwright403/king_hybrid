@@ -517,9 +517,9 @@ class non_equilibrium_tank_model(BaseTank):
         self.t += self.timestep
 
         if self.m_liq > 0.0:
-            return {"m_ox_tank": (self.m_gas+self.m_liq), "m_dot_ox_tank": m_dot, "P_ox_tank": self.P_tank, "T_liq_ox_tank": self.T_liq, "T_sat_ox_tank": T_sat, "T_gas_ox_tank": self.T_gas, "state": self.state }
+            return {"m_ox_tank": (self.m_gas+self.m_liq), "m_dot_ox": m_dot, "P_ox_tank": self.P_tank, "T_liq_ox_tank": self.T_liq, "T_sat_ox_tank": T_sat, "T_gas_ox_tank": self.T_gas, "state": self.state }
         else: #gas phase
-            return {"m_ox_tank": (self.m_gas+self.m_liq), "m_dot_ox_tank": m_dot, "P_ox_tank": self.P_tank, "T_liq_ox_tank": self.T_gas, "T_sat_ox_tank": self.T_gas, "T_gas_ox_tank": self.T_gas, "state": self.state }
+            return {"m_ox_tank": (self.m_gas+self.m_liq), "m_dot_ox": m_dot, "P_ox_tank": self.P_tank, "T_liq_ox_tank": self.T_gas, "T_sat_ox_tank": self.T_gas, "T_gas_ox_tank": self.T_gas, "state": self.state }
 
 
 

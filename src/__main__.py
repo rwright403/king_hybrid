@@ -7,7 +7,7 @@ from src.sim.flight_sim import flight_sim
 from src.prelim_wizard import prelim_wizard
 from src.sensitivity_analysis import sensitivity_analysis
 from src.postprocess.plot_sim_results import plot_sim_results
-
+from src.utils.build_rocketpy_input_csv import build_rocketpy_input_csv
 
 
 def run(input_file):
@@ -24,7 +24,7 @@ def run(input_file):
     user_input = 0
     while(user_input ==0):
         print("\n")
-        print("1 --> Sim")
+        print("1 --> Engine Sim")
         print("2 --> Flight Sim")
         #("3 --> Sensitivity Analysis") #TODO: refactor
         print("5 --> Prelim Design Wizard")
@@ -35,14 +35,15 @@ def run(input_file):
 
         kwargs = build_kwargs(program_input)
         prop_results = prop_sim(kwargs)
+        
+        build_rocketpy_input_csv(prop_results, "m_dot_ox")
+        build_rocketpy_input_csv(prop_results, "m_dot_fuel")
+        build_rocketpy_input_csv(prop_results, "thrust")
+
         plot_sim_results(program_input, prop_results, program_input.mode, program_input.save_path)
 
     if user_input =='2':
-
-        kwargs = build_kwargs(program_input)
-        prop_results = prop_sim(kwargs)
-
-        flight_sim_kwargs = build_flight_sim_kwargs(program_input, prop_results)
+        flight_sim_kwargs = build_flight_sim_kwargs(program_input)
         flight = flight_sim(flight_sim_kwargs)
 
     """
