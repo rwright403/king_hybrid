@@ -99,8 +99,9 @@ num_iterations = 3
 min_TW_ratio = 11
 Cd_est = 0.6
 mass_fraction_estimate = 0.2657741984
-characteristic_len = 1.0
-
+characteristic_len = 1.0        #[m]
+elevation = 225 # TODO: CHECK ALT MALAHAT RANGE VS TIMMINS
+apogee_height = 3048*3      #[m]
 
 
 

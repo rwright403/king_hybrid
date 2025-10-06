@@ -93,4 +93,4 @@ Always create a new branch for edits (git checkout -b <branch_name>).
 
 Ryan Wright, From Calgary, Alberta, Canada   
 
-<!--pyenv shell king-hybrid-env -->
+<!-- source venv/bin/activate -->
