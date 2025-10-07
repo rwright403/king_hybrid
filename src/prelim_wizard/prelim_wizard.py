@@ -1,10 +1,6 @@
 from rocketcea.cea_obj_w_units import CEA_Obj
 from rocketcea.cea_obj import add_new_fuel
 import CoolProp.CoolProp as CP #I love coolprop! ~ units: http://www.coolprop.org/v4/apidoc/CoolProp.html
-
-#import matplotlib
-#matplotlib.use('Qt5Agg')  # Use the TkAgg backend
-
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -22,6 +18,48 @@ def magic(inputs):
     apogee, total impulse and wet mass
     (search for DEV LRE Hand Calcs on the team google drive)   
     """
+
+    ### Step 0:
+    #estimate vapor pressure wrt conditions
+    if inputs.oxidizer_name  == "N2O":
+
+        # Define temperature range (input in celsius, program converts to kelvin)
+        T_min = 16  # Minimum operating temperature
+        T_max = 27  # Maximum operating temperature
+        T_crit = 36 # Critical temperature of nitrous
+        num_points = 100  # Number of points for the plot
+
+        # Generate an array of temperatures
+        T_min = T_min + 273.15
+        T_max = T_max + 273.15
+        T_crit = T_crit + 273.15
+        temperatures = np.linspace(T_min, T_crit, num_points)
+        temperatures_celsius = temperatures - 273.15  # Convert from Kelvin to Celsius
+        vapor_pressures = np.zeros_like(temperatures)
+
+        # Plotting
+        plt.figure(figsize=(10, 6))
+
+        # Calculate vapor pressure for each temperature using CoolProp
+        for i, T in enumerate(temperatures):
+            P = CP.PropsSI('P', 'T', T, 'Q', 0, 'N2O')
+            vapor_pressures[i] = P / 100000.0  # Convert from Pa to bar
+
+        # Plot vapor pressure for the current quality
+        plt.plot(temperatures_celsius, vapor_pressures, color='k', label='N2O Saturated Liquid Line')
+
+        # THESE TEMPERATURES ARE MAX AND MIN VALUES FOR HOTFIRING
+        plt.axvline(x=T_min-273.15, color='b', linestyle='--', label=f'{T_min-273.15} °C')
+        plt.axvline(x=T_max-273.15, color='orange', linestyle='--', label=f'{T_max-273.15} °C')
+        plt.axhline(y=72.5, color='r', linestyle='--', label="N2O Critical Pressure")
+
+        plt.xlabel('Temperature (°C)')
+        plt.ylabel('Vapor Pressure (bar)')
+        plt.title('Vapor Pressure of Nitrous Oxide (N2O) vs. Temperature')
+        plt.grid(True)
+        plt.legend()
+        plt.tight_layout()
+        plt.show()
 
 
     ### Setup
