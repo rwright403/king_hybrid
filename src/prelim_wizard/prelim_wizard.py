@@ -180,9 +180,22 @@ def magic(inputs):
     #solve inital and final Cf, assuming rocket can always reach apogee (uses expansion ratio!!!!)
     Cf_opt = np.sqrt( ((2*y**2)/(y-1)) * ( (2/(y+1))**((y+1)/(y-1)) ) * (1- (P_exit/selected_Pcc)**((y-1)/y)) ) 
 
-#NOTE: start calculate impulse and rocket dry mass with spreadsheet line of best fit eqn
-    It_est = 2.73*inputs.apogee_height + 4829
-    rocket_dry_mass = (1.03e-3)*It_est + 21
+    #NOTE: start calculate impulse and rocket dry mass with spreadsheet line of best fit eqn
+    It_est = None
+    rocket_dry_mass = None
+    
+    if hasattr(inputs, "fuel_tank_model"):
+        """
+        LRE Linear Regression Estimates from spreadsheet
+        """
+        It_est = 2.73*inputs.apogee_height + 4829
+        rocket_dry_mass = (1.03e-3)*It_est + 21
+    else:
+        """
+        HYBRID Linear Regression Estimates from spreadsheet
+        """
+        It_est = 2.41*inputs.apogee_height + 11942
+        rocket_dry_mass = (8.05e-5)*It_est + 54.7
 
     #use impulse estimation to graph a bunch of preliminary thrust curves that differ based on burn time and show the user
     burn_time_arr = [2, 3, 4, 5, 6, 7, 8, 9, 10]
