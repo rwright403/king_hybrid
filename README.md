@@ -82,13 +82,16 @@ Always create a new branch for edits (git checkout -b <branch_name>).
 | [16]  | Modeling Feed System Flow Physics for Self-Pressurizing Propellants | Understanding Metastable States | https://www.researchgate.net/publication/268482381_Modeling_Feed_System_Flow_Physics_for_Self-Pressurizing_Propellants |
 | [17]  | Span, Multiparameter Equations of State An Accurate Source of Thermodynamic Property Data | Understanding how to implement the Span Wagner EOS | https://www.researchgate.net/publication/40381676_Multiparameter_equations_of_state_an_accurate_source_of_thermodynamic_property_data_with_151_figures_and_tables |
 | [18]  | A Reliable and Useful Method to Determine the Saturation State from Helmholtz Energy Equations of State | Another source that helps explain the iterative algo to solve saturation properties w helmholtz eos | https://www.jstage.jst.go.jp/article/jtst/3/3/3_3_442/_pdf |
-| [19]  | Modeling Feed System Flow Physics for Self-Pressurizing Propellants, Stanford | Span Wagner Coeffs | https://www.researchgate.net/publication/268482381_Modeling_Feed_System_Flow_Physics_for_Self-Pressurizing_Propellants |
+| [19]  |Mass Flow Rate and Isolation Characteristics of Injectors for Use with Self-Pressurizing Oxidizers in Hybrid Rockets | Inj Design | https://ntrs.nasa.gov/api/citations/20190001326/downloads/20190001326.pdf |
 | [20]  | AIAA Liquid Rocket Thrust Chambers | | |
 | [21]  | Huzel + Huang | | |
 | [22]  | Ben Klammer 446 CC model | | |
 | [23]  | Implementing CEA calculations using Cantera - Kyle Niemeyer | Starting to outgrow rocketcea, looking into using cantera for cc model because it is more compatible with differential eqns | https://kyleniemeyer.github.io/rocket-propulsion/thermochemistry/cea_cantera.html |
 | [24]  | NASA SP-1311-2 | fixing paraffin definition in rocketcea. see PARAFFIN_DEFFINITION.md | https://shepherd.caltech.edu/EDL/PublicResources/sdt/refs/NASA-RP-1311-2.pdf |
-
+| [25]  | Computational model for performance prediction of a nitrous oxide / eicosane hybrid rocket engine | hybrid cc model that integrates P_cc_dot | https://www.researchgate.net/publication/381880279_Computational_model_for_performance_prediction_of_a_nitrous_oxide_eicosane_hybrid_rocket_engine|
+| [26]  | Liquid Rocket Propulsion Instability | trying to understand instability for prelim/detail design |
+| [27]  | AGARD Heat Transfer in Rocket Engines | Estimating Heat Transfer in Injector | https://apps.dtic.mil/sti/trecms/pdf/AD0733362.pdf |
+| [28]  | Liquid Rocket Engine Injectors | | https://ntrs.nasa.gov/api/citations/19760023196/downloads/19760023196.pdf |
 
 
 Ryan Wright, From Calgary, Alberta, Canada   
