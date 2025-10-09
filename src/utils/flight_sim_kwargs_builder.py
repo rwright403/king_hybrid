@@ -1,18 +1,20 @@
-from dataclasses import dataclass
+import os
 import numpy as np
 import CoolProp.CoolProp as CP
 from rocketpy import Fluid, CylindricalTank
-from src.utils.build_rocketpy_input_csv import build_rocketpy_input_csv
-
-ENGINE_MODEL_OUTPUT_MAP = {
-    "m_dot_ox": "./src/tmp/m_dot_ox.csv",
-    "m_dot_fuel":  "./src/tmp/m_dot_fuel.csv",
-    "thrust":  "./src/tmp/thrust.csv",
-}
 
 
-def build_flight_sim_kwargs(cfg):
+def build_flight_sim_kwargs(input_file, cfg):
     """Takes a config module and returns kwargs dicts depending on hybrid vs liquid."""
+
+    # --- Construct dynamic path to engine output folder ---
+    engine_output_dir = os.path.join("src", "results", str(input_file))
+
+    ENGINE_MODEL_OUTPUT_MAP = {
+        "m_dot_ox": os.path.join(engine_output_dir, "m_dot_ox.csv"),
+        "m_dot_fuel": os.path.join(engine_output_dir, "m_dot_fuel.csv"),
+        "thrust": os.path.join(engine_output_dir, "thrust.csv"),
+    }
 
     rocketpy_fuel_tank_kwargs = None
 
