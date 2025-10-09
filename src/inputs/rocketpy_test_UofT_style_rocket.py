@@ -2,6 +2,13 @@
 # Std Engine Input File (Converted Test Case)
 # ------------------------
 
+"""
+NOTE: THIS IS NOT A REAL ROCKET
+TOOK U OF T ENGINE DATA FROM 2022
+AND PUT IT IN THEIR 2024 ROCKET PUBLISHED ON ROCKETPY
+THIS IS JUST TO TEST THE FLIGHT SIM/ENGINE SIM COUPLING
+"""
+
 # Models
 ox_tank_model = 2   
 ox_inj_model  = 3   
