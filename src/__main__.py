@@ -1,6 +1,8 @@
+import os
 import argparse
 import importlib
-import os
+import time
+
 from src.utils.kwargs_builder import build_kwargs
 from src.utils.flight_sim_kwargs_builder import build_flight_sim_kwargs
 from src.sim.prop_sim import prop_sim
@@ -35,7 +37,13 @@ def run(input_file):
     if user_input =='1':
 
         kwargs = build_kwargs(program_input)
+
+        start_time = time.time()
         prop_results = prop_sim(kwargs)
+        end_time = time.time()
+        elapsed = end_time - start_time
+
+        print(f"\nSimulation completed in real time {elapsed:.2f} seconds ({elapsed/60:.2f} min)\n")
 
         # Make a directory path for this case
         case_dir = os.path.join("src/results", str(input_file))

@@ -16,6 +16,7 @@ INJECTOR_MODEL_MAP = {
     2: "src.models.inj.hem.hem_model",
     3: "src.models.inj.dyer.dyer_model",
     4: "src.models.inj.modified_omega.modified_omega_model",
+    5: "src.models.inj.dyer_hem_choke_pt.dyer_model"
 }
 
 CC_MODEL_MAP = {

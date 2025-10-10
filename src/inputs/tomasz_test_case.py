@@ -15,7 +15,7 @@ save_path = None
 
 # Environment
 timestep = 0.05         # [s]
-sim_time = 0.1            # [s]  
+sim_time = 4.9            # [s]  
 P_atm    = 101325       # [Pa]
 T_atm    = 296.0        # [K]  (approx lab ambient, adjust if needed)
 rho_atm  = 1.225        # [kg/m^3]
@@ -43,7 +43,7 @@ P_dot_err_tol  = 1e-3        # small tolerance for secant solve
 # ------------------------
 # Injector parameters
 # ------------------------
-Cd_inj_ox   = 0.57#0.45
+Cd_inj_ox   = 0.45#0.57#0.45
 A_inj_ox = 1.76714E-06  # [m^2]
 A_inj_fuel = None  # no fuel injector
 

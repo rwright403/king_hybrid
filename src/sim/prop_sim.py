@@ -191,6 +191,4 @@ def prop_sim(kwargs: dict):
             return x
         df[col] = df[col].apply(_fix)
 
-
-    print(list(df.keys()))
     return df

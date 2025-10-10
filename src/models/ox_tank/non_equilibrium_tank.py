@@ -468,8 +468,9 @@ class non_equilibrium_tank_model(BaseTank):
 
         self.T_liq, self.T_gas, self.m_liq, self.m_gas, self.T_wall_liq, self.T_wall_gas = y_new
 
+        print(f"t = {self.t:.3f} s  |  non eq: {self.T_liq:.3f}, {self.T_gas:.3f}, {self.m_liq:.3f}, {self.m_gas:.3f}, {self.T_wall_liq:.3f}, {self.T_wall_gas:.3f} ")
+
         # (4) iteratively solve P_tank to update thermodynamic properties in each node
-#NOTE: this is the liquid phase eqn! TODO: Ensure this still works
         self.rho_liq, self.rho_gas, self.P_tank = solve_thermo_params(self.T_liq, self.T_gas, self.m_liq, self.m_gas, self.rho_liq_prev, self.rho_gas_prev, self.V_tank)
 
         #update stored vals for RK est and volumes
