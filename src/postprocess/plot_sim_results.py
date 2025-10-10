@@ -88,7 +88,7 @@ def plot_sim_results(inputs, results: dict, mode: str, save_path: str = None):
             plot_series(time, {"m_ox_tank": results["m_ox_tank"]}, validation_data, "Tank Mass", "Mass [kg]")
 
             plt.subplot(1, 3, 3)
-            plot_series(time, {"m_dot_ox_tank": results["m_dot_ox_tank"]}, validation_data, "Mass Flow Rate", "kg/s")
+            plot_series(time, {"m_dot_ox": results["m_dot_ox"]}, validation_data, "Mass Flow Rate", "kg/s")
 
         elif inputs.ox_tank_model == 2:  # non-equilibrium
             plt.subplot(2, 2, 1)
@@ -98,7 +98,7 @@ def plot_sim_results(inputs, results: dict, mode: str, save_path: str = None):
             plot_series(time, {"m_ox_tank": results["m_ox_tank"]}, validation_data, "Tank Mass", "Mass [kg]")
 
             plt.subplot(2, 2, 3)
-            plot_series(time, {"m_dot_ox_tank": results["m_dot_ox_tank"]}, validation_data, "Mass Flow Rate", "kg/s")
+            plot_series(time, {"m_dot_ox": results["m_dot_ox"]}, validation_data, "Mass Flow Rate", "kg/s")
 
             plt.subplot(2, 2, 4)
             plot_series(time, {"T_liq_ox_tank": results["T_liq_ox_tank"],

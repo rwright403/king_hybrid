@@ -42,8 +42,10 @@ def run(input_file):
 
         # Save outputs into that folder
         build_rocketpy_input_csv(prop_results, "m_dot_ox", output_dir=case_dir)
-        build_rocketpy_input_csv(prop_results, "m_dot_fuel", output_dir=case_dir)
-        build_rocketpy_input_csv(prop_results, "thrust", output_dir=case_dir)
+        if kwargs["models_kwargs"]["fuel_tank_model"] is not None: 
+            build_rocketpy_input_csv(prop_results, "m_dot_fuel", output_dir=case_dir)
+        if kwargs["models_kwargs"]["cc_model"] != 3:
+            build_rocketpy_input_csv(prop_results, "thrust", output_dir=case_dir)
 
         plot_sim_results(program_input, prop_results, program_input.mode, program_input.save_path)
 

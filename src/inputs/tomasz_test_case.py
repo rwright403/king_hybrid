@@ -15,7 +15,7 @@ save_path = None
 
 # Environment
 timestep = 0.05         # [s]
-sim_time = 4.9            # [s]  
+sim_time = 0.1            # [s]  
 P_atm    = 101325       # [Pa]
 T_atm    = 296.0        # [K]  (approx lab ambient, adjust if needed)
 rho_atm  = 1.225        # [kg/m^3]
@@ -32,7 +32,7 @@ fuel_properties = None
 # ------------------------
 m_ox        = 0.180          # [kg] from Tomacz run
 P_ox_tank   = 5.2e6          # [Pa]
-V_tank      = 0.25 * 3.14159 * (0.040**2) * 0.220   # [m^3] from cylinder geometry
+V_ox_tank      = 0.25 * 3.14159 * (0.040**2) * 0.220   # [m^3] from cylinder geometry
 diam_in     = 0.040          # [m]
 diam_out    = 0.0475         # [m]
 rho_wall    = 2770           # [kg/m^3] Al6061
@@ -43,7 +43,7 @@ P_dot_err_tol  = 1e-3        # small tolerance for secant solve
 # ------------------------
 # Injector parameters
 # ------------------------
-Cd_inj   = 0.57#0.45
+Cd_inj_ox   = 0.57#0.45
 A_inj_ox = 1.76714E-06  # [m^2]
 A_inj_fuel = None  # no fuel injector
 
