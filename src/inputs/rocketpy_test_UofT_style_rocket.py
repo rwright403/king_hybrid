@@ -14,6 +14,7 @@ ox_tank_model = 2
 ox_inj_model  = 3   
 cc_model      = 1   # hybrid_cc_w_fuel_grain
 nozzle_model  = 1  
+drag_model    = 2
 
 # Global settings
 thrust_curve_graphs = True
@@ -22,7 +23,7 @@ save_path = None
 
 # Environment
 timestep = 0.005       # [s]
-sim_time = 0.02       # [s]
+sim_time = 6.2       # [s]
 P_atm    = 101325     # [Pa]
 T_atm    = 284.0      # [K]
 rho_atm  = 1.225      # [kg/m^3]

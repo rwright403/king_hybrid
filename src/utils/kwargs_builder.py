@@ -3,17 +3,7 @@ from rocketcea.cea_obj_w_units import CEA_Obj
 from rocketcea.cea_obj import add_new_fuel
 from src.utils.enum import FillType
 
-""" #TODO: DELETE
-@dataclass
-class SimInputs:
-    globals_kwargs: dict
-    C: object | None
-    ox_tank_kwargs: dict | None
-    ox_inj_kwargs: dict | None
-    fuel_tank_kwargs: dict | None
-    cc_kwargs: dict | None
-    nozzle_kwargs: dict | None
-"""
+
 
 def build_kwargs(cfg):
     """Takes a config module and returns kwargs dicts depending on hybrid vs liquid."""

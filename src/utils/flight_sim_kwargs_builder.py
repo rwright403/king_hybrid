@@ -2,6 +2,20 @@ import os
 import numpy as np
 import CoolProp.CoolProp as CP
 from rocketpy import Fluid, CylindricalTank
+from src.utils.model_registry import *
+
+def get_model(kind: str, code: int):
+    if kind == "D":
+        module_path = DRAG_MODEL_MAP.get(code)
+    else:
+        raise ValueError(f"Unknown model kind {kind}")
+    
+    if module_path is None:
+        raise ValueError(f"Model {code} is not defined in {kind} map")
+
+    module_path, class_name = module_path.rsplit(".", 1)
+    module = importlib.import_module(module_path)
+    return getattr(module, class_name)
 
 
 def build_flight_sim_kwargs(input_file, cfg):
@@ -30,6 +44,50 @@ def build_flight_sim_kwargs(input_file, cfg):
 
 
     # ------------------------
+    # Drag Model Setup
+    # ------------------------
+    #NOTE: need to build drag model in this scope
+
+    Cd_power_off = cfg.power_off_drag
+    Cd_power_on = cfg.power_on_drag       
+
+    if cfg.drag_model != 1:
+
+        dragClass = get_model("D", cfg.drag_model)
+            
+        if cfg.drag_model == 2:
+
+            """
+            drag_kwargs = dict(
+                L = cfg.L,                      
+                D = cfg.D,                      
+                fin_area = cfg.fin_area,
+                ref_area = cfg.ref_area,
+                N = cfg.N_fins,                 
+                rL = cfg.r_le,                  
+                GammaL = cfg.sweep_angle,       
+                Cr = cfg.c_root,  
+                hr = cfg.fin_te_thickness, 
+                tr = cfg.fin_thickness,  
+                S = cfg.fin_semispan,   
+                Ar_fins = cfg.fin_ref_area, 
+                R_s = cfg.surface_roughness,
+                rho = cfg.rho_atm,
+            )
+            """
+            drag_kwargs = dict(
+                x=2
+            )
+
+        drag_model = dragClass()
+
+        Cd_power_off = drag_model.make_drag_model(drag_kwargs)
+        Cd_power_on = drag_model.make_drag_model(drag_kwargs)
+
+    
+
+
+    # ------------------------
     # Rocket
     # ------------------------ 
     rocketpy_rocket_kwargs = dict(
@@ -37,8 +95,8 @@ def build_flight_sim_kwargs(input_file, cfg):
         rkt_motorless_mass=cfg.rkt_dry_mass,
         rkt_motorless_inertia=cfg.rkt_dry_inertia,
         rkt_motorless_cg=cfg.rkt_dry_cg,
-        power_off_drag=cfg.power_off_drag,
-        power_on_drag=cfg.power_on_drag,
+        power_off_drag=Cd_power_off,
+        power_on_drag=Cd_power_on,
         rkt_csys="tail_to_nose",
 
         upper_launch_lug_pos=cfg.upper_launch_lug_pos,
@@ -60,7 +118,7 @@ def build_flight_sim_kwargs(input_file, cfg):
         engine_cg=cfg.engine_cg
 
     )
-    #NOTE: WE ADD "fuel_tank_cg" if there is a fuel tank
+    #NOTE: WE ADD "fuel_tank_cg" if there is a fuel tank below with the rocketpy add tank function
 
 
 
@@ -116,7 +174,7 @@ def build_flight_sim_kwargs(input_file, cfg):
             gas_mass_flow_rate_out=0.0,
         )
 
-#NOTE: perturbed height a bit?
+
 
     # ------------------------
     # Decide: Hybrid vs Liquid

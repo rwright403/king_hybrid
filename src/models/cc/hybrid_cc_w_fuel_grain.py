@@ -72,14 +72,14 @@ class hybrid_cc_w_fuel_grain_model(BaseChamber):
         # --- Chamber mass balance (total)
         m_dot_cc = m_dot_ox_in + m_dot_fuel_in - m_dot_exit
 
-        print("m_dot_cc: ", m_dot_cc, m_dot_ox_in, m_dot_fuel_in, - m_dot_exit )
+        #print("m_dot_cc: ", m_dot_cc, m_dot_ox_in, m_dot_fuel_in, - m_dot_exit )
 
         # --- Chamber volume
         self.V_cc = self.L * A_port + self.V_pre_post_cc
         
 
 
-        print("V_cc: ", self.V_cc, (self.A_fuel_grain_od - A_port), self.A_fuel_grain_od, - A_port)
+        #print("V_cc: ", self.V_cc, (self.A_fuel_grain_od - A_port), self.A_fuel_grain_od, - A_port)
 
 
         # --- Gamma derivatives
@@ -119,7 +119,8 @@ class hybrid_cc_w_fuel_grain_model(BaseChamber):
         y_new = rk4_step(self.cc_ode_system_rk, 0.0, y0, self.timestep, m_dot_ox)
         self.r, self.m_cc, self.P_cc = y_new
 
+        print(f"             |  cc: {self.r:.3f}, {self.m_cc:.3f}, {self.P_cc:.0f}")
+
         _, out = self.cc_ode_system(0, y_new, m_dot_ox)
 
-        print("P_cc: ", self.P_cc, self.m_cc)
         return out

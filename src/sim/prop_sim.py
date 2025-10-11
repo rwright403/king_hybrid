@@ -138,8 +138,6 @@ def prop_sim(kwargs: dict):
             cc_out   = {"P_cc": P_cc, "thrust": 0.0, "m_dot_fuel": 0.0}
 
             while t < sim_time:
-                print("time: ", t)
-
                 if ox_tank:
                     ox_out = ox_tank.inst(P_cc) or ox_out
                 if fuel_tank:

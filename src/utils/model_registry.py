@@ -29,16 +29,20 @@ NOZZLE_MODEL_MAP = {
     1: "src.models.nozzle.basic_nozzle.basic_nozzle_model",
 }
 
+DRAG_MODEL_MAP = {
+    1: "",
+    2: "src.models.drag.barrowman.barrowman",
+}
 
 def _load_class(path: str):
-    """Dynamically load a class from a 'module.ClassName' string."""
+    #Dynamically load a class from a 'module.ClassName' string.
     module_path, class_name = path.rsplit(".", 1)
     module = importlib.import_module(module_path)
     return getattr(module, class_name)
 
 
 def get_model(kind: str, code: int):
-    """Return the class constructor for a model type (T/I/C/N/F)."""
+    #Return the class constructor for a model type (T/I/C/N/F).
     if kind == "T":
         return _load_class(OX_TANK_MODEL_MAP[code])
     if kind == "F":
@@ -50,4 +54,3 @@ def get_model(kind: str, code: int):
     if kind == "N":
         return _load_class(NOZZLE_MODEL_MAP[code])
     raise ValueError(f"Unknown model kind {kind}")
-

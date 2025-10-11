@@ -96,4 +96,8 @@ Always create a new branch for edits (git checkout -b <branch_name>).
 
 Ryan Wright, From Calgary, Alberta, Canada   
 
-<!-- source venv/bin/activate -->
+<!-- 
+source venv/bin/activate 
+uvr working link: https://github.com/UVicRocketry/uvr_hybrid_modelling_v2
+
+-->
