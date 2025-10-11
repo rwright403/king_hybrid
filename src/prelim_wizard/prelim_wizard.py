@@ -466,20 +466,24 @@ def magic(inputs):
         selected_P_ox_tank = float(input("Pick and Enter Oxidizer Tank Pressure (Bar): "))*1e5
 
     selected_P_fuel_tank = 0
-    while(selected_P_fuel_tank == 0):
-        selected_P_fuel_tank = float(input("Pick and Enter Fuel Tank Pressure (Bar): "))*1e5
+    if hasattr(inputs, "fuel_tank_model"):
+        while(selected_P_fuel_tank == 0):
+            selected_P_fuel_tank = float(input("Pick and Enter Fuel Tank Pressure (Bar): "))*1e5
 
 
     #estimate injector area!!!!
     print(f"estimating reqiured injector areas for fuel and oxidizer assuming a Cd of {inputs.Cd_est} and SPI model")
     
     #estimate propellant densities with coolprop
-    rho_fuel = CP.PropsSI('D', 'P', selected_P_fuel_tank, 'T', 275, inputs.fuel_name)
-    rho_oxidizer = CP.PropsSI('D', 'P', selected_P_fuel_tank, 'T', 275, inputs.oxidizer_name)
+    rho_oxidizer = CP.PropsSI('D', 'P', selected_P_ox_tank, 'T', 275, inputs.oxidizer_name)
+    rho_fuel = 900 #kg/m
+    if hasattr(inputs, "fuel_tank_model"):
+        rho_fuel = CP.PropsSI('D', 'P', selected_P_fuel_tank, 'T', 275, inputs.fuel_name)
     
     A_ox_inj = m_dot_ox / (inputs.Cd_est*np.sqrt(2*rho_oxidizer*(selected_P_ox_tank-selected_Pcc)))
-
-    A_fuel_inj = m_dot_fuel / (inputs.Cd_est*np.sqrt(2*rho_fuel*(selected_P_fuel_tank-selected_Pcc)))
+    A_fuel_inj = None
+    if hasattr(inputs, "fuel_tank_model"):
+        A_fuel_inj = m_dot_fuel / (inputs.Cd_est*np.sqrt(2*rho_fuel*(selected_P_fuel_tank-selected_Pcc)))
     
     ### Finally, print a summary of the results
 
@@ -496,56 +500,7 @@ def magic(inputs):
     print(f"Preliminary Injector Solved by Assuming Fuel and Oxidizer Orifices Follow SPI Model and a Cd guess of {inputs.Cd_est}")
     print(f"Oxidizer Injector Discharge Area: {A_ox_inj} (m^2), Fuel Injector Discharge Area {A_fuel_inj} (m^2)")
     print("------------\n")
-    
-    """
-    confirm = 0
-    while(confirm == 0):
-        confirm = float(input("Copy Results into input file? (Confirm -->'Y' /Any Other Char to Exit)"))
 
-        if((confirm != 'Y') or (confirm != 'y')):
-            exit()
-
-        else:
-            #TODO: Implement
-
-            #2 --> adiabatic_lre_cc
-            
-
-            oxidizer_name = oxidizer_name
-            fuel_name = fuel_name
-            A_throat = 0.00102028641 #m^2
-            A_exit = 0.00527334324 #m^2
-            P_atm = P_atm
-            TIMESTEP = timestep
-            
-            # 1 --> bens_ox_tank
-            #
-
-            oxName = oxidizer_name
-            timestep = timestep 
-            m_ox = 4.48 #kg 
-            #NOTE: GUESSING Cd
-            C_inj_1 =  0.35 * 0.00007471705 #1* 0.00001735222#(num_orifices * Cd * orifice_diam) Note: guessing Cd of 0.6, NOTE: when it doesnt work this is why :)
-            V_tank = 6.4e-3 # - from report: "5.8L of nos in a 6.4L tank"
-            P_tank = 5.171e6 #Pa
-            P_atm = P_atm 
-            all_error = 0.01
-
-            #simpleAdiabaticPressurizedTank
-            #
-            pressurant_name = pressurant_name
-            m_pressurant  = 0.12 #NOTE: estimated for now based on volume they gave in report, should i change inputs to this model?
-            fuel_name = fuel_name #NOTE: This might not work, assuming 100% when they used 95% as well
-            m_fuel = 1.12 #kg 
-            P_fueltank = 4.82633e6 #Pa
-            ID_PROPTANK = 0.0254*5 #m 
-            V_tank_2 = 2.16e-3 #m^3
-            C_inj_2 = 0.6*0.0000136284 #m^2
-            T_amb = T_amb
-            TIMESTEP = timestep
-    """
-
-    #update variables in input file!!!!
 
 
 
