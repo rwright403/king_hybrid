@@ -92,6 +92,10 @@ Always create a new branch for edits (git checkout -b <branch_name>).
 | [26]  | Liquid Rocket Propulsion Instability | trying to understand instability for prelim/detail design |
 | [27]  | AGARD Heat Transfer in Rocket Engines | Estimating Heat Transfer in Injector | https://apps.dtic.mil/sti/trecms/pdf/AD0733362.pdf |
 | [28]  | Liquid Rocket Engine Injectors | | https://ntrs.nasa.gov/api/citations/19760023196/downloads/19760023196.pdf |
+| [29]  | MIT Rocket Team learning topic 6: injector design | looking at another team's design process | https://wikis.mit.edu/confluence/display/RocketTeam/Topic+6%3A+Injector+Design |
+| [30]  | Experimental Investigation of Showerhead injectors on
+Performance of a 1-kN Paraffin-Fueled Hybrid Rocket Motor | Sauter Mean Diameter | https://www.eucass.eu/component/docindexer/?task=download&id=5781|
+| [31]  | Barrowman Thesis | Drag model | http://www.rsandt.com/media/BarrowmanThesis.pdf |
 
 
 Ryan Wright, From Calgary, Alberta, Canada   
