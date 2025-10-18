@@ -69,6 +69,9 @@ def plot_series(time, results_dict, validation_dict=None, title=None, ylabel=Non
 def plot_sim_results(inputs, results: dict, mode: str, save_path: str = None):
     time = results["time"]
 
+    #print("Keys in results:", list(results.keys()))
+
+
     # Load validation if available
     validation_data = None
     if getattr(inputs, "validation_files", None):
@@ -90,6 +93,13 @@ def plot_sim_results(inputs, results: dict, mode: str, save_path: str = None):
             plt.subplot(1, 3, 3)
             plot_series(time, {"m_dot_ox": results["m_dot_ox"]}, validation_data, "Mass Flow Rate", "kg/s")
 
+            # Save/show
+            if save_path:
+                plt.savefig(save_path, dpi=300, bbox_inches="tight")
+            plt.show()
+
+
+
         elif inputs.ox_tank_model == 2:  # non-equilibrium
             plt.subplot(2, 2, 1)
             plot_series(time, {"P_ox_tank": results["P_ox_tank"]}, validation_data, "Tank Pressure", "Pressure [Pa]")
@@ -105,12 +115,22 @@ def plot_sim_results(inputs, results: dict, mode: str, save_path: str = None):
                                "T_sat_ox_tank": results["T_sat_ox_tank"],
                                "T_gas_ox_tank": results["T_gas_ox_tank"]
                                }, validation_data, "Temperature", "K")
+        
+            # Save/show
+            if save_path:
+                plt.savefig(save_path, dpi=300, bbox_inches="tight")
+            plt.show()
 
 
 
     elif mode == "fuel_tank":
         plt.subplot(1, 1, 1)
         plot_series(time, {"P_fuel_tank": results["P_fuel_tank"]}, validation_data, "Fuel Tank Pressure", "Pressure [Pa]")
+        
+        # Save/show
+        if save_path:
+            plt.savefig(save_path, dpi=300, bbox_inches="tight")
+        plt.show()
 
     elif mode == "full_stack":
         plt.subplot(1, 2, 1)
@@ -123,7 +143,29 @@ def plot_sim_results(inputs, results: dict, mode: str, save_path: str = None):
             "P_cc": results["P_cc"],
         }, validation_data, "System Pressures", "Pressure [Pa]")
 
-    # Save/show
-    if save_path:
-        plt.savefig(save_path, dpi=300, bbox_inches="tight")
-    plt.show()
+        # Save/show
+        if save_path:
+            plt.savefig(save_path, dpi=300, bbox_inches="tight")
+        plt.show()
+
+        ### Additional plots for hybrid
+
+        if "OF" in results.columns and "G_ox" in results.columns:  # Hybrid engine path
+            OF = results["OF"]
+            G_ox = results["G_ox"]
+
+            plt.subplot(1, 2, 1)
+            plt.plot(time, OF, label="OF Ratio", color="tab:blue", linewidth=2)
+            plt.xlabel("Time (s)")
+            plt.ylabel("OF Ratio")
+            plt.title("O/F Shift Over Grain Burn Time:")
+            plt.legend()
+
+            plt.subplot(1, 2, 2)
+            plt.plot(time, G_ox, label="Port Mass Flux vs Time", color="tab:red", linewidth=2)
+            plt.xlabel("Time (s)")
+            plt.ylabel("Port Flux (kg/(m s^2))")
+            plt.title("Oxidizer Port Mass Flux vs Time")
+            plt.legend()
+
+            plt.show()

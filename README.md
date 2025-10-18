@@ -12,6 +12,9 @@ This file takes input in the form of a python module file.
 
 Ensure the terminal is in the directory this file is in:  #python3 -m src <filename of a desired python module file without the .py>
 
+also for using a virtual environment called venv
+activate with: source venv/bin/activate
+
 The inputs folder contains the input files where the user can update the inputs the program uses.
 
 The analysis_mode list in the input file selects which models are active.

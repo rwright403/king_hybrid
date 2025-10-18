@@ -31,18 +31,10 @@ def engine_overview(program_input, results, mode):
         print(f"Total Mass Expended:        {total_mass_expended:.4f} kg")
         print(f"Specific Impulse (I_sp):    {Isp:.2f} s")
         print(f"Peak Thrust:                {peak_thrust:.2f} N")
-        print(f"Burn Time:                  {program_input.sim_time:.2f} s, (simulated time)")
+        print(f"Burn Time:                  {program_input.sim_time:.2f} s, (time defined in input file: sim_time)")
 
 
-        if getattr(program_input, "fuel_tank_model", None) is None:  # Hybrid engine path
-            OF = results["OF"]
 
-            plt.plot(time, OF, label="OF Ratio", color="tab:blue", linewidth=2)
-            plt.xlabel("Time (s)")
-            plt.ylabel("OF Ratio")
-            plt.title("O/F Shift Over Grain Burn Time:")
-            plt.legend()
-            plt.show()
 
 
 # test harness:

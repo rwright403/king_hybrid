@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import CoolProp.CoolProp as CP
-from rocketpy import Fluid, CylindricalTank
+from uvicrocketpy import Fluid, CylindricalTank
 from src.utils.model_registry import *
 
 def get_model(kind: str, code: int):
@@ -48,41 +48,28 @@ def build_flight_sim_kwargs(input_file, cfg):
     # ------------------------
     #NOTE: need to build drag model in this scope
 
-    Cd_power_off = cfg.power_off_drag
-    Cd_power_on = cfg.power_on_drag       
-
-    if cfg.drag_model != 1:
-
-        dragClass = get_model("D", cfg.drag_model)
+    make_drag_func = get_model("D", cfg.drag_model)
+    if cfg.drag_model == 1:
+        power_off_func = make_drag_func(cfg.power_off_drag)
+        power_on_func = make_drag_func(cfg.power_on_drag)
             
-        if cfg.drag_model == 2:
+    elif cfg.drag_model == 2:
+        power_off_func = make_drag_func(
+            fuse_od= 2*cfg.fuselage_radius,
+            nose_length= cfg.nose_length,
+            nose_position= cfg.nose_position,
+            fins_n= cfg.fins_n,
+            fins_span= cfg.fins_span,
+            fins_root_chord= cfg.fins_root_chord,
+            fins_tip_chord= cfg.fins_tip_chord,
+            gamma_LE_sweep=cfg.gamma_LE_sweep,
+            tr=cfg.fin_root_thickness,
+        )
+                
+        power_on_func = power_off_func
 
-            """
-            drag_kwargs = dict(
-                L = cfg.L,                      
-                D = cfg.D,                      
-                fin_area = cfg.fin_area,
-                ref_area = cfg.ref_area,
-                N = cfg.N_fins,                 
-                rL = cfg.r_le,                  
-                GammaL = cfg.sweep_angle,       
-                Cr = cfg.c_root,  
-                hr = cfg.fin_te_thickness, 
-                tr = cfg.fin_thickness,  
-                S = cfg.fin_semispan,   
-                Ar_fins = cfg.fin_ref_area, 
-                R_s = cfg.surface_roughness,
-                rho = cfg.rho_atm,
-            )
-            """
-            drag_kwargs = dict(
-                x=2
-            )
 
-        drag_model = dragClass()
 
-        Cd_power_off = drag_model.make_drag_model(drag_kwargs)
-        Cd_power_on = drag_model.make_drag_model(drag_kwargs)
 
     
 
@@ -95,8 +82,8 @@ def build_flight_sim_kwargs(input_file, cfg):
         rkt_motorless_mass=cfg.rkt_dry_mass,
         rkt_motorless_inertia=cfg.rkt_dry_inertia,
         rkt_motorless_cg=cfg.rkt_dry_cg,
-        power_off_drag=Cd_power_off,
-        power_on_drag=Cd_power_on,
+        power_off_drag=power_off_func,
+        power_on_drag=power_on_func,
         rkt_csys="tail_to_nose",
 
         upper_launch_lug_pos=cfg.upper_launch_lug_pos,

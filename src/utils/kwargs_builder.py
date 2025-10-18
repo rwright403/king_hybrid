@@ -66,7 +66,7 @@ def build_kwargs(cfg):
     if models_kwargs["ox_tank_model"] == 1:
         ox_tank_kwargs = dict(
             m_ox=cfg.m_ox,
-            V_tank=cfg.V_tank,
+            V_tank=cfg.V_ox_tank,
             P_tank=cfg.P_ox_tank,
             P_atm=cfg.P_atm,
             all_error=cfg.volume_err_tol,

@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 
-from rocketpy import Rocket, Flight, HybridMotor, LiquidMotor, MassFlowRateBasedTank
+from uvicrocketpy import Rocket, Flight, HybridMotor, LiquidMotor, MassFlowRateBasedTank
 
 
 def flight_sim(kwargs):
