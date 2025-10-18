@@ -109,7 +109,7 @@ class hybrid_cc_w_fuel_grain_model(BaseChamber):
         
 
 
-        return [r_dot, m_dot_cc, P_dot], {"P_cc": P_cc, "thrust": instThrust, "m_dot_fuel": m_dot_fuel_in, "m_dot_cc": m_dot_cc_propellant_in}
+        return [r_dot, m_dot_cc, P_dot], {"P_cc": P_cc, "thrust": instThrust, "m_dot_fuel": m_dot_fuel_in, "m_dot_cc": m_dot_cc_propellant_in, "OF": OF}
 
     def cc_ode_system_rk(self, t, y, m_dot_ox):
         out, _ = self.cc_ode_system(t, y, m_dot_ox)

@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 def engine_overview(program_input, results, mode):
 
@@ -24,6 +25,7 @@ def engine_overview(program_input, results, mode):
         # Compute specific impulse
         Isp = total_impulse / (g0 * total_mass_expended)
 
+
         print(f"\n\n--- ENGINE PERFORMANCE OVERVIEW ---")
         print(f"Total Impulse (I_t):        {total_impulse:.2f} N·s")
         print(f"Total Mass Expended:        {total_mass_expended:.4f} kg")
@@ -32,13 +34,19 @@ def engine_overview(program_input, results, mode):
         print(f"Burn Time:                  {program_input.sim_time:.2f} s, (simulated time)")
 
 
+        if getattr(program_input, "fuel_tank_model", None) is None:  # Hybrid engine path
+            OF = results["OF"]
+
+            plt.plot(time, OF, label="OF Ratio", color="tab:blue", linewidth=2)
+            plt.xlabel("Time (s)")
+            plt.ylabel("OF Ratio")
+            plt.title("O/F Shift Over Grain Burn Time:")
+            plt.legend()
+            plt.show()
+
+
 # test harness:
 
-
-
-# -----------------------
-# Test harness section
-# -----------------------
 """
 import os
 import glob
