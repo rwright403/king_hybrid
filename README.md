@@ -99,7 +99,7 @@ Always create a new branch for edits (git checkout -b <branch_name>).
 | [30]  | Experimental Investigation of Showerhead injectors on
 Performance of a 1-kN Paraffin-Fueled Hybrid Rocket Motor | Sauter Mean Diameter | https://www.eucass.eu/component/docindexer/?task=download&id=5781|
 | [31]  | Barrowman Thesis | Drag model | http://www.rsandt.com/media/BarrowmanThesis.pdf |
-
+| [32]  | Rocketpy | flight model | https://rocketpy-team.github.io/ |
 
 Ryan Wright, From Calgary, Alberta, Canada   
 
