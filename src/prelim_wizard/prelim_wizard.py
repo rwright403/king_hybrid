@@ -219,8 +219,6 @@ def magic(inputs):
     Cf_opt = np.sqrt( ((2*y**2)/(y-1)) * ( (2/(y+1))**((y+1)/(y-1)) ) * (1- (P_exit/selected_Pcc)**((y-1)/y)) ) 
 
     #NOTE: start calculate impulse and rocket dry mass with spreadsheet line of best fit eqn
-    It_est = None
-    rocket_dry_mass = None
     
     if hasattr(inputs, "fuel_tank_model"):
         """
@@ -254,7 +252,6 @@ def magic(inputs):
         # Plot the thrust curve
         plt.plot(time, thrust, label=f't={t}, Throat Diam={39.3701*(np.sqrt(4*A_throat/np.pi))} (in)')
 
-    print("The following solved by assuming ideal expansion (calculated at 2/3rds altitude) occurs throughout burn.\nThis is a good assumption for low altitude suborbital rockets")
 
     min_start_thrust = (rocket_dry_mass*9.81) * inputs.min_TW_ratio
     print(f"For reference: to achieve the estimated min_start_thrust of {inputs.min_TW_ratio}, need a starting thrust of {min_start_thrust:.2f} (N).")
@@ -345,7 +342,7 @@ def magic(inputs):
 
     # --- local helpers (fine to be nested) ---
     def P_atm(h):
-        """Your ISA-ish model (Pa)."""
+        """ISA-ish model (Pa)."""
         t = 15.04 - 0.00649*h  # Celsius
         return 1000.0 * 101.29 * ((t + 273.1) / 288.08)**5.256
 
@@ -490,17 +487,17 @@ def magic(inputs):
     isp = C.get_Isp(Pc=selected_Pcc, MR=selected_OF, eps=expratio, frozen=0, frozenAtThroat=0)
     c_star = C.get_Cstar(Pc=selected_Pcc, MR=selected_OF)
 
-    print(f"\n\n\n------------\nPreliminary Design Summary:\n------------\nPerformance:\n------------\nSpecific Impulse: {isp} (s)\nCharacteristic Velocity: {c_star}(m/s)")
+    print(f"\n\n\n############\nPreliminary Design Summary:\n############\n\n")
+    print(f"Performance:\n------------\nSpecific Impulse: {isp} (s)\nCharacteristic Velocity: {c_star} (m/s)\nBurn Time: {selected_tburn} (s)\nRocket Dry Mass: {rocket_dry_mass} (kg)\nTotal Impulse: {It_est} (N s)\n")
     print(f"Combustion Chamber:\n------------\nP_cc: {selected_Pcc} (Pa)\nO/F Ratio: {selected_OF}")
     print(f"Flame Temperature: {T_cc}\nRatio of Specific Heats: {y}\nReactant Gas Const. {R} (J/(kg K))")
-    print(f"Total Impulse: {It_est} (N s)\nAverage Thrust {thrust} (N)\nMass Flow Rate {m_dot_cc} (kg/s)\nExit Velocity: {v_exit} (m/s)\nBurn Time {selected_tburn} (s)")
+    print(f"Average Thrust: {thrust} (N)\nMass Flow Rate: {m_dot_cc} (kg/s)\nExit Velocity: {v_exit} (m/s)")
     print(f"Expansion Ratio: {expratio}\nThroat Diameter {throat_diam} (in)\n")
     print(f'Feed System:\n------------\nEstimated Mass Fraction: {inputs.mass_fraction_estimate}\nFuel Mass: {m_fuel} (kg)\nOxidizer Mass: {m_ox} (kg)')
     print(f"Oxidizer Tank Pressure: {selected_P_ox_tank} (Pa)\nFuel Tank Pressure: {selected_P_fuel_tank} (Pa)")
     print(f"Preliminary Injector Solved by Assuming Fuel and Oxidizer Orifices Follow SPI Model and a Cd guess of {inputs.Cd_est}")
-    print(f"Oxidizer Injector Discharge Area: {A_ox_inj} (m^2), Fuel Injector Discharge Area {A_fuel_inj} (m^2)")
-    print("------------\n")
-
+    print(f"Oxidizer Injector Discharge Area: {A_ox_inj} (m^2), Fuel Injector Discharge Area {A_fuel_inj} (m^2)\n")
+    print(f"\n\n DONE SIZING WIZARD, COPY/PASTE ^ INTO AN INPUT MODULE")
 
 
 
