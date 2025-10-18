@@ -9,6 +9,7 @@ from src.sim.prop_sim import prop_sim
 from src.sim.flight_sim import flight_sim
 from src.prelim_wizard import prelim_wizard
 from src.sensitivity_analysis import sensitivity_analysis
+from src.postprocess.engine_overview import engine_overview
 from src.postprocess.plot_sim_results import plot_sim_results
 from src.utils.build_rocketpy_input_csv import build_rocketpy_input_csv
 
@@ -54,7 +55,9 @@ def run(input_file):
             build_rocketpy_input_csv(prop_results, "m_dot_fuel", output_dir=case_dir)
         if kwargs["models_kwargs"]["cc_model"] != 3:
             build_rocketpy_input_csv(prop_results, "thrust", output_dir=case_dir)
+            build_rocketpy_input_csv(prop_results, "m_dot_cc", output_dir=case_dir)
 
+        engine_overview(program_input, prop_results, program_input.mode)
         plot_sim_results(program_input, prop_results, program_input.mode, program_input.save_path)
 
     if user_input =='2':

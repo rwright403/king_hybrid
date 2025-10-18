@@ -60,7 +60,7 @@ if __name__ == "__main__":
     u_1 = CP.PropsSI("U", "T", T_1, "Q", 0, fluid)
 
     # Slightly pressurized above saturation (subcooled liquid)
-    P_1 = 1.05 * P_sat
+    P_1 =P_sat
 
     # Sweep downstream pressures
     P_2_arr = np.linspace(P_1*0.99, P_1*0.05, 80)

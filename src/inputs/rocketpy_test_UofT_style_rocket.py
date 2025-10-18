@@ -23,7 +23,7 @@ save_path = None
 
 # Environment
 timestep = 0.005       # [s]
-sim_time = 6.2       # [s]
+sim_time = 0.2       # [s]
 P_atm    = 101325     # [Pa]
 T_atm    = 284.0      # [K]
 rho_atm  = 1.225      # [kg/m^3]
