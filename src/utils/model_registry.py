@@ -30,8 +30,8 @@ NOZZLE_MODEL_MAP = {
 }
 
 DRAG_MODEL_MAP = {
-    1: "",
-    2: "src.models.drag.barrowman.barrowman",
+    1: "src.models.drag.rktpy_std_1D_csv_wrapper.make_drag_func",
+    2: "src.models.drag.barrowman.make_drag_func",
 }
 
 def _load_class(path: str):

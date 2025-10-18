@@ -102,7 +102,7 @@ env = Environment(latitude=47.966527, longitude=-81.87413, elevation=1383.4)
 env.set_date((flight_date.year, flight_date.month, flight_date.day, 0))
 env.set_atmospheric_model(type="custom_atmosphere", wind_v=0.0, wind_u=0.0)
 
-rail_length = 10
+rail_length = 10 #[m] #NOTE: THIS IS NOT THE LC DEFAULT RAIL LENGTH
 inclination = 85
 heading = 90
 
@@ -124,10 +124,12 @@ nose_kind = "vonKarman"
 nose_position = 4.947
 
 fins_n = 3
-fins_span = 0.25 #0.115
+fins_span = 0.115
 fins_root_chord = 0.4
 fins_tip_chord = 0.2
 fins_position = 0.175
+gamma_LE_sweep= 15             # [degrees]
+fin_root_thickness=1e-3        # [m]
 
 ### NOTE: is this cg or location actually??
 ox_tank_cg = 2.2
