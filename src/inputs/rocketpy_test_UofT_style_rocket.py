@@ -23,7 +23,7 @@ save_path = None
 
 # Environment
 timestep = 0.005       # [s]
-sim_time = 0.2       # [s]
+sim_time = 5.0       # [s]
 P_atm    = 101325     # [Pa]
 T_atm    = 284.0      # [K]
 rho_atm  = 1.225      # [kg/m^3]
@@ -124,7 +124,7 @@ nose_kind = "vonKarman"
 nose_position = 4.947
 
 fins_n = 3
-fins_span = 0.115
+fins_span = 0.25 #0.115
 fins_root_chord = 0.4
 fins_tip_chord = 0.2
 fins_position = 0.175

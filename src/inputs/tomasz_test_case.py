@@ -71,5 +71,5 @@ validation_files = {
     "P_cc": "src/inputs/tomasz_test_case/tomasz_test_case_CC_Pressure.csv",
     "P_ox_tank": "src/inputs/tomasz_test_case/tomasz_test_case_Ox_Tank_Pressure.csv",
     "m_ox_tank": "src/inputs/tomasz_test_case/tomasz_test_case_m.csv",
-    "m_dot_ox_tank": "src/inputs/tomasz_test_case/tomasz_test_case_m_dot.csv"
+    "m_dot_ox": "src/inputs/tomasz_test_case/tomasz_test_case_m_dot.csv"
 }
