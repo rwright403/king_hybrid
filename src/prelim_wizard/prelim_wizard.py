@@ -497,11 +497,92 @@ def magic(inputs):
     print(f"Oxidizer Tank Pressure: {selected_P_ox_tank} (Pa)\nFuel Tank Pressure: {selected_P_fuel_tank} (Pa)")
     print(f"Preliminary Injector Solved by Assuming Fuel and Oxidizer Orifices Follow SPI Model and a Cd guess of {inputs.Cd_est}")
     print(f"Oxidizer Injector Discharge Area: {A_ox_inj} (m^2), Fuel Injector Discharge Area {A_fuel_inj} (m^2)\n")
+
+
+    # forgot to size tanks my bad:
+    if hasattr(inputs, "fuel_tank_model"):
+        V_fuel = m_fuel / rho_fuel  # m^3
+
+        #NOTE: BAD CODE INPUTS HERE AGILE
+        ullage_fraction = 0.15
+        fluid_gas = "Nitrogen"  # ullage gas
+
+        # --- Compute total tank volume including ullage ---
+        R_univ = 8.314462618  # J/(mol·K)
+        M_molar = CP.PropsSI('M','Nitrogen')  # kg/mol
+        R_specific = R_univ / M_molar      # J/(kg·K)
+
+        V_tank = V_fuel / (1 - ullage_fraction)
+        V_ullage = V_tank - V_fuel
+
+        # --- Compute mass of pressurant using ideal gas law ---
+        m_pressurant = selected_P_fuel_tank * V_ullage / (R_specific * 0.5*(T_min+T_max))
+
+        # --- Temperature range ---
+        T_range = np.linspace(273, 323, 100)  # K, e.g., 0°C to 50°C
+
+        # --- Compute pressure at each temperature ---
+        P = m_pressurant * R_specific * T_range / V_ullage  # Pa
+
+        # --- Plot ---
+        plt.figure(figsize=(8,5))
+        plt.plot(T_range-273.15, P/1e5, color='blue')  # x in °C, y in bar
+        plt.xlabel("Temperature [°C]")
+        plt.ylabel("Nitrogen Pressure [bar]")
+        plt.title("Ullage Gas Pressure vs Temperature")
+        plt.grid(True)
+        plt.show()
+
+
+
+
+    if inputs.oxidizer_name  == "N2O":
+
+        # Parameters
+        fluid = "N2O"
+        V_min = m_ox / CP.PropsSI("D","T",T_max,"Q",0,fluid)  # min tank volume
+        V_max = V_min * 1.75
+        V_points = np.linspace(V_min, V_max, 100)
+        T_points = np.linspace(T_min, T_max, 100)
+
+        # Compute 2D FF array
+        FF = np.zeros((len(T_points), len(V_points)))
+        P = np.zeros_like(FF)
+
+        for i, T in enumerate(T_points):
+            rho_liq = CP.PropsSI("D","T",T,"Q",0,fluid)
+            V_liq = m_ox / rho_liq
+            P[i,:] = CP.PropsSI("P","T",T,"Q",0,fluid)
+            FF[i,:] = V_liq / V_points  # FF for all candidate tank volumes at this T
+
+        # Plot as color map
+        fig, ax = plt.subplots(figsize=(8,5))
+        c = ax.pcolormesh(V_points, P/1e6, FF, cmap='plasma', shading='auto')  # Pressure in MPa
+        # Move colorbar to the very right of the figure
+        cbar = fig.colorbar(c, ax=ax, orientation='vertical', fraction=0.015, pad=0.02)
+        cbar.set_label("Fill Fraction (FF)")
+
+        ax.set_xlabel("Tank Volume [m^3]")
+        ax.set_ylabel("Pressure [MPa]")
+        ax.set_title("Nitrous Tank Volume vs Pressure Color Map (Fill Fraction)")
+
+        # Compute pressures for T_min and T_max
+        P_min = CP.PropsSI("P","T",T_min,"Q",0,fluid) / 1e6  # MPa
+        P_max = CP.PropsSI("P","T",T_max,"Q",0,fluid) / 1e6  # MPa
+
+        # Draw horizontal dashed lines
+        ax.hlines([P_min, P_max], V_min, V_max, colors='red', linestyles='dashed')
+
+        # Add labels at the right end of the lines
+        ax.text(V_max*1.01, P_min, f'T_min = {T_min-273.15:.1f} °C', va='center', color='red')
+        ax.text(V_max*1.01, P_max, f'T_max = {T_max-273.15:.1f} °C', va='center', color='red')
+
+        print("\nUse the graph to estimate the tank volume. Note fill fraction = V_liq/V_tank.\nWe want a tank that isn't too big (long fill time)\nbut we don't want our fill fraction to be too high (overpressurization risk if temp increases)")
+
+        plt.show()
+
+
     print(f"\n\n DONE SIZING WIZARD, COPY/PASTE ^ INTO AN INPUT MODULE")
-
-
-
-
 
 
 
