@@ -75,7 +75,7 @@ class adiabatic_lre_cc_model(BaseChamber):
         #print("vars: ", m_dot_exit, OF, P_dot, ((gamma-1)/self.V_cc)*m_dot_cc*cp*T_cc, (P_cc/((self.V_cc-1)*max(m_fuel, 1e-6)))*dgamma_dOF*(m_dot_ox_in-OF*m_dot_fuel_in) )
 
 
-        return [m_dot_cc, P_dot], {"P_cc": P_cc, "thrust": instThrust, "m_dot_cc": m_dot_cc_propellant_in}
+        return [m_dot_cc, P_dot], {"P_cc": P_cc, "thrust": instThrust, "m_dot_cc": m_dot_cc_propellant_in, "OF": OF, "G_ox": 0.0}
 
     def cc_ode_system_rk(self, t, y, m_dot_ox, m_dot_fuel):
         out, _ = self.cc_ode_system(t, y, m_dot_ox, m_dot_fuel)
@@ -90,7 +90,7 @@ class adiabatic_lre_cc_model(BaseChamber):
 
         _, out = self.cc_ode_system(0, y_new, m_dot_ox, m_dot_fuel)
 
-        print("P_cc: ", self.P_cc, self.m_cc)
+        #print("P_cc: ", self.P_cc, self.m_cc)
         return out
 
 

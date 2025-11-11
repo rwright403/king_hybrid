@@ -229,7 +229,7 @@ class pressurized_liq_fuel_tank(BaseTank):
         m_dot_liq_wall = self.rho_wall*(0.25*np.pi*height_dot*((self.diam_out**2)-(self.diam_in**2)))  #BUG: this might be a bit unstable w runge kutta steps?
         m_dot_gas_wall = -m_dot_liq_wall
 
-        print("V_dot_fuel: ", V_dot_fuel)
+        #print("V_dot_fuel: ", V_dot_fuel)
 
         ### solve 
         #NOTE: for T_dot_wall_liq:  IN: (6)      OUT: (4) AND (8)
@@ -244,7 +244,7 @@ class pressurized_liq_fuel_tank(BaseTank):
         U_dot_fuel = m_dot_fuel*h_fuel - P_tank*V_dot_fuel + Q_dot_fuel
         U_dot_pres = (-1)*P_tank*(-1*V_dot_fuel) + Q_dot_pres #NOTE: V_dot_pres = (-1)*V_dot_fuel
 
-        print("U_dot_pres: ", U_dot_pres , (-1)*P_tank*(-1*V_dot_fuel) , Q_dot_pres )
+        #print("U_dot_pres: ", U_dot_pres , (-1)*P_tank*(-1*V_dot_fuel) , Q_dot_pres )
 
 
         T_dot_fuel = (U_dot_fuel - u_fuel*m_dot_fuel)/(m_fuel*cv_fuel)
@@ -257,7 +257,7 @@ class pressurized_liq_fuel_tank(BaseTank):
         T_dot_pres = (1/cv_pres)*( (1/self.m_pres) * (U_dot_pres) - (du_drho_const_T_pres * rho_dot_pres) )
 
 
-        print("T_dot_pres: ", T_dot_pres, (1/self.m_pres) * (U_dot_pres), - (du_drho_const_T_pres * rho_dot_pres) )
+        #print("T_dot_pres: ", T_dot_pres, (1/self.m_pres) * (U_dot_pres), - (du_drho_const_T_pres * rho_dot_pres) )
 
         return [T_dot_fuel, T_dot_pres, m_dot_fuel, T_dot_wall_fuel, T_dot_wall_pres, rho_dot_pres]
 
@@ -330,7 +330,7 @@ class pressurized_liq_fuel_tank(BaseTank):
             return self.system_of_fuel_pres_odes(t, y, P_cc)
         else:
             # fuel fully drained from tank
-            print("gas phase!")
+            #print("gas phase!")
 
             return [self.T_fuel, self.T_pres, self.m_fuel, self.T_wall_fuel, self.T_wall_pres, 0.0] #NOTE: rho_dot_pres = 0.0 (density not changing just holding tank const)
 
@@ -351,6 +351,8 @@ class pressurized_liq_fuel_tank(BaseTank):
         self.state["P_2"] = P_cc
         m_dot_fuel = self.injector.m_dot(self.state)
 
-        return {"P_fuel_tank": self.P_tank, "m_dot_fuel_tank": m_dot_fuel, "m_fuel": self.m_fuel}
+        print(f"             |  fuel_tank: {self.P_tank:.3f}, {m_dot_fuel:.3f}, {self.m_fuel:.3f}")
+
+        return {"P_fuel_tank": self.P_tank, "m_dot_fuel": m_dot_fuel, "m_fuel": self.m_fuel}
     
     #TODO: NEED TO VENT ULLAGE GAS WITHOUT RETURNING "FUEL" MASS FLOW RATE TO CC

@@ -34,6 +34,11 @@ DRAG_MODEL_MAP = {
     2: "src.models.drag.barrowman.make_drag_func",
 }
 
+MASS_MODEL_MAP = {
+    1: " ( placeholder for just using rpy default TMI entry ) ",
+    2: "src.models.mass.empirical_mm_v1.mass_v1",
+}
+
 def _load_class(path: str):
     #Dynamically load a class from a 'module.ClassName' string.
     module_path, class_name = path.rsplit(".", 1)

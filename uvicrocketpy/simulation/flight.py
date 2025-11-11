@@ -1353,10 +1353,11 @@ class Flight:
         #NOTE: library mod:
         dyn_visc = self.env.dynamic_viscosity.get_value_opt(z)
         rho = self.env.density.get_value_opt(z)
-        drag_coeff = self.rocket.power_on_drag.get_value_opt(free_stream_mach, free_stream_speed, dyn_visc, rho)
+        pressure = self.env.pressure.get_value_opt(z)
+        drag_coeff = self.rocket.power_on_drag.get_value_opt(free_stream_mach, free_stream_speed, dyn_visc, rho, pressure)
 
         # Calculate Forces
-        pressure = self.env.pressure.get_value_opt(z)
+        #pressure = self.env.pressure.get_value_opt(z)
         net_thrust = max(
             self.rocket.motor.thrust.get_value_opt(t)
             + self.rocket.motor.pressure_thrust(pressure),
@@ -1527,11 +1528,12 @@ class Flight:
         #NOTE: library mod:
         dyn_visc = self.env.dynamic_viscosity.get_value_opt(z)
         rho = self.env.density.get_value_opt(z)
+        pressure = self.env.pressure.get_value_opt(z)
 
         if t < self.rocket.motor.burn_out_time:
-            drag_coeff = self.rocket.power_on_drag.get_value_opt(free_stream_mach, free_stream_speed, dyn_visc, rho)
+            drag_coeff = self.rocket.power_on_drag.get_value_opt(free_stream_mach, free_stream_speed, dyn_visc, rho, pressure)
         else:
-            drag_coeff = self.rocket.power_off_drag.get_value_opt(free_stream_mach, free_stream_speed, dyn_visc, rho)
+            drag_coeff = self.rocket.power_off_drag.get_value_opt(free_stream_mach, free_stream_speed, dyn_visc, rho, pressure)
         #rho = self.env.density.get_value_opt(z)
         R3 = -0.5 * rho * (free_stream_speed**2) * self.rocket.area * drag_coeff
         for air_brakes in self.rocket.air_brakes:
@@ -1801,18 +1803,19 @@ class Flight:
 
         #NOTE: library mod:
         dyn_visc = self.env.dynamic_viscosity.get_value_opt(z)
+        pressure = self.env.pressure.get_value_opt(z)
 
         if self.rocket.motor.burn_start_time < t < self.rocket.motor.burn_out_time:
-            pressure = self.env.pressure.get_value_opt(z)
+            #pressure = self.env.pressure.get_value_opt(z)
             net_thrust = max(
                 self.rocket.motor.thrust.get_value_opt(t)
                 + self.rocket.motor.pressure_thrust(pressure),
                 0,
             )
-            drag_coeff = self.rocket.power_on_drag.get_value_opt(free_stream_mach, free_stream_speed, dyn_visc, rho)
+            drag_coeff = self.rocket.power_on_drag.get_value_opt(free_stream_mach, free_stream_speed, dyn_visc, rho, pressure)
         else:
             net_thrust = 0
-            drag_coeff = self.rocket.power_off_drag.get_value_opt(free_stream_mach, free_stream_speed, dyn_visc, rho)
+            drag_coeff = self.rocket.power_off_drag.get_value_opt(free_stream_mach, free_stream_speed, dyn_visc, rho, pressure)
         R3 += -0.5 * rho * (free_stream_speed**2) * self.rocket.area * drag_coeff
         for air_brakes in self.rocket.air_brakes:
             if air_brakes.deployment_level > 0:

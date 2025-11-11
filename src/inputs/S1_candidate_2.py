@@ -35,9 +35,9 @@ pres_str        = "N2"     # pressurant gas
 # ------------------------
 # Oxidizer Tank
 # ------------------------
-m_ox        = 10.989419425908563   # [kg]
-P_ox_tank   = 5.0e6           # [Pa]
-V_ox_tank      = 0.0185   # [m^3]
+m_ox        =  7.650873122104811   # [kg]
+P_ox_tank   = 5.2e6           # [Pa]
+V_ox_tank      = 0.013   # [m^3]
 diam_out    = 0.0254*5.5      # [m]
 diam_in     = 0.0254*5.0      # [m]
 rho_wall    = 2700          # [kg/m^3]
@@ -49,15 +49,15 @@ P_dot_err_tol  = None #NOTE: obsolte
 # Ox Injector parameters
 # ------------------------
 Cd_inj_ox   = 0.6
-A_inj_ox = 5.6440e-05   # [m^2]
+A_inj_ox = 1.2* 3.931764339889601e-05   # [m^2]
 
 # ------------------------
 # Fuel tank & pressurant
 # ------------------------
-m_fuel       = 2.747354856477141    # [kg]
+m_fuel       = 1.5301746244209624    # [kg]
 m_pres       = 3*0.03428             # [kg] pressurant mass (estimated)
-P_pres_tank  = 5.0e6            # [Pa] fuel tank pressure
-V_fuel_tank       = 0.006 #0.004     # [m^3] fuel tank volume
+P_pres_tank  = 5.2e6            # [Pa] fuel tank pressure
+V_fuel_tank       = 0.0023 #0.004     # [m^3] fuel tank volume
 V_pres_tank  = 0.0             # not provided
 diam_out_fuel = 0.0254 * 5.5      # [m]
 diam_in_fuel  = 0.0254 * 5.0      # [m]
@@ -68,7 +68,7 @@ k_w         = 237           # [W/(m K)]
 # Fuel Injector parameters
 # ------------------------
 Cd_inj_fuel   = 0.6 #NOTE: GUESS
-A_inj_fuel = 1.4977e-05       # [m^2]
+A_inj_fuel = 0.75* 8.353139461101712e-06       # [m^2]
 
 # ------------------------
 # Chamber (liquid engine)
@@ -90,7 +90,7 @@ Cd_est = 0.6
 mass_fraction_estimate = 0.2657741984
 characteristic_len = 1.0        #[m]
 elevation = 225 # TODO: CHECK ALT MALAHAT RANGE VS TIMMINS
-apogee_height = 3048*3      #[m]
+apogee_height = 3048      #[m]
 
 
 

@@ -1,4 +1,5 @@
 import numpy as np
+gamma = 1.4 #ROCKETPY USES CONSTANT RATIO OF SPECIFIC HEATS = 1.4
 
 def sol_Cf_turbulent(Re, Rs, L_ref):
     
@@ -11,43 +12,6 @@ def sol_Cf_turbulent(Re, Rs, L_ref):
 
     return Cf
 
-import numpy as np
-
-def cdp_supersonic_rkt(M, L_nose, R, npts=40):
-    """
-    Supersonic body pressure drag (Barrowman/area-rule) for:
-      - tangent ogive nose of length L_n
-      - straight cylinder (no boattail)
-
-    Returns C_Dp referenced to A_ref = pi*(D/2)^2.
-    cdp_cyl_const lets you add any constant fuselage contribution you want (default 0).
-    """
-
-    A_ref = np.pi*R**2
-    beta2 = max(M*M - 1.0, 1e-12)
-
-    # ---- piecewise radius r(x) ----
-    # Nose: tangent ogive (0..L_n)
-    Rs = (R**2 + L_nose**2) / (2.0*R)     # sphere radius
-    xc = L_nose - Rs                      # sphere center x
-    x  = np.linspace(1e-9*L_nose, L_nose, npts)  # avoid tip singularity
-
-    # r(x) and dr/dx on the nose
-    under = np.clip(Rs**2 - (x - xc)**2, 0.0, None)
-    r     = np.sqrt(under) - (Rs - R)
-    drdx  = -(x - xc) / np.sqrt(np.maximum(under, 1e-30))
-
-    # Cylinder (L_n..end) contributes zero to pressure drag via area-rule (dA/dx=0)
-
-    # ---- area-rule integral over the nose ----
-    dAdx = 2.0*np.pi*r*drdx
-    I    = np.trapezoid(dAdx*dAdx, x)          # ∫_0^{L_n} (dA/dx)^2 dx
-
-    Cdp_nose = I / (beta2 * A_ref)
-
-    return Cdp_nose #NOTE: no change in area for fuselage (assuming no boat tail) so it does not contribute since dA/dx_fuse = 0
-
-        
 
 
 def make_drag_func(fuse_od, nose_length, nose_position, fins_n, fins_span, fins_root_chord, fins_tip_chord, gamma_LE_sweep, tr):
@@ -89,7 +53,7 @@ def make_drag_func(fuse_od, nose_length, nose_position, fins_n, fins_span, fins_
 
 
     # The callable func:
-    def drag_func(Ma, U, mu, rho):
+    def drag_func(Ma, U, mu, rho, pressure):
 
         if U < 0.01:
             U = 0.01 #Perturb for starting inst
@@ -159,6 +123,7 @@ def make_drag_func(fuse_od, nose_length, nose_position, fins_n, fins_span, fins_
 
             # Solve Laminar Case
             Cf = 1.328/np.sqrt(Re)
+            print("Re: ", Re)
             K = 0.15                        #K = 0.052 for cooled wall, K = 0.15 for no Q
             Cfc = Cf/( (1+K*Ma**2)**0.58)
 
@@ -176,19 +141,19 @@ def make_drag_func(fuse_od, nose_length, nose_position, fins_n, fins_span, fins_
             #eqn 4-30
             C_DBT = ( N*(1-0.52*Ma**-1.19)*(A_Bf/A_ref))/( (1+18*Cfc*(tr/hr)**2)*Ma**2)
 
-            C_DWT = N * (tr/cr) / np.sqrt( (Ma**2)*np.cos((gamma_midchord)**2) -1) * (A_T/A_ref)
+            C_DWT = N * (tr/cr) / np.sqrt( (Ma**2)*(np.cos(np.deg2rad(gamma_midchord))**2) -1) * (A_T/A_ref)
 
             Cd_tail = C_DWT 
 
             # Supersonic Body Drag Contribution
 
-            C_DP = cdp_supersonic_rkt(Ma, N_L, fuselage_radius)
+            C_DP = cdp_supersonic_rkt(Ma, pressure, N_L, fuselage_radius)
 
             C_DB_crit = (A_base/A_ref)*(0.185+1.15*(hf/cr))
             Ma_crit = 0.892/np.sqrt(C_DB_crit)
 
             if Ma <= Ma_crit:
-                C_DBB = C_DB_crit*( 0.88+0.12*np.e(-3.58*(Ma-1) ))
+                C_DBB = C_DB_crit*( 0.88+0.12*np.exp(-3.58*(Ma-1) ))
             else:
                 C_DBB = 0.7*(A_base/A_ref)/(Ma**2)
 
@@ -204,20 +169,9 @@ def make_drag_func(fuse_od, nose_length, nose_position, fins_n, fins_span, fins_
         Cd_body = C_DP + C_DBB
 
         Cd = Cd_tail + Cd_body
+
+        print("Cd!!", Cd, C_DP, C_DBB, Re)
         return Cd
 
     return drag_func
 
-"""
-barrowman_cd = make_drag_func(
-    fuse_od=2*parameters.get("radius")[0],
-    nose_length=parameters.get("nose_length")[0],
-    nose_position=parameters.get("nose_distance_to_cm")[0],
-    fins_n=3,
-    fins_span=parameters.get("fin_span")[0],
-    fins_root_chord=parameters.get("fin_root_chord")[0],
-    fins_tip_chord=parameters.get("fin_tip_chord")[0],
-    gamma_LE_sweep=15.0,   # estimate; set to your design
-    tr=0.003,                  # 3 mm plate thickness; set to your design
-)
-"""

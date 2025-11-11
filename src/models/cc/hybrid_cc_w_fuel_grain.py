@@ -54,6 +54,9 @@ class hybrid_cc_w_fuel_grain_model(BaseChamber):
         G_ox = m_dot_ox_in / A_port
         r_dot = self.a * G_ox**self.n
 
+        #NOTE: 06-NOV-2025 G_ox_checking
+        #print("G_ox: ", G_ox, m_dot_ox_in, A_port, self.a, self.n)
+
         V_dot = (2 * np.pi * r * self.L) * r_dot
         m_dot_fuel_in = self.rho_fuel * V_dot
 

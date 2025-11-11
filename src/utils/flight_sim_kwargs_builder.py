@@ -7,6 +7,8 @@ from src.utils.model_registry import *
 def get_model(kind: str, code: int):
     if kind == "D":
         module_path = DRAG_MODEL_MAP.get(code)
+    elif kind == "M":
+        module_path = MASS_MODEL_MAP.get(code)
     else:
         raise ValueError(f"Unknown model kind {kind}")
     
@@ -46,7 +48,6 @@ def build_flight_sim_kwargs(input_file, cfg):
     # ------------------------
     # Drag Model Setup
     # ------------------------
-    #NOTE: need to build drag model in this scope
 
     make_drag_func = get_model("D", cfg.drag_model)
     if cfg.drag_model == 1:
@@ -69,9 +70,56 @@ def build_flight_sim_kwargs(input_file, cfg):
         power_on_func = power_off_func
 
 
+    # ------------------------
+    # MASS MODEL MASS MODEL
+    # ------------------------
+    if cfg.mass_model == 1:
+        rktpy_motorless_mass=cfg.rkt_dry_mass
+        rktpy_motorless_cg=cfg.rkt_dry_cg
+        rktpy_motorless_inertia=cfg.rkt_dry_inertia
 
+        rktpy_cc_mass=cfg.cc_dry_mass,
+        rktpy_cc_cg=cfg.cc_cg,
+        rktpy_cc_inertia=cfg.cc_dry_inertia,
 
-    
+            
+    elif cfg.mass_model == 2:
+        mass_model = get_model("M", cfg.drag_model)
+
+        #NOTE: need to determine if hybrid or liquid and solve tank height
+        fuel_tank_model=getattr(cfg, "fuel_tank_model", None)
+        if fuel_tank_model is not None:  # Liquid engine path
+            rktpy_motorless_mass, rktpy_motorless_cg, rktpy_motorless_inertia, rktpy_cc_mass, rktpy_cc_cg, rktpy_cc_inertia = mass_model(
+                m_empirical_total = cfg.rkt_dry_mass,
+                id_tank = cfg.diam_in, 
+                od_tank = cfg.diam_out, 
+                id_fuse = (2*cfg.fuselage_inner_radius), 
+                od_fuse = (2*cfg.fuselage_radius), 
+                L_ox_tank = (cfg.V_ox_tank)/(0.25*np.pi*(cfg.diam_in**2)), 
+                ox_tank_pos = cfg.ox_tank_cg, 
+                L_nose = cfg.nose_length, 
+                nose_position = cfg.nose_position, 
+                rho_al = cfg.rho_wall, 
+                V_cc = cfg.V_cc,
+                L_fuel_tank = (cfg.V_fuel_tank+cfg.V_pres_tank)/(0.25*np.pi*(cfg.diam_in**2)), 
+                fuel_tank_pos = cfg.fuel_tank_cg,
+            )
+        else:
+            rktpy_motorless_mass, rktpy_motorless_cg, rktpy_motorless_inertia, rktpy_cc_mass, rktpy_cc_cg, rktpy_cc_inertia = mass_model(
+                m_empirical_total = cfg.rkt_dry_mass,
+                id_tank = cfg.diam_in, 
+                od_tank = cfg.diam_out, 
+                id_fuse = (2*cfg.fuselage_inner_radius), 
+                od_fuse = (2*cfg.fuselage_radius), 
+                L_ox_tank = (cfg.V_ox_tank)/(0.25*np.pi*(cfg.diam_in**2)), 
+                ox_tank_pos = cfg.ox_tank_cg, 
+                L_nose = cfg.nose_length, 
+                nose_position = cfg.nose_position, 
+                rho_al = cfg.rho_wall, 
+                V_cc = cfg.V_cc,
+            )
+
+        print("Mass model 2: ", rktpy_motorless_mass, rktpy_motorless_cg, rktpy_motorless_inertia, rktpy_cc_mass, rktpy_cc_cg, rktpy_cc_inertia )
 
 
     # ------------------------
@@ -79,9 +127,9 @@ def build_flight_sim_kwargs(input_file, cfg):
     # ------------------------ 
     rocketpy_rocket_kwargs = dict(
         fuse_radius=cfg.fuselage_radius,
-        rkt_motorless_mass=cfg.rkt_dry_mass,
-        rkt_motorless_inertia=cfg.rkt_dry_inertia,
-        rkt_motorless_cg=cfg.rkt_dry_cg,
+        rkt_motorless_mass=rktpy_motorless_mass,
+        rkt_motorless_inertia=rktpy_motorless_inertia,
+        rkt_motorless_cg=rktpy_motorless_cg,
         power_off_drag=power_off_func,
         power_on_drag=power_on_func,
         rkt_csys="tail_to_nose",
@@ -189,7 +237,7 @@ def build_flight_sim_kwargs(input_file, cfg):
             liquid=Fluid(name="fuel_liq", density=rho_fuel),
             gas=Fluid(name="pres_gas", density=rho_pres),
             initial_liquid_mass=cfg.m_fuel,
-            initial_gas_mass=cfg.m_gas,
+            initial_gas_mass=cfg.m_pres,
             liquid_mass_flow_rate_in=0.0,
             liquid_mass_flow_rate_out=m_dot_fuel_filepath,
             gas_mass_flow_rate_in=0.0,
@@ -200,9 +248,9 @@ def build_flight_sim_kwargs(input_file, cfg):
 
         rocketpy_cc_kwargs = dict(
             thrust_source=thrust_filepath,
-            center_of_dry_mass_position=cfg.cc_cg,
-            dry_inertia=cfg.cc_dry_inertia,
-            dry_mass=cfg.cc_dry_mass,
+            center_of_dry_mass_position=rktpy_cc_cg,
+            dry_inertia=rktpy_cc_inertia,
+            dry_mass=rktpy_cc_mass,
             burn_time=cfg.sim_time,
             nozzle_radius=r_nozzle_exit, #NOTE: Radius of motor nozzle outlet in meters.
             nozzle_position=cfg.nozzle_pos,
@@ -220,9 +268,9 @@ def build_flight_sim_kwargs(input_file, cfg):
 
         rocketpy_cc_kwargs = dict(
             thrust_source=thrust_filepath,
-            dry_mass=cfg.cc_dry_mass,
-            dry_inertia=cfg.cc_dry_inertia,
-            center_of_dry_mass_position=cfg.cc_cg,
+            dry_mass=rktpy_cc_mass,
+            dry_inertia=rktpy_cc_inertia,
+            center_of_dry_mass_position=rktpy_cc_cg,
             reshape_thrust_curve=False,
             grain_number=1,
             grain_separation=0,

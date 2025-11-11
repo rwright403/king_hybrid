@@ -3,8 +3,10 @@ import matplotlib.pyplot as plt
 import glob
 import os
 
+month = 12
 # Path to your CSVs
-folder = "weather/canada_historical_climate_data_timmins_airport"
+#folder = "weather/canada_historical_climate_data_timmins_airport"
+folder = "weather/canada_historical_climate_data_malahat"
 
 # Get all CSV files in the folder
 csv_files = sorted(glob.glob(os.path.join(folder, "*.csv")))
@@ -21,7 +23,7 @@ for file in csv_files:
     df['Date'] = pd.to_datetime(df['Date/Time (LST)'])
     
     # Filter to August only
-    august = df[df['Date'].dt.month == 8].copy()
+    august = df[df['Date'].dt.month == month].copy()
     
     # Extract year from filename correctly
     year = os.path.basename(file).split('_')[5][-4:]
@@ -46,8 +48,8 @@ for year, data in morning_avg.items():
     plt.plot(data.index, data['mean'], label=f"{year} Mean", linestyle='--', color='green')
     plt.plot(data.index, data['max'], label=f"{year} Max", linestyle='--', color='red')
 
-plt.title('Morning Temperatures (7am–12pm)')
-plt.xlabel('Day of August')
+plt.title('Morning Temperatures (7am-12pm)')
+plt.xlabel(f'Days in Month: {month}')
 plt.ylabel('Temperature (°C)')
 plt.grid(True)
 plt.legend(fontsize=8)
@@ -60,8 +62,8 @@ for year, data in afternoon_avg.items():
     plt.plot(data.index, data['mean'], label=f"{year} Mean", linestyle='-', color='green')
     plt.plot(data.index, data['max'], label=f"{year} Max", linestyle='--', color='red')
 
-plt.title('Afternoon Temperatures (12pm–5pm)')
-plt.xlabel('Day of August')
+plt.title('Afternoon Temperatures (12pm-5pm)')
+plt.xlabel(f'Days in Month: {month}')
 plt.ylabel('Temperature (°C)')
 plt.grid(True)
 plt.legend(fontsize=8)

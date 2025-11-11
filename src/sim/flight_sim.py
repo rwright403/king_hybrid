@@ -37,8 +37,7 @@ def flight_sim(kwargs):
         )
 
     engine = None
-#NOTE: IS IT EMPTY OR NONE?
-    if kwargs.get("fuel_tank_kwargs") is not None: #We are flying liquid
+    if kwargs.get("rocketpy_fuel_tank_kwargs") is not None: #We are flying liquid
 
         fuel_tank = MassFlowRateBasedTank(**kwargs["rocketpy_fuel_tank_kwargs"])
         engine = LiquidMotor(**kwargs["rocketpy_cc_kwargs"])
