@@ -3,10 +3,11 @@ import matplotlib.pyplot as plt
 import glob
 import os
 
-month = 12
+month = 11
 # Path to your CSVs
 #folder = "weather/canada_historical_climate_data_timmins_airport"
-folder = "weather/canada_historical_climate_data_malahat"
+folder = "weather/canada_historical_climate_data_malahat_nov"
+#folder = "weather/_old"
 
 # Get all CSV files in the folder
 csv_files = sorted(glob.glob(os.path.join(folder, "*.csv")))
@@ -67,8 +68,4 @@ plt.xlabel(f'Days in Month: {month}')
 plt.ylabel('Temperature (°C)')
 plt.grid(True)
 plt.legend(fontsize=8)
-plt.show(block=False)  # <-- don't block
-
-
-# Keep script alive to see both figures
-input("Press Enter to exit...")
+plt.show()

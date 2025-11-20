@@ -137,6 +137,7 @@ INJECTOR ELEMENTS  | Selecting injector momentum ratio | https://ntrs.nasa.gov/a
 |---------------|-------------|--------|--------------------------|
 | PVC           | BAD NO      | [35]    | |
 | Polypropylene | BAD NO      | [35]    | |
+| Nylon         | Yes          | [41]
 
 
 | Elastomers        | Compatible? | Source | Notes:                   |

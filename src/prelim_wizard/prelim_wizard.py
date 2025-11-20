@@ -24,7 +24,7 @@ def magic(inputs):
     if inputs.oxidizer_name  == "N2O":
 
         # Define temperature range (input in celsius, program converts to kelvin)
-        T_min = 0  # Minimum operating temperature
+        T_min = -5  # Minimum operating temperature
         T_max = 27  # Maximum operating temperature
         T_crit = 36 # Critical temperature of nitrous
         num_points = 100  # Number of points for the plot
