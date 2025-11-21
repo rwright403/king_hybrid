@@ -45,6 +45,9 @@ def flight_sim(kwargs):
         engine.add_tank(fuel_tank, position=kwargs["rocketpy_rocket_kwargs"]["fuel_tank_cg"])
 
     else: #we are flying hybrid
+        #print(kwargs["rocketpy_cc_kwargs"]["rktpy_cc_inertia"])
+        print(kwargs["rocketpy_cc_kwargs"])
+
         engine = HybridMotor(**kwargs["rocketpy_cc_kwargs"])
 
 

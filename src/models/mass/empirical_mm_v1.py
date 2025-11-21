@@ -52,17 +52,18 @@ def parallel_axis(mass_objs: list):
 
 
 
-def empirical_lre_cc_mass_model(V_cc, rho=4025, LD = 1.75):
+def empirical_cc_mass_model(V_cc, CC_LD, rho=4025):
     # Assume CC rho = 4025 kg/m^3, L/D ratio = 1.75 if none given
     
-    d_outer = diameter_from_volume_LD(V_cc, LD)
-    L = LD*d_outer
+    d_outer = diameter_from_volume_LD(V_cc, CC_LD)
+    L = CC_LD*d_outer
 
     d_inner = 0.6*d_outer #assume
 
     m = hollow_cylinder_mass(rho, L, d_inner, d_outer)
 
     return mass(m, np.array([(0.5*L),0.0,0.0]), hollow_cylinder_inertia(m, L, d_inner, d_outer) )
+
 
 
 
@@ -79,11 +80,19 @@ def empirical_rkt_mass_model(m_empirical_total, id_tank, od_tank, id_fuse, od_fu
         ftv_pos = fuel_tank_pos+L_fuel_tank
         ftv = mass(m_ftv, np.array([ftv_pos,0.0,0.0]), np.zeros((3,3)) )
 
-    otv_pos = (ox_tank_pos + 0.5*L_ox_tank) + 0.5*( (fuel_tank_pos-0.5*L_fuel_tank) - (ox_tank_pos + 0.5*L_ox_tank) )
+    if L_fuel_tank != None:
+        otv_pos = (ox_tank_pos + 0.5*L_ox_tank) + 0.5*( (fuel_tank_pos-0.5*L_fuel_tank) - (ox_tank_pos + 0.5*L_ox_tank) )
+    else:
+        otv_pos = (ox_tank_pos - (ox_tank_pos + 0.5*L_ox_tank) )
     otv = mass(m_otv, np.array([otv_pos,0.0,0.0]), np.zeros((3,3)) )
 
+
     #NOTE: reco might be a bit big to consider a pt mass
-    reco_pos = (fuel_tank_pos + 0.5*L_fuel_tank) + 0.5*(nose_position - (fuel_tank_pos+L_fuel_tank) )
+
+    if L_fuel_tank != None:
+        reco_pos = (fuel_tank_pos + 0.5*L_fuel_tank) + 0.5*(nose_position - (fuel_tank_pos+L_fuel_tank) )
+    else:
+        reco_pos =  (ox_tank_pos + 0.5*L_ox_tank) + 0.5*(nose_position - (ox_tank_pos+L_ox_tank) )
     reco = mass(m_reco, np.array([reco_pos,0.0,0.0]), np.zeros((3,3)) )
 
     ### Cylinder Inertias
@@ -123,16 +132,18 @@ def empirical_rkt_mass_model(m_empirical_total, id_tank, od_tank, id_fuse, od_fu
     I_lowerfuse = hollow_cylinder_inertia(rho_al, L_lowerfuse, id_fuse, od_fuse)
     lowerfuse = mass(m_lowerfuse, np.array([lowerfuse_pos,0.0,0.0]), I_lowerfuse)
 
-
-    mass_data = [mev, ftv, otv, reco, fuel_tank, ox_tank, upperfuse, lowerfuse]
+    if L_fuel_tank != None:
+        mass_data = [mev, ftv, otv, reco, fuel_tank, ox_tank, upperfuse, lowerfuse]
+    else:
+         mass_data = [mev, otv, reco, ox_tank, upperfuse, lowerfuse]
 
     return parallel_axis(mass_data)
 
 
 
-def mass_v1(m_empirical_total, id_tank, od_tank, id_fuse, od_fuse, L_ox_tank, ox_tank_pos, L_nose, nose_position, rho_al, V_cc, L_fuel_tank = None, fuel_tank_pos = None):
+def mass_v1(m_empirical_total, id_tank, od_tank, id_fuse, od_fuse, L_ox_tank, ox_tank_pos, L_nose, nose_position, rho_al, V_cc, L_fuel_tank = None, fuel_tank_pos = None, CC_LD = 1.75):
 
-    cc = empirical_lre_cc_mass_model(V_cc)
+    cc = empirical_cc_mass_model(V_cc, CC_LD)
     rktpy_m_empirical_total = m_empirical_total - cc.mass #dont double count cc!
     rkt = empirical_rkt_mass_model(rktpy_m_empirical_total, id_tank, od_tank, id_fuse, od_fuse, L_ox_tank, ox_tank_pos, L_nose, nose_position, rho_al, L_fuel_tank, fuel_tank_pos)
     

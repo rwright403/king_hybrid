@@ -65,6 +65,14 @@ def build_flight_sim_kwargs(input_file, cfg):
             fins_tip_chord= cfg.fins_tip_chord,
             gamma_LE_sweep=cfg.gamma_LE_sweep,
             tr=cfg.fin_root_thickness,
+            Lambda_L= cfg.Lambda_L,
+            Lambda_1= cfg.Lambda_1,
+            Lambda_2= cfg.Lambda_2,
+            Lambda_T= cfg.Lambda_T,
+            zeta_L= cfg.zeta_L,
+            zeta_T= cfg.zeta_T,
+            lL_root= cfg.lL_root,
+            lT_root= cfg.lT_root,
         )
                 
         power_on_func = power_off_func
@@ -105,6 +113,21 @@ def build_flight_sim_kwargs(input_file, cfg):
                 fuel_tank_pos = cfg.fuel_tank_cg,
             )
         else:
+
+            # if liquid use V_cc
+            if fuel_tank_model is not None:  # Liquid engine path
+                V_casing = cfg.V_cc
+                CC_LD = 1.75
+
+            else: # hybrid! i love hybrid
+                # need to solve chamber casing volume 
+                fuel_grain_od = np.sqrt( (1/(0.25*np.pi))*(cfg.m_fuel_i/(cfg.rho_fuel*cfg.L_port) +cfg.A_port) )
+                V_casing = cfg.V_pre_post_cc + (fuel_grain_od*cfg.L_port)
+                L_casing = V_casing/(0.25*np.pi*fuel_grain_od**2)
+                CC_LD = L_casing/fuel_grain_od
+
+
+
             rktpy_motorless_mass, rktpy_motorless_cg, rktpy_motorless_inertia, rktpy_cc_mass, rktpy_cc_cg, rktpy_cc_inertia = mass_model(
                 m_empirical_total = cfg.rkt_dry_mass,
                 id_tank = cfg.diam_in, 
@@ -116,7 +139,8 @@ def build_flight_sim_kwargs(input_file, cfg):
                 L_nose = cfg.nose_length, 
                 nose_position = cfg.nose_position, 
                 rho_al = cfg.rho_wall, 
-                V_cc = cfg.V_cc,
+                V_cc = V_casing,
+                CC_LD = CC_LD,
             )
 
         print("Mass model 2: ", rktpy_motorless_mass, rktpy_motorless_cg, rktpy_motorless_inertia, rktpy_cc_mass, rktpy_cc_cg, rktpy_cc_inertia )

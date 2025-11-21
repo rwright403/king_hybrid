@@ -15,6 +15,7 @@ ox_inj_model  = 3
 cc_model      = 1   # hybrid_cc_w_fuel_grain
 nozzle_model  = 1  
 drag_model    = 2
+mass_model    = 2
 
 # Global settings
 thrust_curve_graphs = True
@@ -65,6 +66,9 @@ n_reg               = 0.5
 L_port              = 0.3852333    # [m]
 A_port              = 0.0038319753 # [m^2]
 
+import numpy as np
+print(np.sqrt( (1/(0.25*np.pi))*(m_fuel_i/(rho_fuel*L_port) +A_port) ))
+
 # ------------------------
 # Nozzle
 # ------------------------
@@ -108,6 +112,7 @@ heading = 90
 
 # --- Rocket Geometry and Mass Properties ---
 fuselage_radius = 0.07
+fuselage_inner_radius = 0.067
 rkt_dry_mass = 37.211
 rkt_dry_inertia = (94.14, 94.14, 0.09)
 rkt_dry_cg = 3.29
@@ -140,3 +145,14 @@ cc_cg = 0.78
 cc_dry_inertia = (1.801, 1.801, 0.0305)
 cc_dry_mass = 13.832
 nozzle_pos = 0.0
+
+
+# fin
+Lambda_L= 45.0 #TODO: READ U OF T PAPER, placeholders for now from barrowman example
+Lambda_1= 38.23
+Lambda_2= 0.0
+Lambda_T= 0.0
+zeta_L= 2.475
+zeta_T= 0.0
+lL_root= 0.02
+lT_root= 0.0
