@@ -56,9 +56,12 @@ def empirical_cc_mass_model(V_cc, CC_LD, rho=4025):
     # Assume CC rho = 4025 kg/m^3, L/D ratio = 1.75 if none given
     
     d_outer = diameter_from_volume_LD(V_cc, CC_LD)
+
     L = CC_LD*d_outer
 
-    d_inner = 0.6*d_outer #assume
+    print("d_outer: ", d_outer, L)
+
+    d_inner = 0.8*d_outer #assume
 
     m = hollow_cylinder_mass(rho, L, d_inner, d_outer)
 
@@ -113,6 +116,8 @@ def empirical_rkt_mass_model(m_empirical_total, id_tank, od_tank, id_fuse, od_fu
         m_no_aerostruct += (m_fuel_tank + m_ftv)
     m_remaining = m_empirical_total - m_no_aerostruct
 
+    print("m_remaining:", m_remaining, m_empirical_total, - m_no_aerostruct)
+
 
     if L_fuel_tank != None:
         L_upperfuse = (0.5*L_nose + nose_position) - (L_fuel_tank + fuel_tank_pos)
@@ -129,13 +134,18 @@ def empirical_rkt_mass_model(m_empirical_total, id_tank, od_tank, id_fuse, od_fu
     L_lowerfuse = (ox_tank_pos - 0.5*L_ox_tank) + 0
     lowerfuse_pos = 0.5*L_lowerfuse
     m_lowerfuse = (3/5)*m_remaining #NOTE: ASSUMPTION, TODO: replace with physics based fin mass
-    I_lowerfuse = hollow_cylinder_inertia(rho_al, L_lowerfuse, id_fuse, od_fuse)
+    I_lowerfuse = hollow_cylinder_inertia(m_lowerfuse, L_lowerfuse, id_fuse, od_fuse)
     lowerfuse = mass(m_lowerfuse, np.array([lowerfuse_pos,0.0,0.0]), I_lowerfuse)
 
     if L_fuel_tank != None:
         mass_data = [mev, ftv, otv, reco, fuel_tank, ox_tank, upperfuse, lowerfuse]
     else:
-         mass_data = [mev, otv, reco, ox_tank, upperfuse, lowerfuse]
+        mass_data = [mev, otv, reco, ox_tank, upperfuse, lowerfuse]
+
+    for m in mass_data:
+        print(m)
+
+    plot_mass_distribution(mass_data)
 
     return parallel_axis(mass_data)
 
@@ -145,6 +155,9 @@ def mass_v1(m_empirical_total, id_tank, od_tank, id_fuse, od_fuse, L_ox_tank, ox
 
     cc = empirical_cc_mass_model(V_cc, CC_LD)
     rktpy_m_empirical_total = m_empirical_total - cc.mass #dont double count cc!
+    
+    print("rktpy_m_empirical: ", rktpy_m_empirical_total, m_empirical_total, - cc.mass)
+    
     rkt = empirical_rkt_mass_model(rktpy_m_empirical_total, id_tank, od_tank, id_fuse, od_fuse, L_ox_tank, ox_tank_pos, L_nose, nose_position, rho_al, L_fuel_tank, fuel_tank_pos)
     
     rkt_m = rkt.mass
@@ -157,3 +170,49 @@ def mass_v1(m_empirical_total, id_tank, od_tank, id_fuse, od_fuse, L_ox_tank, ox
 
 
     return rkt_m, rkt_cg, rkt_I, cc_m, cc_cg, cc_I
+
+
+
+
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+def plot_mass_distribution(mass_objs, title="Mass Distribution"):
+    """
+    mass_objs: list of `mass` dataclass objects
+    """
+
+    xs = []
+    ms = []
+    labels = []
+
+    for obj in mass_objs:
+        xs.append(obj.cg[0])    # x-location
+        ms.append(obj.mass)     # mass
+        labels.append(str(obj)) # dataclass prints type info
+
+    xs = np.array(xs)
+    ms = np.array(ms)
+
+    plt.figure(figsize=(10,4))
+    sc = plt.scatter(xs, np.zeros_like(xs),
+                     c=ms,
+                     s=50 + 300*(ms/np.max(ms)),  # bubble size
+                     cmap="viridis",
+                     alpha=0.9)
+
+    plt.axhline(0, color='black', linewidth=0.4)
+    plt.xlabel("Position along rocket [m]")
+    plt.title(title)
+
+    # add colorbar for mass magnitude
+    cb = plt.colorbar(sc)
+    cb.set_label("Mass [kg]")
+
+    # optional: annotate
+    for x, m in zip(xs, ms):
+        plt.text(x, 0.02, f"{m:.1f} kg", ha='center', fontsize=8)
+
+    plt.tight_layout()
+    plt.show()

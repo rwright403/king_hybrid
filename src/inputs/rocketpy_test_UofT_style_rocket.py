@@ -68,7 +68,6 @@ A_port              = 0.0038319753 # [m^2]
 
 import numpy as np
 print(np.sqrt( (1/(0.25*np.pi))*(m_fuel_i/(rho_fuel*L_port) +A_port) ))
-
 # ------------------------
 # Nozzle
 # ------------------------
@@ -113,11 +112,7 @@ heading = 90
 # --- Rocket Geometry and Mass Properties ---
 fuselage_radius = 0.07
 fuselage_inner_radius = 0.067
-rkt_dry_mass = 37.211
-rkt_dry_inertia = (94.14, 94.14, 0.09)
-rkt_dry_cg = 3.29
-power_off_drag = "src/inputs/UofT_Deliverance_II/UofT_Style_Defiance_DragCurve.csv"
-power_on_drag = "src/inputs/UofT_Deliverance_II/UofT_Style_Defiance_DragCurve.csv"
+rkt_dry_mass = 40
 rkt_csys = "tail_to_nose"
 
 upper_launch_lug_pos = 1.25
@@ -128,7 +123,7 @@ nose_length = 0.563
 nose_kind = "vonKarman"
 nose_position = 4.947
 
-fins_n = 3
+fins_n = 4
 fins_span = 0.115
 fins_root_chord = 0.4
 fins_tip_chord = 0.2
@@ -137,13 +132,11 @@ gamma_LE_sweep= 15             # [degrees]
 fin_root_thickness=1e-3        # [m]
 
 ### NOTE: is this cg or location actually??
-ox_tank_cg = 2.2
-engine_cg = 0
+ox_tank_pos = 2.2
+engine_pos = 0
 
 # --- Chamber / Motor Properties ---
 cc_cg = 0.78
-cc_dry_inertia = (1.801, 1.801, 0.0305)
-cc_dry_mass = 13.832
 nozzle_pos = 0.0
 
 
@@ -156,3 +149,14 @@ zeta_L= 2.475
 zeta_T= 0.0
 lL_root= 0.02
 lT_root= 0.0
+
+
+# mass model = 1 inputs:
+#cc_dry_inertia = (1.801, 1.801, 0.0305)
+#cc_dry_mass = 13.832
+#rkt_dry_inertia = (94.14, 94.14, 0.09)
+#rkt_dry_cg = 3.29
+
+# drag model = 1 inputs:
+#power_off_drag = "src/inputs/UofT_Deliverance_II/UofT_Style_Defiance_DragCurve.csv"
+#power_on_drag = "src/inputs/UofT_Deliverance_II/UofT_Style_Defiance_DragCurve.csv"

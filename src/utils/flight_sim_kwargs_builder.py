@@ -85,10 +85,9 @@ def build_flight_sim_kwargs(input_file, cfg):
         rktpy_motorless_mass=cfg.rkt_dry_mass
         rktpy_motorless_cg=cfg.rkt_dry_cg
         rktpy_motorless_inertia=cfg.rkt_dry_inertia
-
-        rktpy_cc_mass=cfg.cc_dry_mass,
-        rktpy_cc_cg=cfg.cc_cg,
-        rktpy_cc_inertia=cfg.cc_dry_inertia,
+        rktpy_cc_mass=cfg.cc_dry_mass
+        rktpy_cc_cg=cfg.cc_cg
+        rktpy_cc_inertia=cfg.cc_dry_inertia
 
             
     elif cfg.mass_model == 2:
@@ -104,7 +103,7 @@ def build_flight_sim_kwargs(input_file, cfg):
                 id_fuse = (2*cfg.fuselage_inner_radius), 
                 od_fuse = (2*cfg.fuselage_radius), 
                 L_ox_tank = (cfg.V_ox_tank)/(0.25*np.pi*(cfg.diam_in**2)), 
-                ox_tank_pos = cfg.ox_tank_cg, 
+                ox_tank_pos = cfg.ox_tank_pos, 
                 L_nose = cfg.nose_length, 
                 nose_position = cfg.nose_position, 
                 rho_al = cfg.rho_wall, 
@@ -121,10 +120,13 @@ def build_flight_sim_kwargs(input_file, cfg):
 
             else: # hybrid! i love hybrid
                 # need to solve chamber casing volume 
-                fuel_grain_od = np.sqrt( (1/(0.25*np.pi))*(cfg.m_fuel_i/(cfg.rho_fuel*cfg.L_port) +cfg.A_port) )
-                V_casing = cfg.V_pre_post_cc + (fuel_grain_od*cfg.L_port)
-                L_casing = V_casing/(0.25*np.pi*fuel_grain_od**2)
+                A_fuel_grain_outer = (cfg.m_fuel_i/(cfg.rho_fuel*cfg.L_port) +cfg.A_port)
+                V_casing = cfg.V_pre_post_cc + (A_fuel_grain_outer*cfg.L_port)
+                fuel_grain_od = np.sqrt(A_fuel_grain_outer/np.pi)
+                L_casing = V_casing/A_fuel_grain_outer
                 CC_LD = L_casing/fuel_grain_od
+
+                #print("CC_LD: ", CC_LD)
 
 
 
@@ -135,7 +137,7 @@ def build_flight_sim_kwargs(input_file, cfg):
                 id_fuse = (2*cfg.fuselage_inner_radius), 
                 od_fuse = (2*cfg.fuselage_radius), 
                 L_ox_tank = (cfg.V_ox_tank)/(0.25*np.pi*(cfg.diam_in**2)), 
-                ox_tank_pos = cfg.ox_tank_cg, 
+                ox_tank_pos = cfg.ox_tank_pos, 
                 L_nose = cfg.nose_length, 
                 nose_position = cfg.nose_position, 
                 rho_al = cfg.rho_wall, 
@@ -143,7 +145,7 @@ def build_flight_sim_kwargs(input_file, cfg):
                 CC_LD = CC_LD,
             )
 
-        print("Mass model 2: ", rktpy_motorless_mass, rktpy_motorless_cg, rktpy_motorless_inertia, rktpy_cc_mass, rktpy_cc_cg, rktpy_cc_inertia )
+        #print("Mass model 2: ", rktpy_motorless_mass, rktpy_motorless_cg, rktpy_motorless_inertia, rktpy_cc_mass, rktpy_cc_cg, rktpy_cc_inertia )
 
 
     # ------------------------
@@ -172,9 +174,9 @@ def build_flight_sim_kwargs(input_file, cfg):
         fins_tip_chord=cfg.fins_tip_chord, 
         fins_position=cfg.fins_position,
 
-        ox_tank_cg=cfg.ox_tank_cg,
+        ox_tank_pos=cfg.ox_tank_pos,
 
-        engine_cg=cfg.engine_cg
+        engine_pos=cfg.engine_pos
 
     )
     #NOTE: WE ADD "fuel_tank_cg" if there is a fuel tank below with the rocketpy add tank function

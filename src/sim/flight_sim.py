@@ -52,9 +52,9 @@ def flight_sim(kwargs):
 
 
     ox_tank = MassFlowRateBasedTank(**kwargs["rocketpy_ox_tank_kwargs"])
-    engine.add_tank(ox_tank, position=kwargs["rocketpy_rocket_kwargs"]["ox_tank_cg"])
+    engine.add_tank(ox_tank, position=kwargs["rocketpy_rocket_kwargs"]["ox_tank_pos"])
 
-    rocket.add_motor(engine, position=kwargs["rocketpy_rocket_kwargs"]["engine_cg"])
+    rocket.add_motor(engine, position=kwargs["rocketpy_rocket_kwargs"]["engine_pos"])
 
     rocket.set_rail_buttons(
         upper_button_position=kwargs["rocketpy_rocket_kwargs"]["upper_launch_lug_pos"],
