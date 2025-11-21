@@ -37,8 +37,7 @@ def flight_sim(kwargs):
         )
 
     engine = None
-#NOTE: IS IT EMPTY OR NONE?
-    if kwargs.get("fuel_tank_kwargs") is not None: #We are flying liquid
+    if kwargs.get("rocketpy_fuel_tank_kwargs") is not None: #We are flying liquid
 
         fuel_tank = MassFlowRateBasedTank(**kwargs["rocketpy_fuel_tank_kwargs"])
         engine = LiquidMotor(**kwargs["rocketpy_cc_kwargs"])
@@ -46,13 +45,16 @@ def flight_sim(kwargs):
         engine.add_tank(fuel_tank, position=kwargs["rocketpy_rocket_kwargs"]["fuel_tank_cg"])
 
     else: #we are flying hybrid
+        #print(kwargs["rocketpy_cc_kwargs"]["rktpy_cc_inertia"])
+        print(kwargs["rocketpy_cc_kwargs"])
+
         engine = HybridMotor(**kwargs["rocketpy_cc_kwargs"])
 
 
     ox_tank = MassFlowRateBasedTank(**kwargs["rocketpy_ox_tank_kwargs"])
-    engine.add_tank(ox_tank, position=kwargs["rocketpy_rocket_kwargs"]["ox_tank_cg"])
+    engine.add_tank(ox_tank, position=kwargs["rocketpy_rocket_kwargs"]["ox_tank_pos"])
 
-    rocket.add_motor(engine, position=kwargs["rocketpy_rocket_kwargs"]["engine_cg"])
+    rocket.add_motor(engine, position=kwargs["rocketpy_rocket_kwargs"]["engine_pos"])
 
     rocket.set_rail_buttons(
         upper_button_position=kwargs["rocketpy_rocket_kwargs"]["upper_launch_lug_pos"],

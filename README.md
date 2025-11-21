@@ -64,6 +64,7 @@ To update requirements.txt after adding a new library:
 Always create a new branch for edits (git checkout -b <branch_name>).
 
 
+
 ## Sources and Citations:
 | Number | Source                            | Contribution / Use Description                 | Link to Source    |
 |--------|-----------------------------------|------------------------------------------------|-------------------|
@@ -100,6 +101,69 @@ Always create a new branch for edits (git checkout -b <branch_name>).
 Performance of a 1-kN Paraffin-Fueled Hybrid Rocket Motor | Sauter Mean Diameter | https://www.eucass.eu/component/docindexer/?task=download&id=5781|
 | [31]  | Barrowman Thesis | Drag model | http://www.rsandt.com/media/BarrowmanThesis.pdf |
 | [32]  | Rocketpy | flight model | https://rocketpy-team.github.io/ |
+| [33]  | Praxair Gas Compatibility | detail design | https://www.ualberta.ca/en/chemistry/media-library/safety/gasmaterialcompatability.pdf |
+| [34]  | Matheson Gas Compatibility | detail design | https://www.mathesongas.com/pdfs/litcenter/Materials-Compatibility-Guide.pdf |
+| [35]  | Air Liquid Nitrous Oxide Compatibility | detail design | https://encyclopedia.airliquide.com/nitrous-oxide#safety-compatibility |
+| [36]  | Phelps Chemical Resistance Chart - Elastomers | detail design |https://www.phelpsgaskets.com/useful-resources/chemical-resistance-chart-elastomers |
+| [37]  | ISM Chemical Resistance Chart | detail design | https://www.industrialspec.com/images/files/elastomers-chemical-compatibility-chart-from-ism.pdf?srsltid=AfmBOooIuDZ5ZhLMk3UH3gRNDFEGZi43S5dItMhhbmiVIOswkAI3QPRH |
+| [38]  | CRITERIA FOR OPTIMUM MIXTURE-RATIO DISTRIBUTION USING SEVERAL TYPES OF IMPINGING-STREAM
+INJECTOR ELEMENTS  | Selecting injector momentum ratio | https://ntrs.nasa.gov/api/citations/20150018528/downloads/20150018528.pdf |
+| [39]  | Criteria for optimum propellant mixing in impinging-jet injection elements. | injector mixing and atomization | https://arc.aiaa.org/doi/10.2514/3.28966 |
+| [40]  | Experimental Study on Impinging Jet Atomization Using Doublet and Quadruplet Jets | injector mixing and atomization | https://www.mdpi.com/1996-1073/17/5/1200 |
+| [41]  | CP Lab Safety Nylon Compatibility | Nitrous oxide compatible w Nylon | https://www.calpaclab.com/nylon-chemical-compatibility-chart/?srsltid=AfmBOoobV4hrS8S_DslW-B069nUJ7ePIBEwmwBJIVsOg5pkNgHMnSD73 |
+| [42]  | Half Cat Rocketry Valves | Inj Test Bench | https://www.halfcatrocketry.com/fluid-system |
+
+
+
+
+
+
+
+
+### Material Compatibility:
+
+*** this is a high level summary, make sure to check materials against temperature resistance and other factors.
+
+#### Nitrous Oxide:
+
+| Metals        | Compatible? | Source | Notes:                   |
+|---------------|-------------|--------|--------------------------|
+| Aluminum      | yes         | [35],  |   |
+| Brass         | yes         | [35],  | [35] Notes risk of stress corrosion cracking under certain conditions. |
+| Stainless Steel | yes | [35]    |   |
+| Ferritic Steel  | yes | [35]    |   |
+
+
+| Plastics       | Compatible? | Source | Notes:                   |
+|---------------|-------------|--------|--------------------------|
+| PVC           | BAD NO      | [35]    | |
+| Polypropylene | BAD NO      | [35]    | |
+| Nylon         | Yes          | [41]
+
+
+| Elastomers        | Compatible? | Source | Notes:                   |
+|---------------|-------------|--------|--------------------------|
+| Buna-N        | Conditionally, some reported yes and no | [33]no, [34]yes, [36]yes | Seems like swelling issues and prone to decomposition in certain environments |
+| Teflon (PTFE) | yes | [36] | |
+| Viton         | yes | [36] | |
+
+
+
+| Lubricants        | Compatible? | Source | Notes:                   |
+|---------------|-------------|--------|--------------------------|
+| Hydrocarbon based | BAD NO      | [35]    | |
+| Fluorocarbon based | yes     | [35]    | |
+
+
+#### Ethanol:
+
+| Elastomers    | Compatible? | Source | Notes:                   |
+|---------------|-------------|--------|--------------------------|
+| Buna-N        | poor        | [37]   |    |
+| Viton         | yes         | [37]   | |
+
+
+
 
 Ryan Wright, From Calgary, Alberta, Canada   
 

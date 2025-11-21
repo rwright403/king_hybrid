@@ -36,7 +36,7 @@ class dyer_model(BaseInjector):
     
 
 
-# === Quick test harness for Dyer model ===
+# === Quick test harness for Dyer model (pressure-based) ===
 if __name__ == "__main__":
     import CoolProp.CoolProp as CP
     import numpy as np
@@ -45,28 +45,26 @@ if __name__ == "__main__":
     # Injector parameters
     Cd = 0.9
     d_inj = 1.5e-3   # [m]
-    A_inj = np.pi * (d_inj/2)**2
+    A_inj = np.pi * (d_inj / 2)**2
 
     # Initialize model
     inj = dyer_model(Cd, A_inj)
 
-    # Upstream (tank) state: choose a nominal liquid N2O condition
-    T_1 = 293.15  # [K]
+    # Upstream state (tank): define by pressure instead of temperature
     fluid = "N2O"
-    P_sat = CP.PropsSI("P", "T", T_1, "Q", 0, fluid)
-    rho_1 = CP.PropsSI("D", "T", T_1, "Q", 0, fluid)
-    h_1 = CP.PropsSI("H", "T", T_1, "Q", 0, fluid)
-    s_1 = CP.PropsSI("S", "T", T_1, "Q", 0, fluid)
-    u_1 = CP.PropsSI("U", "T", T_1, "Q", 0, fluid)
-
-    # Slightly pressurized above saturation (subcooled liquid)
-    P_1 =P_sat
+    P_1 = 3e6  # [Pa] — example tank pressure (50 bar)
+    T_1 = CP.PropsSI("T", "P", P_1, "Q", 0, fluid)   # saturated liquid temperature
+    rho_1 = CP.PropsSI("D", "P", P_1, "Q", 0, fluid)
+    h_1 = CP.PropsSI("H", "P", P_1, "Q", 0, fluid)
+    u_1 = CP.PropsSI("U", "P", P_1, "Q", 0, fluid)
+    s_1 = CP.PropsSI("S", "P", P_1, "Q", 0, fluid)
+    P_sat = P_1  # same since we’re on saturation line
 
     # Sweep downstream pressures
-    P_2_arr = np.linspace(P_1*0.99, P_1*0.05, 80)
+    P_2_arr = np.linspace(P_1 * 0.99, P_1 * 0.05, 80)
     m_dot_arr = np.zeros_like(P_2_arr)
 
-    # Loop through pressures
+    # Loop through downstream pressures
     for i, P_2 in enumerate(P_2_arr):
         state = {
             "P_1": P_1,
@@ -77,19 +75,19 @@ if __name__ == "__main__":
             "u_1": u_1,
             "s_1": s_1,
             "P_sat": P_sat,
-            "x_1": 0.0,
+            "x_1": 0.0,  # pure liquid inlet
         }
         try:
             m_dot_arr[i] = inj.m_dot(state)
         except Exception as e:
-            print(f"Error at P2={P_2/1e5:.2f} bar: {e}")
+            print(f"Error at P₂ = {P_2/1e5:.2f} bar: {e}")
             m_dot_arr[i] = np.nan
 
     # Convert to convenient units
     deltaP_arr = (P_1 - P_2_arr) / 1e5  # [bar]
-    m_dot_gs = m_dot_arr * 1e3          # [g/s]
+    m_dot_gs = m_dot_arr * 1e3           # [g/s]
 
-    # === Plot results ===
+    # === Plot: ṁ vs ΔP ===
     plt.figure(figsize=(6,4))
     plt.plot(deltaP_arr, m_dot_gs, "o-", lw=1.5)
     plt.xlabel("ΔP = P₁ - P₂  [bar]")
@@ -99,9 +97,9 @@ if __name__ == "__main__":
     plt.tight_layout()
     plt.show()
 
-    # Optionally plot ṁ vs P₂ to visualize choke plateau
+    # === Plot: ṁ vs P₂ to visualize choking ===
     plt.figure(figsize=(6,4))
-    plt.plot(P_2_arr/1e5, m_dot_gs, "o-", lw=1.5)
+    plt.plot(P_2_arr / 1e5, m_dot_gs, "o-", lw=1.5)
     plt.xlabel("Downstream Pressure P₂ [bar]")
     plt.ylabel("ṁ [g/s]")
     plt.title("Dyer Model — Choked Flow Behavior")

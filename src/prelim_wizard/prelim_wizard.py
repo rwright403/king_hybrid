@@ -24,7 +24,7 @@ def magic(inputs):
     if inputs.oxidizer_name  == "N2O":
 
         # Define temperature range (input in celsius, program converts to kelvin)
-        T_min = 16  # Minimum operating temperature
+        T_min = -5  # Minimum operating temperature
         T_max = 27  # Maximum operating temperature
         T_crit = 36 # Critical temperature of nitrous
         num_points = 100  # Number of points for the plot
@@ -75,7 +75,7 @@ def magic(inputs):
 
 
     #NOTE: this is approx the range we should see for a student pressure fed nitrous oxide engine, change as required
-    OF_ratio = [4, 5, 6, 7, 8, 9]
+    OF_ratio = [3, 4, 5, 6, 7, 8, 9]
     chamber_pressures = [10, 20, 30, 40, 50]
 
 
@@ -512,8 +512,8 @@ def magic(inputs):
         M_molar = CP.PropsSI('M','Nitrogen')  # kg/mol
         R_specific = R_univ / M_molar      # J/(kg·K)
 
-        V_tank = V_fuel / (1 - ullage_fraction)
-        V_ullage = V_tank - V_fuel
+        V_fuel_tank = V_fuel / (1 - ullage_fraction)
+        V_ullage = V_fuel_tank - V_fuel
 
         # --- Compute mass of pressurant using ideal gas law ---
         m_pressurant = selected_P_fuel_tank * V_ullage / (R_specific * 0.5*(T_min+T_max))
@@ -523,6 +523,8 @@ def magic(inputs):
 
         # --- Compute pressure at each temperature ---
         P = m_pressurant * R_specific * T_range / V_ullage  # Pa
+
+        print(f"fuel tank summary: m_pressurant = {m_pressurant}, V_tank = {V_fuel_tank}")
 
         # --- Plot ---
         plt.figure(figsize=(8,5))

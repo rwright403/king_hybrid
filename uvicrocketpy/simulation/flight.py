@@ -33,6 +33,24 @@ ODE_SOLVER_MAP = {
     "LSODA": LSODA,
 }
 
+def compute_fin_angles(stream_velocity):
+    """
+    Stream velocity in standard aerodynamic frame,
+    stream_velocity = -self.stream_velocity_body_frame
+    """
+    beta = np.arctan2(
+            stream_velocity[:, 0],
+            stream_velocity[:, 2],
+        )  # x-z plane
+    alpha = np.arctan2(
+            stream_velocity[:, 1],
+            stream_velocity[:, 2],
+        )  # y-z plane
+
+    return np.rad2deg(alpha), np.rad2deg(beta)
+
+
+
 
 # pylint: disable=too-many-public-methods
 # pylint: disable=too-many-instance-attributes
@@ -1313,6 +1331,44 @@ class Flight:
 
         return -wind_u * np.cos(heading_rad) + wind_v * np.sin(heading_rad)
 
+    def compute_fin_angles_from_state(self, vx, vy, vz, e0, e1, e2, e3, z):
+        # 1. Compute freestream in INERTIAL frame
+        V_inf = np.array([
+            self.env.wind_velocity_x.get_value_opt(z) - vx,
+            self.env.wind_velocity_y.get_value_opt(z) - vy,
+            0.0 - vz   # wind has no Z component
+        ])
+
+        # 2. Build direction cosine matrix (body <- inertial)
+        q0, q1, q2, q3 = e0, e1, e2, e3
+
+        C = np.array([
+            [1 - 2*(q2*q2 + q3*q3),   2*(q1*q2 - q0*q3),     2*(q1*q3 + q0*q2)],
+            [2*(q1*q2 + q0*q3),       1 - 2*(q1*q1 + q3*q3), 2*(q2*q3 - q0*q1)],
+            [2*(q1*q3 - q0*q2),       2*(q2*q3 + q0*q1),     1 - 2*(q1*q1 + q2*q2)]
+        ])
+
+        # 3. Transform freestream to BODY frame
+        V_body_raw = C @ V_inf
+
+        # 4. AoA uses **incoming** wind direction → negate body-frame vector
+        V_body = -V_body_raw
+
+        Vbx, Vby, Vbz = V_body
+
+        # (OPTIONAL DEBUG)
+        # print("V_body_raw:", V_body_raw)
+        # print("V_body_used:", V_body)
+
+        # 5. Compute FIN aerodynamic angles
+        alpha = np.arctan2(Vby, Vbz)  # pitch AoA (y–z plane)
+        beta  = np.arctan2(Vbx, Vbz)  # yaw AoA   (x–z plane)
+
+        return np.degrees(alpha), np.degrees(beta)
+
+
+
+
     def udot_rail1(self, t, u, post_processing=False):
         """Calculates derivative of u state vector with respect to time
         when rocket is flying in 1 DOF motion in the rail.
@@ -1353,10 +1409,12 @@ class Flight:
         #NOTE: library mod:
         dyn_visc = self.env.dynamic_viscosity.get_value_opt(z)
         rho = self.env.density.get_value_opt(z)
-        drag_coeff = self.rocket.power_on_drag.get_value_opt(free_stream_mach, free_stream_speed, dyn_visc, rho)
-
-        # Calculate Forces
         pressure = self.env.pressure.get_value_opt(z)
+        alpha, beta = self.compute_fin_angles_from_state(vx, vy, vz, e0, e1, e2, e3, z)
+        print("alpha, beta ", alpha, beta)
+        drag_coeff = self.rocket.power_on_drag.get_value_opt(free_stream_mach, free_stream_speed, dyn_visc, rho, pressure, alpha, beta)
+        # Calculate Forces
+        #pressure = self.env.pressure.get_value_opt(z)
         net_thrust = max(
             self.rocket.motor.thrust.get_value_opt(t)
             + self.rocket.motor.pressure_thrust(pressure),
@@ -1527,11 +1585,14 @@ class Flight:
         #NOTE: library mod:
         dyn_visc = self.env.dynamic_viscosity.get_value_opt(z)
         rho = self.env.density.get_value_opt(z)
+        pressure = self.env.pressure.get_value_opt(z)
+        alpha, beta = self.compute_fin_angles_from_state(vx, vy, vz, e0, e1, e2, e3, z)
+        print("alpha, beta ", alpha, beta)
 
         if t < self.rocket.motor.burn_out_time:
-            drag_coeff = self.rocket.power_on_drag.get_value_opt(free_stream_mach, free_stream_speed, dyn_visc, rho)
+            drag_coeff = self.rocket.power_on_drag.get_value_opt(free_stream_mach, free_stream_speed, dyn_visc, rho, pressure, alpha, beta)
         else:
-            drag_coeff = self.rocket.power_off_drag.get_value_opt(free_stream_mach, free_stream_speed, dyn_visc, rho)
+            drag_coeff = self.rocket.power_off_drag.get_value_opt(free_stream_mach, free_stream_speed, dyn_visc, rho, pressure, alpha, beta)
         #rho = self.env.density.get_value_opt(z)
         R3 = -0.5 * rho * (free_stream_speed**2) * self.rocket.area * drag_coeff
         for air_brakes in self.rocket.air_brakes:
@@ -1801,18 +1862,21 @@ class Flight:
 
         #NOTE: library mod:
         dyn_visc = self.env.dynamic_viscosity.get_value_opt(z)
+        pressure = self.env.pressure.get_value_opt(z)
+        alpha, beta = self.compute_fin_angles_from_state(vx, vy, vz, e0, e1, e2, e3, z)
+        print("alpha, beta ", alpha, beta)
 
         if self.rocket.motor.burn_start_time < t < self.rocket.motor.burn_out_time:
-            pressure = self.env.pressure.get_value_opt(z)
+            #pressure = self.env.pressure.get_value_opt(z)
             net_thrust = max(
                 self.rocket.motor.thrust.get_value_opt(t)
                 + self.rocket.motor.pressure_thrust(pressure),
                 0,
             )
-            drag_coeff = self.rocket.power_on_drag.get_value_opt(free_stream_mach, free_stream_speed, dyn_visc, rho)
+            drag_coeff = self.rocket.power_on_drag.get_value_opt(free_stream_mach, free_stream_speed, dyn_visc, rho, pressure, alpha, beta)
         else:
             net_thrust = 0
-            drag_coeff = self.rocket.power_off_drag.get_value_opt(free_stream_mach, free_stream_speed, dyn_visc, rho)
+            drag_coeff = self.rocket.power_off_drag.get_value_opt(free_stream_mach, free_stream_speed, dyn_visc, rho, pressure, alpha, beta)
         R3 += -0.5 * rho * (free_stream_speed**2) * self.rocket.area * drag_coeff
         for air_brakes in self.rocket.air_brakes:
             if air_brakes.deployment_level > 0:

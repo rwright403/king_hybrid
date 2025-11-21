@@ -338,14 +338,14 @@ class Rocket:
         # Define aerodynamic drag coefficients
         self.power_off_drag = Function(
             power_off_drag,
-            ["Mach Number", "Velocity [m/s]", "Dynamic Viscosity [Pa s]", "Density [kg/m^3]"],
+            ["Mach Number", "Velocity [m/s]", "Dynamic Viscosity [Pa s]", "Density [kg/m^3]", "Pressure [Pa]", "Angle of Attack Alpha (°)", "Angle of Attack Beta (°)"],
             "Drag Coefficient with Power Off",
             "linear",
             "constant",
         )
         self.power_on_drag = Function(
             power_on_drag,
-            ["Mach Number", "Velocity [m/s]", "Dynamic Viscosity [Pa s]", "Density [kg/m^3]"],
+            ["Mach Number", "Velocity [m/s]", "Dynamic Viscosity [Pa s]", "Density [kg/m^3]", "Pressure [Pa]", "Angle of Attack (°)", "Angle of Attack Beta (°)"],
             "Drag Coefficient with Power On",
             "linear",
             "constant",

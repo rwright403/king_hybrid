@@ -49,7 +49,7 @@ P_dot_err_tol  = None #NOTE: obsolte
 # Ox Injector parameters
 # ------------------------
 Cd_inj_ox   = 0.6
-A_inj_ox = 5.6440e-05   # [m^2]
+A_inj_ox = 9*0.25*3.1415926*(1.5e-3)**2   # [m^2]
 
 # ------------------------
 # Fuel tank & pressurant
