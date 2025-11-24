@@ -66,8 +66,7 @@ n_reg               = 0.5
 L_port              = 0.3852333    # [m]
 A_port              = 0.0038319753 # [m^2]
 
-import numpy as np
-print(np.sqrt( (1/(0.25*np.pi))*(m_fuel_i/(rho_fuel*L_port) +A_port) ))
+
 # ------------------------
 # Nozzle
 # ------------------------

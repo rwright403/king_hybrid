@@ -21,6 +21,26 @@ def hollow_cylinder_inertia(m, L, d_inner, d_outer):
     inertia = np.array([[Ixx,0,0],[0,Iyy,0],[0,0,Izz]])
     return inertia
 
+def thin_hollow_cone_mass(rho, H, d_inner, d_outer):
+    
+    Ri = d_inner / 2
+    Ro = d_outer / 2
+
+    # Thin shell area
+    L = np.sqrt(H**2 + Ro**2)  # slant height (use outer R)
+    A_shell = np.pi * (Ro + Ri) * L
+
+    # Mass
+    return rho * A_shell
+
+def thin_hollow_cone_inertia(m, H, R):
+    Ixx = 0.5 * m * R**2
+    Iyy = 0.25 * m * R**2 + (1/12) * m * H**2
+    Izz = Iyy
+    inertia = np.array([[Ixx,0,0],[0,Iyy,0],[0,0,Izz]])
+    return inertia
+
+
 
 def tensor_to_rocketpy_inertia(tensor: np.ndarray):
     # convert numpy 3x3 matrix 
@@ -70,8 +90,9 @@ def empirical_cc_mass_model(V_cc, CC_LD, rho=4025):
 
 
 
-def empirical_rkt_mass_model(m_empirical_total, id_tank, od_tank, id_fuse, od_fuse, L_ox_tank, ox_tank_pos, L_nose, nose_position, rho_al, L_fuel_tank, fuel_tank_pos, m_mev = 4, m_ftv = 1.5, m_otv = 2.5, m_reco = 4.5):
+def empirical_rkt_mass_model(m_empirical_total, id_tank, od_tank, id_fuse, od_fuse, L_ox_tank, ox_tank_pos, L_nose, nose_position, rho_al, L_fuel_tank, fuel_tank_pos, m_mev = 13, m_ftv = 1.5, m_otv = 4.5, m_reco = 2.5):
     #PARSE THIS FUNCTION FOR ASSUMPTIONS, INPUT IN SI ONLY
+    
 
     ### take point masses
 
@@ -83,10 +104,8 @@ def empirical_rkt_mass_model(m_empirical_total, id_tank, od_tank, id_fuse, od_fu
         ftv_pos = fuel_tank_pos+L_fuel_tank
         ftv = mass(m_ftv, np.array([ftv_pos,0.0,0.0]), np.zeros((3,3)) )
 
-    if L_fuel_tank != None:
-        otv_pos = (ox_tank_pos + 0.5*L_ox_tank) + 0.5*( (fuel_tank_pos-0.5*L_fuel_tank) - (ox_tank_pos + 0.5*L_ox_tank) )
-    else:
-        otv_pos = (ox_tank_pos - (ox_tank_pos + 0.5*L_ox_tank) )
+
+    otv_pos = ox_tank_pos + 0.5*L_ox_tank
     otv = mass(m_otv, np.array([otv_pos,0.0,0.0]), np.zeros((3,3)) )
 
 
@@ -116,7 +135,7 @@ def empirical_rkt_mass_model(m_empirical_total, id_tank, od_tank, id_fuse, od_fu
         m_no_aerostruct += (m_fuel_tank + m_ftv)
     m_remaining = m_empirical_total - m_no_aerostruct
 
-    print("m_remaining:", m_remaining, m_empirical_total, - m_no_aerostruct)
+    #print("m_remaining:", m_remaining, m_empirical_total, - m_no_aerostruct)
 
 
     if L_fuel_tank != None:
@@ -142,12 +161,10 @@ def empirical_rkt_mass_model(m_empirical_total, id_tank, od_tank, id_fuse, od_fu
     else:
         mass_data = [mev, otv, reco, ox_tank, upperfuse, lowerfuse]
 
-    for m in mass_data:
-        print(m)
+    #for m in mass_data:
+    #    print(m)
 
-    plot_mass_distribution(mass_data)
-
-    return parallel_axis(mass_data)
+    return mass_data
 
 
 
@@ -155,11 +172,17 @@ def mass_v1(m_empirical_total, id_tank, od_tank, id_fuse, od_fuse, L_ox_tank, ox
 
     cc = empirical_cc_mass_model(V_cc, CC_LD)
     rktpy_m_empirical_total = m_empirical_total - cc.mass #dont double count cc!
+
+    rkt_mass_data = empirical_rkt_mass_model(rktpy_m_empirical_total, id_tank, od_tank, id_fuse, od_fuse, L_ox_tank, ox_tank_pos, L_nose, nose_position, rho_al, L_fuel_tank, fuel_tank_pos)
     
-    print("rktpy_m_empirical: ", rktpy_m_empirical_total, m_empirical_total, - cc.mass)
-    
-    rkt = empirical_rkt_mass_model(rktpy_m_empirical_total, id_tank, od_tank, id_fuse, od_fuse, L_ox_tank, ox_tank_pos, L_nose, nose_position, rho_al, L_fuel_tank, fuel_tank_pos)
-    
+    #plot rkt mass dist
+    total_mass_data = rkt_mass_data.copy()
+    total_mass_data.append(cc)
+    plot_mass_distribution(total_mass_data)
+
+
+    rkt = parallel_axis(rkt_mass_data)
+
     rkt_m = rkt.mass
     rkt_cg = rkt.cg[0]
     rkt_I = tensor_to_rocketpy_inertia(rkt.inertia)

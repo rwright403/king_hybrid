@@ -63,6 +63,7 @@ def flight_sim(kwargs):
     )
 
     rocket.draw()
+    rocket.plots.stability_margin()
 
     flight = Flight(
         rocket=rocket,
@@ -71,7 +72,35 @@ def flight_sim(kwargs):
         inclination=kwargs["rocketpy_launchpad_kwargs"]["inclination"],
         heading=kwargs["rocketpy_launchpad_kwargs"]["heading"],
     )
+    
+    flight.prints.surface_wind_conditions()
     flight.prints.out_of_rail_conditions()
+    flight.prints.stability_margin()
+    flight.prints.apogee_conditions()
+
     flight.plots.trajectory_3d()
+    
+
+    import matplotlib.pyplot as plt
+
+    # Convert the stability_margin Function into arrays
+    time_vals = [t for t, _ in flight.stability_margin]
+    sm_vals = [sm for _, sm in flight.stability_margin]
+
+    # Determine apogee time
+    t_apogee = flight.apogee_time
+
+    # Filter to start → apogee only
+    time_trimmed = [t for t in time_vals if t <= t_apogee]
+    sm_trimmed = sm_vals[:len(time_trimmed)]  # same indices
+
+    # Plot
+    plt.plot(time_trimmed, sm_trimmed)
+    plt.xlabel('Time (s)')
+    plt.ylabel('Stability Margin (calibers)')
+    plt.title('Stability Margin up to Apogee')
+    plt.show()
+
+
 
     return flight

@@ -11,7 +11,8 @@ ox_tank_model = 2
 ox_inj_model  = 3  
 cc_model      = 1   # hybrid_cc_w_fuel_grain
 nozzle_model  = 1  
-drag_model    = 1
+drag_model    = 2
+mass_model    = 2
 
 # Global settings
 thrust_curve_graphs = True
@@ -44,7 +45,7 @@ print(P_sat, P_ox_tank)
 
 V_ox_tank   = 0.0315 #0.04 #0.0315      # [m^3] 0.75 Fill Fraction
 diam_out    = 0.14          # [m]
-diam_in     = 0.13365       # [m]
+diam_in     = diam_out - (0.0254*0.25) #0.13365       # [m]
 rho_wall    = 2700          # [kg/m^3]
 k_w         = 237           # [W/(m K)]
 volume_err_tol = 0.001      # from all_error
@@ -102,7 +103,6 @@ A_inj_fuel = None          # hybrid has no fuel injector
 
 
 
-
 # ==========================
 # ROCKETPY FLIGHT DESVAR
 # ==========================
@@ -111,7 +111,7 @@ from rocketpy import Environment
 
 # --- LAUNCH CANADA TIMMINS ONT. LAUNCH PAD ---
 """
-From Rocketpy Delivarance Mk. IV example flight (Launched at LC 2024)
+From Rocketpy Defiance Mk. IV example flight (Launched at LC 2024)
 (no wind, velo components set to 0)
 https://docs.rocketpy.org/en/latest/examples/defiance_flight_sim.html
 """
@@ -120,39 +120,67 @@ env = Environment(latitude=47.966527, longitude=-81.87413, elevation=1383.4)
 env.set_date((flight_date.year, flight_date.month, flight_date.day, 0))
 env.set_atmospheric_model(type="custom_atmosphere", wind_v=0.0, wind_u=0.0)
 
-rail_length = 10
-inclination = 85
-heading = 90
+rail_length = 5.6388 #[m] #NOTE: THIS IS NOT THE LC DEFAULT RAIL LENGTH
+inclination = 87     # [degrees, 0 degrees is along ground]
+heading = 90        # [degrees]
 
 # --- Rocket Geometry and Mass Properties ---
-fuselage_radius = 0.07
-rkt_dry_mass = 37.211
-rkt_dry_inertia = (94.14, 94.14, 0.09)
-rkt_dry_cg = 3.29
-power_off_drag = "src/inputs/UofT_Deliverance_II/UofT_Style_Defiance_DragCurve.csv"
-power_on_drag = "src/inputs/UofT_Deliverance_II/UofT_Style_Defiance_DragCurve.csv"
-rkt_csys = "tail_to_nose"
+fuselage_radius = 0.5*diam_out                  # [m]
+fuselage_inner_radius = 0.95*fuselage_radius    #[m]
+rkt_dry_mass = 37 #TODO: remove             
+rkt_csys = "tail_to_nose" # tail = 0 nose = (+) max
 
-upper_launch_lug_pos = 1.25
-lower_launch_lug_pos = 0.5
-launch_lug_angular_pos = 45
+upper_launch_lug_pos = 0.8      # [m] csys: "tail_to_nose"
+lower_launch_lug_pos = 0.2      # [m] csys: "tail_to_nose"
+launch_lug_angular_pos = 45     # [degrees]
 
-nose_length = 0.563
+nose_length = 0.5               # [m]
 nose_kind = "vonKarman"
-nose_position = 4.947
+nose_position = 4.3             # [m]
+#nose_density = 2700            # [kg/m^3] assume glass
 
-fins_n = 3
-fins_span = 0.115
-fins_root_chord = 0.4
-fins_tip_chord = 0.2
-fins_position = 0.175
+fins_n = 4                      #NOTE: drag model 2 assumes 4 fin rocket.
+fins_span = 0.115               # [m]
+fins_root_chord = 0.2           # [m]
+fins_tip_chord = 0.15           # [m]
+fins_position = 0.4             # [m] csys: "tail_to_nose"
+gamma_LE_sweep= 15             # [degrees]
+fin_root_thickness=1e-3        # [m]
 
-### NOTE: is this cg or location actually??
-ox_tank_cg = 2.2
-engine_cg = 0
+# fin X-section
+#TODO: READ U OF T PAPER, placeholders for now from barrowman example
+Lambda_1= 38.23                 # [degrees]
+Lambda_L= 45.0                  # [degrees]
+Lambda_2= 0.0                   # [degrees]
+Lambda_T= 0.0                   # [degrees]
+zeta_L= 2.475                   # [degrees] #TODO: CHECK
+zeta_T= 0.0                     # [degrees] #TODO: CHECK
+lL_root= 0.02                   # [m]
+lT_root= 0.0                    # [m]
 
-# --- Chamber / Motor Properties ---
-cc_cg = 0.78
-cc_dry_inertia = (1.801, 1.801, 0.0305)
-cc_dry_mass = 13.832
-nozzle_pos = 0.0
+#fin_density = 1350 # [kg/m^3] assume cf
+
+
+ox_tank_pos = 1.9           # [m] csys: "tail_to_nose"
+engine_pos = 0              # [m] csys: "tail_to_nose"
+cc_cg = 0.5                 # [m] csys: "tail_to_nose"
+nozzle_pos = 0.0            # [m] csys: "tail_to_nose"
+
+#TODO: ADD POINT MASSES:
+#m_mev = 13
+#m_ftv = 1.5
+#m_otv = 4.5
+# m_reco = 2.5 split up drogue and main?
+# m_avionics ??? #add and put in nosecone?
+
+
+# mass model = 1 inputs:
+#rkt_dry_mass = 37                              # [kg]
+#cc_dry_inertia = (1.801, 1.801, 0.0305)        # tuple, [kg m^2]
+#cc_dry_mass = 13.832                           # [kg]
+#rkt_dry_inertia = (94.14, 94.14, 0.09)         # tuple, [kg m^2]
+#rkt_dry_cg = 3.29                              # [m]
+
+# drag model = 1 inputs:
+#power_off_drag = "src/inputs/UofT_Deliverance_II/UofT_Style_Defiance_DragCurve.csv"
+#power_on_drag = "src/inputs/UofT_Deliverance_II/UofT_Style_Defiance_DragCurve.csv"
