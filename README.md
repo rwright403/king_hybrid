@@ -106,12 +106,14 @@ Performance of a 1-kN Paraffin-Fueled Hybrid Rocket Motor | Sauter Mean Diameter
 | [35]  | Air Liquid Nitrous Oxide Compatibility | detail design | https://encyclopedia.airliquide.com/nitrous-oxide#safety-compatibility |
 | [36]  | Phelps Chemical Resistance Chart - Elastomers | detail design |https://www.phelpsgaskets.com/useful-resources/chemical-resistance-chart-elastomers |
 | [37]  | ISM Chemical Resistance Chart | detail design | https://www.industrialspec.com/images/files/elastomers-chemical-compatibility-chart-from-ism.pdf?srsltid=AfmBOooIuDZ5ZhLMk3UH3gRNDFEGZi43S5dItMhhbmiVIOswkAI3QPRH |
-| [38]  | CRITERIA FOR OPTIMUM MIXTURE-RATIO DISTRIBUTION USING SEVERAL TYPES OF IMPINGING-STREAM
-INJECTOR ELEMENTS  | Selecting injector momentum ratio | https://ntrs.nasa.gov/api/citations/20150018528/downloads/20150018528.pdf |
+| [38]  | CRITERIA FOR OPTIMUM MIXTURE-RATIO DISTRIBUTION USING SEVERAL TYPES OF IMPINGING-STREAM INJECTOR ELEMENTS  | Selecting injector momentum ratio | https://ntrs.nasa.gov/api/citations/20150018528/downloads/20150018528.pdf |
 | [39]  | Criteria for optimum propellant mixing in impinging-jet injection elements. | injector mixing and atomization | https://arc.aiaa.org/doi/10.2514/3.28966 |
 | [40]  | Experimental Study on Impinging Jet Atomization Using Doublet and Quadruplet Jets | injector mixing and atomization | https://www.mdpi.com/1996-1073/17/5/1200 |
 | [41]  | CP Lab Safety Nylon Compatibility | Nitrous oxide compatible w Nylon | https://www.calpaclab.com/nylon-chemical-compatibility-chart/?srsltid=AfmBOoobV4hrS8S_DslW-B069nUJ7ePIBEwmwBJIVsOg5pkNgHMnSD73 |
 | [42]  | Half Cat Rocketry Valves | Inj Test Bench | https://www.halfcatrocketry.com/fluid-system |
+| [43]  | FIN A COMPUTER PROGRAM FOR CALCULATING THE AERODYNAMIC CHARACTERISTICS OF FINS AT SUPERSONIC SPEEDS NTRS 19660021056 | fin wake drag coeff for barrowman model | https://ntrs.nasa.gov/citations/19660021056 |
+| [44]  | Collection of Zero-lift Drag Data on Bodies of Revolution from Free-flight Investigations | Nosecone drag coeff | https://ntrs.nasa.gov/citations/19630004995 |
+
 
 
 

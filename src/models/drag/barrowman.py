@@ -227,7 +227,7 @@ def fin_aero_vs_alpha(
     #CL  = 2.0 * TLIFT * dy / A_ref
     CDw = 2.0 * TDRAG * dy / A_ref
 
-    print("CDw: ", CDw, TDRAG, A_ref)
+    #print("CDw: ", CDw, TDRAG, A_ref)
 
     return CDw
 
@@ -333,18 +333,7 @@ def make_drag_func(fuse_od, nose_length, nose_position, fins_n, fins_span, fins_
         lT_root,
 
     )
-    print("C_DWT_sol inputs:",A_T,
-        fuse_od,
-        cr,
-        S,
-        Lambda_L,
-        Lambda_1,
-        Lambda_2,
-        Lambda_T,
-        zeta_L,
-        zeta_T,
-        lL_root,
-        lT_root, )
+    #print("C_DWT_sol inputs:",A_T,fuse_od,cr,S,Lambda_L,Lambda_1,Lambda_2,Lambda_T,zeta_L,zeta_T,lL_root, lT_root, )
 
     # The callable func:
     def drag_func(Ma, U, mu, rho, pressure, alpha, beta):
@@ -417,7 +406,7 @@ def make_drag_func(fuse_od, nose_length, nose_position, fins_n, fins_span, fins_
 
             # Solve Laminar Case
             Cf = 1.328/np.sqrt(Re)
-            print("Re: ", Re)
+            #print("Re: ", Re)
             K = 0.15                        #K = 0.052 for cooled wall, K = 0.15 for no Q
             Cfc = Cf/( (1+K*Ma**2)**0.58)
 
@@ -438,9 +427,9 @@ def make_drag_func(fuse_od, nose_length, nose_position, fins_n, fins_span, fins_
             C_DWT = C_DWT_sol(Ma, alpha) + C_DWT_sol(Ma, beta) #(tr/cr) / np.sqrt( (Ma**2)*(np.cos(np.deg2rad(gamma_midchord))**2) -1) * (A_T/A_ref)
 
             #NOTE: SEEMS LIKE -1 IN SQRT IS WRONG
-            print("alpha and beta component: ", C_DWT_sol(Ma, alpha), C_DWT_sol(Ma, beta) )
+            #print("alpha and beta component: ", C_DWT_sol(Ma, alpha), C_DWT_sol(Ma, beta) )
 
-            print("C_DWT: ", C_DWT, alpha, beta, Ma )
+            #print("C_DWT: ", C_DWT, alpha, beta, Ma )
 
             Cd_tail = C_DWT 
 
@@ -470,10 +459,8 @@ def make_drag_func(fuse_od, nose_length, nose_position, fins_n, fins_span, fins_
 
         Cd = Cd_tail + Cd_body
 
-        if Ma >= 1.0: #Subsonic
-            print("Cd!!", Cd, C_DWT, C_DFT + C_DLT + C_DBT, C_DP, C_DBB, Re)
+        #if Ma >= 1.0: #Subsonic
+            #print("Cd!!", Cd, C_DWT, C_DFT + C_DLT + C_DBT, C_DP, C_DBB, Re)
         return Cd
-    
-    print("made drag function without issues?")
 
     return drag_func
