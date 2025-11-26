@@ -230,27 +230,13 @@ def empirical_rkt_mass_model(id_tank, od_tank, id_fuse, od_fuse, L_ox_tank, ox_t
         fuel_tank_masses = hollow_cylinder_lumped_masses(rho_al, L_ox_tank, id_tank, od_tank, fuel_tank_pos)
 
 
-    ### sol remaining mass
-    """
-    m_no_aerostruct = m_mev + m_otv + m_reco
-    for m in ox_tank_masses:
-        m_no_aerostruct+=m
-    if L_fuel_tank != None:
-        m_no_aerostruct += m_ftv
-        for m in fuel_tank_masses:
-            m_no_aerostruct+=m
-    
-    m_remaining = m_empirical_total - m_no_aerostruct
-    print("m_remaining:", m_remaining, m_empirical_total, - m_no_aerostruct)
-    """
-
 
     if L_fuel_tank != None:
-        L_upperfuse = (0.5*L_nose + nose_position) - (L_fuel_tank + fuel_tank_pos)
-        upperfuse_pos = 0.5*L_upperfuse + (L_fuel_tank + fuel_tank_pos)
+        L_upperfuse = (nose_position) - (0.5*L_fuel_tank + fuel_tank_pos)
+        upperfuse_pos = 0.5*L_upperfuse + (0.5*L_fuel_tank + fuel_tank_pos)
     else:
-        L_upperfuse = (0.5*L_nose + nose_position) - (L_ox_tank + ox_tank_pos)
-        upperfuse_pos = 0.5*L_upperfuse + (L_ox_tank + ox_tank_pos)
+        L_upperfuse = (nose_position) - (0.5*L_ox_tank + ox_tank_pos)
+        upperfuse_pos = 0.5*L_upperfuse + (0.5*L_ox_tank + ox_tank_pos)
     upperfuse_masses = hollow_cylinder_lumped_masses(rho_upperfuse, L_upperfuse, id_tank, od_tank, upperfuse_pos)
 
     L_lowerfuse = (ox_tank_pos - 0.5*L_ox_tank)
