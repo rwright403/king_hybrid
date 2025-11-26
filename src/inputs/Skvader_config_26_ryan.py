@@ -137,7 +137,7 @@ launch_lug_angular_pos = 45     # [degrees]
 nose_length = 0.5               # [m]
 nose_kind = "vonKarman"
 nose_position = 4.3             # [m]
-#nose_density = 2700            # [kg/m^3] assume glass
+rho_nose = 2700            # [kg/m^3] assume glass
 
 fins_n = 4                      #NOTE: drag model 2 assumes 4 fin rocket.
 fins_span = 0.115               # [m]
@@ -153,12 +153,12 @@ Lambda_1= 38.23                 # [degrees]
 Lambda_L= 45.0                  # [degrees]
 Lambda_2= 0.0                   # [degrees]
 Lambda_T= 0.0                   # [degrees]
-zeta_L= 2.475                   # [degrees] #TODO: CHECK
-zeta_T= 0.0                     # [degrees] #TODO: CHECK
+zeta_L= 2.475                   # [degrees]
+zeta_T= 0.0                     # [degrees]
 lL_root= 0.02                   # [m]
 lT_root= 0.0                    # [m]
 
-#fin_density = 1350 # [kg/m^3] assume cf
+rho_fin = 1350 # [kg/m^3] assume cf
 
 
 ox_tank_pos = 1.9           # [m] csys: "tail_to_nose"
@@ -166,12 +166,15 @@ engine_pos = 0              # [m] csys: "tail_to_nose"
 cc_cg = 0.5                 # [m] csys: "tail_to_nose"
 nozzle_pos = 0.0            # [m] csys: "tail_to_nose"
 
-#TODO: ADD POINT MASSES:
-#m_mev = 13
-#m_ftv = 1.5
-#m_otv = 4.5
-# m_reco = 2.5 split up drogue and main?
-# m_avionics ??? #add and put in nosecone?
+#POINT MASSES OF COMPONENTS:
+m_mev = 13
+m_ftv = 1.5
+m_otv = 4.5
+m_reco = 2.5 
+
+#Densities:
+rho_upperfuse = 1350 # [kg/m^3] assume cf
+rho_lowerfuse = 1350 # [kg/m^3] assume cf
 
 
 # mass model = 1 inputs:

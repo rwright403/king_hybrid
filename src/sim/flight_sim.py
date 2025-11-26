@@ -1,5 +1,5 @@
-import os
 import pandas as pd
+import matplotlib.pyplot as plt
 
 from uvicrocketpy import Rocket, Flight, HybridMotor, LiquidMotor, MassFlowRateBasedTank
 
@@ -46,7 +46,7 @@ def flight_sim(kwargs):
 
     else: #we are flying hybrid
         #print(kwargs["rocketpy_cc_kwargs"]["rktpy_cc_inertia"])
-        print(kwargs["rocketpy_cc_kwargs"])
+        #print(kwargs["rocketpy_cc_kwargs"])
 
         engine = HybridMotor(**kwargs["rocketpy_cc_kwargs"])
 
@@ -80,8 +80,6 @@ def flight_sim(kwargs):
 
     flight.plots.trajectory_3d()
     
-
-    import matplotlib.pyplot as plt
 
     # Convert the stability_margin Function into arrays
     time_vals = [t for t, _ in flight.stability_margin]
