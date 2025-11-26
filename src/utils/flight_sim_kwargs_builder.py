@@ -97,7 +97,6 @@ def build_flight_sim_kwargs(input_file, cfg):
         fuel_tank_model=getattr(cfg, "fuel_tank_model", None)
         if fuel_tank_model is not None:  # Liquid engine path
             rktpy_motorless_mass, rktpy_motorless_cg, rktpy_motorless_inertia, rktpy_cc_mass, rktpy_cc_cg, rktpy_cc_inertia = mass_model(
-                m_empirical_total = cfg.rkt_dry_mass,
                 id_tank = cfg.diam_in, 
                 od_tank = cfg.diam_out, 
                 id_fuse = (2*cfg.fuselage_inner_radius), 
@@ -108,42 +107,58 @@ def build_flight_sim_kwargs(input_file, cfg):
                 nose_position = cfg.nose_position, 
                 rho_al = cfg.rho_wall, 
                 V_cc = cfg.V_cc,
+                rho_upperfuse = cfg.rho_upperfuse,
+                rho_lowerfuse = cfg.rho_lowerfuse,
+                rho_nose = cfg.rho_nose,
+                rho_fin = cfg.rho_fin,
+                m_mev = cfg.m_mev,
+                m_ftv = cfg.m_ftv,
+                m_otv = cfg.m_otv,
+                m_reco = cfg.m_reco,
+                fin_span = cfg.fin_span,
+                fin_root_chord = cfg.fin_root_chord,
+                fin_tip_chord = cfg.fin_tip_chord,
+                fin_thickness = cfg.fin_thickness,
+                n_fins = cfg.n_fins,
+                h_nosecone = cfg.nose_length,
                 L_fuel_tank = (cfg.V_fuel_tank+cfg.V_pres_tank)/(0.25*np.pi*(cfg.diam_in**2)), 
                 fuel_tank_pos = cfg.fuel_tank_cg,
             )
         else:
-
-            # if liquid use V_cc
-            if fuel_tank_model is not None:  # Liquid engine path
-                V_casing = cfg.V_cc
-                CC_LD = 1.75
-
-            else: # hybrid! i love hybrid
-                # need to solve chamber casing volume 
-                A_fuel_grain_outer = (cfg.m_fuel_i/(cfg.rho_fuel*cfg.L_port) +cfg.A_port)
-                V_casing = cfg.V_pre_post_cc + (A_fuel_grain_outer*cfg.L_port)
-                fuel_grain_od = np.sqrt(A_fuel_grain_outer/np.pi)
-                L_casing = V_casing/A_fuel_grain_outer
-                CC_LD = L_casing/fuel_grain_od
-
-                #print("CC_LD: ", CC_LD)
-
-
+            # hybrid! i love hybrid
+            # need to solve chamber casing volume 
+            A_fuel_grain_outer = (cfg.m_fuel_i/(cfg.rho_fuel*cfg.L_port) +cfg.A_port)
+            V_casing = cfg.V_pre_post_cc + (A_fuel_grain_outer*cfg.L_port)
+            fuel_grain_od = np.sqrt(A_fuel_grain_outer/np.pi)
+            L_casing = V_casing/A_fuel_grain_outer
+            CC_LD = L_casing/fuel_grain_od
 
             rktpy_motorless_mass, rktpy_motorless_cg, rktpy_motorless_inertia, rktpy_cc_mass, rktpy_cc_cg, rktpy_cc_inertia = mass_model(
-                m_empirical_total = cfg.rkt_dry_mass,
-                id_tank = cfg.diam_in, 
-                od_tank = cfg.diam_out, 
-                id_fuse = (2*cfg.fuselage_inner_radius), 
-                od_fuse = (2*cfg.fuselage_radius), 
-                L_ox_tank = (cfg.V_ox_tank)/(0.25*np.pi*(cfg.diam_in**2)), 
-                ox_tank_pos = cfg.ox_tank_pos, 
-                L_nose = cfg.nose_length, 
-                nose_position = cfg.nose_position, 
-                rho_al = cfg.rho_wall, 
-                V_cc = V_casing,
-                CC_LD = CC_LD,
-            )
+            id_tank = cfg.diam_in, 
+            od_tank = cfg.diam_out, 
+            id_fuse = (2*cfg.fuselage_inner_radius), 
+            od_fuse = (2*cfg.fuselage_radius), 
+            L_ox_tank = (cfg.V_ox_tank)/(0.25*np.pi*(cfg.diam_in**2)), 
+            ox_tank_pos = cfg.ox_tank_pos, 
+            L_nose = cfg.nose_length, 
+            nose_position = cfg.nose_position, 
+            rho_al = cfg.rho_wall, 
+            V_cc = V_casing,
+            rho_upperfuse = cfg.rho_upperfuse,
+            rho_lowerfuse = cfg.rho_lowerfuse,
+            rho_nose = cfg.rho_nose,
+            rho_fin = cfg.rho_fin,
+            m_mev = cfg.m_mev,
+            m_ftv = cfg.m_ftv,
+            m_otv = cfg.m_otv,
+            m_reco = cfg.m_reco,
+            fin_span = cfg.fins_span,
+            fin_root_chord = cfg.fins_root_chord,
+            fin_tip_chord = cfg.fins_tip_chord,
+            fin_thickness = cfg.fin_root_thickness,
+            n_fins = cfg.fins_n,
+            h_nosecone = cfg.nose_length,
+        )
 
         #print("Mass model 2: ", rktpy_motorless_mass, rktpy_motorless_cg, rktpy_motorless_inertia, rktpy_cc_mass, rktpy_cc_cg, rktpy_cc_inertia )
 
