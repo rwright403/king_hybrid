@@ -107,7 +107,7 @@ A_inj_fuel = None          # hybrid has no fuel injector
 # ROCKETPY FLIGHT DESVAR
 # ==========================
 import datetime
-from rocketpy import Environment
+from uvicrocketpy import Environment
 
 # --- LAUNCH CANADA TIMMINS ONT. LAUNCH PAD ---
 """
@@ -118,16 +118,15 @@ https://docs.rocketpy.org/en/latest/examples/defiance_flight_sim.html
 flight_date = datetime.date(2024, 8, 24)
 env = Environment(latitude=47.966527, longitude=-81.87413, elevation=1383.4)
 env.set_date((flight_date.year, flight_date.month, flight_date.day, 0))
-env.set_atmospheric_model(type="custom_atmosphere", wind_v=0.0, wind_u=0.0)
+env.set_atmospheric_model(type="custom_atmosphere", wind_v=8.0, wind_u=7.0)
 
-rail_length = 5.6388 #[m] #NOTE: THIS IS NOT THE LC DEFAULT RAIL LENGTH
+rail_length = 5.6388 #[m] 
 inclination = 87     # [degrees, 0 degrees is along ground]
 heading = 90        # [degrees]
 
 # --- Rocket Geometry and Mass Properties ---
 fuselage_radius = 0.5*diam_out                  # [m]
-fuselage_inner_radius = 0.95*fuselage_radius    #[m]
-rkt_dry_mass = 37 #TODO: remove             
+fuselage_inner_radius = 0.95*fuselage_radius    #[m]           
 rkt_csys = "tail_to_nose" # tail = 0 nose = (+) max
 
 upper_launch_lug_pos = 0.8      # [m] csys: "tail_to_nose"
@@ -141,14 +140,13 @@ rho_nose = 2700            # [kg/m^3] assume glass
 
 fins_n = 4                      #NOTE: drag model 2 assumes 4 fin rocket.
 fins_span = 0.115               # [m]
-fins_root_chord = 0.2           # [m]
+fins_root_chord = 0.3           # [m]
 fins_tip_chord = 0.15           # [m]
 fins_position = 0.4             # [m] csys: "tail_to_nose"
-gamma_LE_sweep= 15             # [degrees]
+gamma_LE_sweep= 60             # [degrees]
 fin_root_thickness=1e-3        # [m]
 
 # fin X-section
-#TODO: READ U OF T PAPER, placeholders for now from barrowman example
 Lambda_1= 38.23                 # [degrees]
 Lambda_L= 45.0                  # [degrees]
 Lambda_2= 0.0                   # [degrees]
@@ -167,10 +165,10 @@ cc_cg = 0.5                 # [m] csys: "tail_to_nose"
 nozzle_pos = 0.0            # [m] csys: "tail_to_nose"
 
 #POINT MASSES OF COMPONENTS:
-m_mev = 13
+m_mev = 6.5
 m_ftv = 1.5
-m_otv = 4.5
-m_reco = 2.5 
+m_otv = 3.5
+m_reco = 4.5 
 
 #Densities:
 rho_upperfuse = 1350 # [kg/m^3] assume cf

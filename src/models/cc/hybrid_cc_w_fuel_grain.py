@@ -1,6 +1,7 @@
 import numpy as np
 from src.models.cc._base import BaseChamber
 from src.utils.numerical_methods import rk4_step
+import CoolProp.CoolProp as CP
 
 R_UNIV = 8314  # J/kmol-K
 
@@ -37,6 +38,9 @@ class hybrid_cc_w_fuel_grain_model(BaseChamber):
         self.r_fuel_grain_outer = np.sqrt(self.A_fuel_grain_od/np.pi)
         self.V_pre_post_cc = V_pre_post_cc
 
+        V = L*(self.A_fuel_grain_od - A_port)
+        print("outer grain diam!!! ", 2*self.r_fuel_grain_outer, V)
+
         # chamber state variables
         self.m_cc = 0.0       # total mass in chamber (fuel + ox)
         self.V_cc = 0.0       # initialized here, will be sol for
@@ -44,7 +48,6 @@ class hybrid_cc_w_fuel_grain_model(BaseChamber):
         self.P_atm = P_atm
         self.timestep = timestep
 
-#NOTE: THIS IS A QUICK MODEL, I DID NOT TRACK FUEL GRAIN MASS, SO CASES WHERE FUEL GRAIN FULLY BURNS, THIS MODEL WILL FAIL
 
     def cc_ode_system(self, t, y, m_dot_ox_in):
         r, m_cc, P_cc = y
@@ -57,62 +60,58 @@ class hybrid_cc_w_fuel_grain_model(BaseChamber):
         #NOTE: 06-NOV-2025 G_ox_checking
         #print("G_ox: ", G_ox, m_dot_ox_in, A_port, self.a, self.n)
 
-        V_dot = (2 * np.pi * r * self.L) * r_dot
-        m_dot_fuel_in = self.rho_fuel * V_dot
+        if r < self.r_fuel_grain_outer:
+            V_dot = (2 * np.pi * r * self.L) * r_dot
+            m_dot_fuel_in = self.rho_fuel * V_dot
 
-        # --- Mixture ratio from inflows only
-        OF = m_dot_ox_in / max(m_dot_fuel_in, 1e-6)
-        #print("OF", OF, G_ox)
+            # --- Mixture ratio from inflows only
+            OF = m_dot_ox_in / max(m_dot_fuel_in, 1e-6)
+            #print("OF", OF, G_ox)
 
-        # --- Thermochem
-        T_cc = self.C.get_Tcomb(P_cc, OF)
-        MW, gamma = self.C.get_Chamber_MolWt_gamma(P_cc, OF, self.nozzle.expratio)
-        R_spec = R_UNIV / MW
+            # --- Thermochem
+            T_cc = self.C.get_Tcomb(P_cc, OF)
+            MW, gamma = self.C.get_Chamber_MolWt_gamma(P_cc, OF, self.nozzle.expratio)
+            R_spec = R_UNIV / MW
 
-        instThrust, m_dot_exit = self.nozzle.sol_thrust(P_cc, T_cc, gamma, R_spec)
-        
+            instThrust, m_dot_exit = self.nozzle.sol_thrust(P_cc, T_cc, gamma, R_spec)
 
-        # --- Chamber mass balance (total)
-        m_dot_cc_propellant_in = m_dot_ox_in + m_dot_fuel_in
-        m_dot_cc = m_dot_cc_propellant_in - m_dot_exit
+            # --- Chamber mass balance (total)
+            m_dot_cc_propellant_in = m_dot_ox_in + m_dot_fuel_in
+            m_dot_cc = m_dot_cc_propellant_in - m_dot_exit
 
-        #print("m_dot_cc: ", m_dot_cc, m_dot_ox_in, m_dot_fuel_in, - m_dot_exit )
+            #print("m_dot_cc: ", m_dot_cc, m_dot_ox_in, m_dot_fuel_in, - m_dot_exit )
+            # --- Chamber volume
+            self.V_cc = self.L * A_port + self.V_pre_post_cc
 
-        # --- Chamber volume
-        self.V_cc = self.L * A_port + self.V_pre_post_cc
-        
+            #print("V_cc: ", self.V_cc, (self.A_fuel_grain_od - A_port), self.A_fuel_grain_od, - A_port)
 
+            # --- Gamma derivatives
+            dgamma_dPcc, _ = partial_derivatives_gamma(self.C, P_cc, OF, self.nozzle.expratio)
 
-        #print("V_cc: ", self.V_cc, (self.A_fuel_grain_od - A_port), self.A_fuel_grain_od, - A_port)
+            #print("partials: ", dgamma_dPcc, dgamma_dOF)
 
+            # --- cp from CEA (convert kJ/kg-K -> J/kg-K)
+            cp = self.C.get_Chamber_Cp(P_cc, OF, self.nozzle.expratio) * 1000
 
-        # --- Gamma derivatives
-        dgamma_dPcc, dgamma_dOF = partial_derivatives_gamma(self.C, P_cc, OF, self.nozzle.expratio)
+            P_dot = 1/(1 - (P_cc /(gamma-1))*dgamma_dPcc) * ( ((gamma-1)/self.V_cc)*m_dot_cc*cp*T_cc - gamma*(P_cc/self.V_cc)*V_dot )
 
-        #print("partials: ", dgamma_dPcc, dgamma_dOF)
+        else: # otherwise fuel grain fully burned out, and engine is just a nox cold gas thruster
+            r_dot = 0.0
+            # Temperature ~ tank vapor temperature (approx inflow)
+            T_cc = CP.PropsSI("T","P",P_cc,"Q",1,"N2O")  # or track inlet temperature
 
-        # --- cp from CEA (convert kJ/kg-K -> J/kg-K)
-        cp = self.C.get_Chamber_Cp(P_cc, OF, self.nozzle.expratio) * 1000
+            MW = CP.PropsSI("M","P",P_cc,"T",T_cc,"N2O")  # kg/mol
+            gamma = CP.PropsSI("CPMASS","P",P_cc,"T",T_cc,"N2O") / \
+                    CP.PropsSI("CVMASS","P",P_cc,"T",T_cc,"N2O")
 
-        #m_fuel_chamber = m_cc/OF
-        #NOTE: added this before it was just m_cc, also this is just in cc, not the fuel grain accounting!
-
-        # --- Pressure ODE (Zimmerman/McGill style form)
-        P_dot = 1/(1 - (P_cc /(gamma-1))*dgamma_dPcc) * ( ((gamma-1)/self.V_cc)*m_dot_cc*cp*T_cc - gamma*(P_cc/self.V_cc)*V_dot )#+ (P_cc/((gamma-1)*max(m_fuel, 1e-6)))*dgamma_dOF*(m_dot_ox_in-OF*m_dot_fuel_in) )
-
-
-        #print("vars: ", m_dot_exit, OF, P_dot, ((gamma-1)/V_cc)*m_dot_cc*cp*T_cc, - gamma*(P_cc/V_cc)*V_dot , (P_cc/((V_cc-1)*max(m_fuel_chamber, 1e-6)))*dgamma_dOF*(m_dot_ox_in-OF*m_dot_fuel_in) )
-        
-        #NOTE: INSTABILITY IN THIS TERM: ((gamma-1)/V_cc)*m_dot_cc*cp*T_cc
-        #print("m_fuel_chamber: ", m_fuel_chamber, m_dot_cc, cp, T_cc)
-
-        #(P_cc / ((V_cc - 1) * m_dot_fuel_in)) * dgamma_dOF * (m_dot_ox_in - OF*m_dot_fuel_in)
-
-        #print("P_dot: ", P_dot,  ((gamma-1)/V_cc)*m_dot_cc*cp*T_cc, - gamma*(P_cc/V_cc)*V_dot , + (P_cc/((V_cc-1)*max(m_fuel, 1e-6)))*dgamma_dOF*(m_dot_ox_in-OF*m_dot_fuel_in) )
-        
+            cp = CP.PropsSI("CPMASS","P",P_cc,"T",T_cc,"N2O")
+            R_spec = CP.PropsSI("GAS_CONSTANT","N2O") / MW
 
 
-        return [r_dot, m_dot_cc, P_dot], {"P_cc": P_cc, "thrust": instThrust, "m_dot_fuel": m_dot_fuel_in, "m_dot_cc": m_dot_cc_propellant_in, "OF": OF, "G_ox": G_ox}
+            # --- Pressure ODE (McGill style form)
+            P_dot = ( ((gamma-1)/self.V_cc)*m_dot_cc*cp*T_cc - gamma*(P_cc/self.V_cc)*V_dot )#+ (P_cc/((gamma-1)*max(m_fuel, 1e-6)))*dgamma_dOF*(m_dot_ox_in-OF*m_dot_fuel_in) )
+
+        return [r_dot, m_dot_cc, P_dot], {"P_cc": P_cc, "thrust": instThrust, "m_dot_fuel": m_dot_fuel_in, "m_dot_cc": m_dot_cc_propellant_in, "OF": OF, "G_ox": G_ox, "r_fuel_grain": r}
 
     def cc_ode_system_rk(self, t, y, m_dot_ox):
         out, _ = self.cc_ode_system(t, y, m_dot_ox)
@@ -126,5 +125,7 @@ class hybrid_cc_w_fuel_grain_model(BaseChamber):
         print(f"             |  cc: {self.r:.3f}, {self.m_cc:.3f}, {self.P_cc:.0f}")
 
         _, out = self.cc_ode_system(0, y_new, m_dot_ox)
+
+        print("remaining grain thickness: ", self.r_fuel_grain_outer-self.r)
 
         return out

@@ -32,7 +32,19 @@ def engine_overview(program_input, results, mode):
         print(f"Specific Impulse (I_sp):    {Isp:.2f} s")
         print(f"Peak Thrust:                {peak_thrust:.2f} N")
         print(f"Burn Time:                  {program_input.sim_time:.2f} s, (time defined in input file: sim_time)")
+        print(f"Remaining Ox Mass:          {results['m_ox_tank'].iloc[-1]:.3f} kg")
 
+        
+        
+        if getattr(program_input, "fuel_tank_model", None) is not None:
+            print(f"Remaining Ox Mass:          {results['m_fuel'].iloc[-1]:.3f} kg")        
+        else: # a bit awk but the integration var is radius so solve mass of fuel grain remaining:
+            A_port_outer = (program_input.m_fuel_i/program_input.rho_fuel)/program_input.L_port+program_input.A_port
+            
+            A_port_inner = np.pi*results["r_fuel_grain"].iloc[-1]**2
+            m_fuel_remaining = program_input.L_port*program_input.rho_fuel*(A_port_outer-A_port_inner)
+        
+            print(f"Remaining Fuel Mass         {m_fuel_remaining:.3f} kg")
 
 
 

@@ -4,6 +4,8 @@ import CoolProp.CoolProp as CP
 from uvicrocketpy import Fluid, CylindricalTank
 from src.utils.model_registry import *
 
+mass_data = 1 # return 1 if another mass model called that does not solve mass distribution
+
 def get_model(kind: str, code: int):
     if kind == "D":
         module_path = DRAG_MODEL_MAP.get(code)
@@ -96,7 +98,7 @@ def build_flight_sim_kwargs(input_file, cfg):
         #NOTE: need to determine if hybrid or liquid and solve tank height
         fuel_tank_model=getattr(cfg, "fuel_tank_model", None)
         if fuel_tank_model is not None:  # Liquid engine path
-            rktpy_motorless_mass, rktpy_motorless_cg, rktpy_motorless_inertia, rktpy_cc_mass, rktpy_cc_cg, rktpy_cc_inertia = mass_model(
+            rktpy_motorless_mass, rktpy_motorless_cg, rktpy_motorless_inertia, rktpy_cc_mass, rktpy_cc_cg, rktpy_cc_inertia, mass_data = mass_model(
                 id_tank = cfg.diam_in, 
                 od_tank = cfg.diam_out, 
                 id_fuse = (2*cfg.fuselage_inner_radius), 
@@ -133,7 +135,7 @@ def build_flight_sim_kwargs(input_file, cfg):
             L_casing = V_casing/A_fuel_grain_outer
             CC_LD = L_casing/fuel_grain_od
 
-            rktpy_motorless_mass, rktpy_motorless_cg, rktpy_motorless_inertia, rktpy_cc_mass, rktpy_cc_cg, rktpy_cc_inertia = mass_model(
+            rktpy_motorless_mass, rktpy_motorless_cg, rktpy_motorless_inertia, rktpy_cc_mass, rktpy_cc_cg, rktpy_cc_inertia, mass_data = mass_model(
             id_tank = cfg.diam_in, 
             od_tank = cfg.diam_out, 
             id_fuse = (2*cfg.fuselage_inner_radius), 
@@ -327,6 +329,10 @@ def build_flight_sim_kwargs(input_file, cfg):
         )
 
 
+    rocketpy_models_kwargs = dict(
+        drag_model =getattr(cfg, "drag_model", None),
+        mass_model=getattr(cfg, "mass_model", None)
+    )
 
     return {
         "rocketpy_launchpad_kwargs": rocketpy_launchpad_kwargs,
@@ -334,4 +340,5 @@ def build_flight_sim_kwargs(input_file, cfg):
         "rocketpy_ox_tank_kwargs": rocketpy_ox_tank_kwargs,
         "rocketpy_fuel_tank_kwargs": rocketpy_fuel_tank_kwargs,
         "rocketpy_cc_kwargs": rocketpy_cc_kwargs,
-    }
+        "rocketpy_models_kwargs": rocketpy_models_kwargs,
+        }, mass_data
