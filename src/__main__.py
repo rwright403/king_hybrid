@@ -7,6 +7,7 @@ from src.utils.kwargs_builder import build_kwargs
 from src.utils.flight_sim_kwargs_builder import build_flight_sim_kwargs
 from src.sim.prop_sim import prop_sim
 from src.sim.flight_sim import flight_sim
+from src.models.aerostruct.aerostruct import aerostruct
 from src.prelim_wizard import prelim_wizard
 from src.sensitivity_analysis import sensitivity_analysis
 from src.postprocess.engine_overview import engine_overview
@@ -63,8 +64,14 @@ def run(input_file):
         plot_sim_results(program_input, prop_results, program_input.mode, program_input.save_path)
 
     if user_input =='2':
-        flight_sim_kwargs = build_flight_sim_kwargs(input_file, program_input)
-        flight = flight_sim(flight_sim_kwargs)
+        flight_sim_kwargs, mass_data = build_flight_sim_kwargs(input_file, program_input)
+        rocket, flight = flight_sim(flight_sim_kwargs)
+
+        """
+        if flight_sim_kwargs["rocketpy_models_kwargs"]["mass_model"] == 2:           # this mass model gives us mass distribution, can sol shear + bending
+            rkt_len = flight_sim_kwargs["rocketpy_rocket_kwargs"]["nose_length"] + flight_sim_kwargs["rocketpy_rocket_kwargs"]["nose_position"]
+            aerostruct(rkt_len, mass_data, rocket, flight)
+        """
 
     """
     #TODO: refactor

@@ -83,7 +83,7 @@ def thin_cone_shell_mass(rho, H, d_outer, t=3e-3):
     A = np.pi * r * s             # lateral surface area
     V = A * t                     # thin shell volume
     return rho * V
-
+#NOTE: TEMP FOR DEBUGGING
 
 
 def thin_hollow_cone_inertia(m, H, d_outer):
@@ -246,8 +246,6 @@ def empirical_rkt_mass_model(id_tank, od_tank, id_fuse, od_fuse, L_ox_tank, ox_t
     # fins and nosecone
     fins = total_fin_inertia(fin_span, fin_root_chord, fin_tip_chord, fin_thickness, rho_fin, od_fuse, n_fins)
 
-    print("h_nosecone: ", h_nosecone)
-
     m_nosecone = thin_cone_shell_mass(rho_nose, h_nosecone, od_fuse)
     I_nosecone = thin_hollow_cone_inertia(m_nosecone, h_nosecone, od_fuse)
     #NOTE: HOW TO SOL NOSECONE POS SO ITS AT CENTROID, its just 1/3rd height + L to edge right?
@@ -266,10 +264,6 @@ def empirical_rkt_mass_model(id_tank, od_tank, id_fuse, od_fuse, L_ox_tank, ox_t
         mass_data.append(ftv)
         for m in fuel_tank_masses:
             mass_data.append(m)
-
-
-    print("fins:", fins)
-    print("nc: ", nosecone)
 
     return mass_data
 
@@ -304,7 +298,7 @@ def mass_v1(id_tank, od_tank, id_fuse, od_fuse, L_ox_tank, ox_tank_pos, L_nose, 
     cc_I = tensor_to_rocketpy_inertia(cc.inertia)
 
 
-    return rkt_m, rkt_cg, rkt_I, cc_m, cc_cg, cc_I
+    return rkt_m, rkt_cg, rkt_I, cc_m, cc_cg, cc_I, total_mass_data
 
 
 
