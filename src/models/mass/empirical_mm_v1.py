@@ -237,11 +237,11 @@ def empirical_rkt_mass_model(id_tank, od_tank, id_fuse, od_fuse, L_ox_tank, ox_t
     else:
         L_upperfuse = (nose_position) - (0.5*L_ox_tank + ox_tank_pos)
         upperfuse_pos = 0.5*L_upperfuse + (0.5*L_ox_tank + ox_tank_pos)
-    upperfuse_masses = hollow_cylinder_lumped_masses(rho_upperfuse, L_upperfuse, id_tank, od_tank, upperfuse_pos)
+    upperfuse_masses = hollow_cylinder_lumped_masses(rho_upperfuse, L_upperfuse, id_fuse, od_tank, upperfuse_pos)
 
     L_lowerfuse = (ox_tank_pos - 0.5*L_ox_tank)
     lowerfuse_pos = 0.5*L_lowerfuse
-    lowerfuse_masses = hollow_cylinder_lumped_masses(rho_lowerfuse, L_lowerfuse, id_tank, od_tank, lowerfuse_pos)
+    lowerfuse_masses = hollow_cylinder_lumped_masses(rho_lowerfuse, L_lowerfuse, id_fuse, od_tank, lowerfuse_pos)
 
     # fins and nosecone
     fins = total_fin_inertia(fin_span, fin_root_chord, fin_tip_chord, fin_thickness, rho_fin, od_fuse, n_fins)
@@ -273,9 +273,9 @@ def empirical_rkt_mass_model(id_tank, od_tank, id_fuse, od_fuse, L_ox_tank, ox_t
 
 
 def mass_v1(id_tank, od_tank, id_fuse, od_fuse, L_ox_tank, ox_tank_pos, L_nose, nose_position, 
-            rho_al, V_cc, rho_upperfuse, rho_lowerfuse, rho_nose, rho_fin, m_mev, m_ftv, m_otv, 
+            rho_al, V_cc, rho_upperfuse, rho_lowerfuse, rho_nose, rho_fin, m_mev, m_otv, 
             m_reco, fin_span, fin_root_chord, fin_tip_chord, fin_thickness, n_fins, h_nosecone, 
-            L_fuel_tank = None, fuel_tank_pos = None, CC_LD = 1.75):
+            m_ftv = None ,L_fuel_tank = None, fuel_tank_pos = None, CC_LD = 1.75):
 
     cc = empirical_cc_mass_model(V_cc, CC_LD)
 

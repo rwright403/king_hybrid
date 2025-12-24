@@ -425,6 +425,9 @@ def make_drag_func(fuse_od, nose_length, nose_position, fins_n, fins_span, fins_
             C_DBT = ( N*(1-0.52*Ma**-1.19)*(A_Bf/A_ref))/( (1+18*Cfc*(tr/hr)**2)*Ma**2)
 
             C_DWT = C_DWT_sol(Ma, alpha) + C_DWT_sol(Ma, beta) #(tr/cr) / np.sqrt( (Ma**2)*(np.cos(np.deg2rad(gamma_midchord))**2) -1) * (A_T/A_ref)
+            
+            if C_DWT > 0.8:
+                C_DWT = 0.8 #NOTE: cLAMP C_DWT to physically possible range
 
             #NOTE: SEEMS LIKE -1 IN SQRT IS WRONG
             #print("alpha and beta component: ", C_DWT_sol(Ma, alpha), C_DWT_sol(Ma, beta) )
@@ -459,8 +462,9 @@ def make_drag_func(fuse_od, nose_length, nose_position, fins_n, fins_span, fins_
 
         Cd = Cd_tail + Cd_body
 
-        #if Ma >= 1.0: #Subsonic
-            #print("Cd!!", Cd, C_DWT, C_DFT + C_DLT + C_DBT, C_DP, C_DBB, Re)
+        if Ma >= 1.0: #Subsonic
+        #    print("Cd!!", Cd, C_DWT, C_DFT + C_DLT + C_DBT, C_DP, C_DBB, Re)
+            print("Cd total, C_DWT: ", Cd, C_DWT)
         return Cd
 
     return drag_func

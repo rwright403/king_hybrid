@@ -24,8 +24,8 @@ def magic(inputs):
     if inputs.oxidizer_name  == "N2O":
 
         # Define temperature range (input in celsius, program converts to kelvin)
-        T_min = -5  # Minimum operating temperature
-        T_max = 27  # Maximum operating temperature
+        T_min = 17  # Minimum operating temperature
+        T_max = 25  # Maximum operating temperature
         T_crit = 36 # Critical temperature of nitrous
         num_points = 100  # Number of points for the plot
 
@@ -543,7 +543,7 @@ def magic(inputs):
         # Parameters
         fluid = "N2O"
         V_min = m_ox / CP.PropsSI("D","T",T_max,"Q",0,fluid)  # min tank volume
-        V_max = V_min * 1.75
+        V_max = V_min * 1.5 #allow tank volumes up to 1.75 times the min volume for 100% sat liquid.
         V_points = np.linspace(V_min, V_max, 100)
         T_points = np.linspace(T_min, T_max, 100)
 
@@ -552,10 +552,21 @@ def magic(inputs):
         P = np.zeros_like(FF)
 
         for i, T in enumerate(T_points):
-            rho_liq = CP.PropsSI("D","T",T,"Q",0,fluid)
-            V_liq = m_ox / rho_liq
+            rho_l = CP.PropsSI("D","T",T,"Q",0,fluid)
+            rho_v = CP.PropsSI("D","T",T,"Q",1,fluid)
+
+            # solve for quality x for every tank volume
+            x = (V_points/m_ox - 1/rho_l) / (1/rho_v - 1/rho_l)
+
+            # compute true liquid & vapor volumes
+            V_liq = (1-x)*m_ox/rho_l
+            # V_vap = x*m_ox/rho_v   # not needed for fill fraction
+
+            # true fill fraction
+            FF[i,:] = V_liq / V_points
+
+            # pressure at saturated T
             P[i,:] = CP.PropsSI("P","T",T,"Q",0,fluid)
-            FF[i,:] = V_liq / V_points  # FF for all candidate tank volumes at this T
 
         # Plot as color map
         fig, ax = plt.subplots(figsize=(8,5))
@@ -579,9 +590,8 @@ def magic(inputs):
         ax.text(V_max*1.01, P_min, f'T_min = {T_min-273.15:.1f} °C', va='center', color='red')
         ax.text(V_max*1.01, P_max, f'T_max = {T_max-273.15:.1f} °C', va='center', color='red')
 
-        print("\nUse the graph to estimate the tank volume. Note fill fraction = V_liq/V_tank.\nWe want a tank that isn't too big (long fill time)\nbut we don't want our fill fraction to be too high (overpressurization risk if temp increases)")
-
         plt.show()
+
 
 
     print(f"\n\n DONE SIZING WIZARD, COPY/PASTE ^ INTO AN INPUT MODULE")

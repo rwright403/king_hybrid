@@ -122,10 +122,10 @@ class hybrid_cc_w_fuel_grain_model(BaseChamber):
         y_new = rk4_step(self.cc_ode_system_rk, 0.0, y0, self.timestep, m_dot_ox)
         self.r, self.m_cc, self.P_cc = y_new
 
-        print(f"             |  cc: {self.r:.3f}, {self.m_cc:.3f}, {self.P_cc:.0f}")
+        print(f"             |  cc: {self.r:.3f}, {self.m_cc:.3f}, {self.P_cc:.0f}, {m_dot_ox:.4}")
 
         _, out = self.cc_ode_system(0, y_new, m_dot_ox)
 
-        print("remaining grain thickness: ", self.r_fuel_grain_outer-self.r)
+        #print("remaining grain thickness: ", self.r_fuel_grain_outer-self.r)
 
         return out

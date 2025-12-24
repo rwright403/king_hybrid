@@ -107,7 +107,6 @@ def build_kwargs(cfg):
     if models_kwargs["fuel_tank_model"] is not None:  # Liquid engine path
         fuel_tank_kwargs = dict(
             m_fuel=cfg.m_fuel,
-            m_pres=cfg.m_pres,
             P_pres_tank=cfg.P_pres_tank,
             P_atm=cfg.P_atm,
             T_atm=cfg.T_atm,
