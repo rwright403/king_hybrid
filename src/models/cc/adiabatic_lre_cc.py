@@ -86,7 +86,7 @@ class adiabatic_lre_cc_model(BaseChamber):
         y_new = rk4_step(self.cc_ode_system_rk, 0.0, y0, self.timestep, m_dot_ox, m_dot_fuel)
         self.m_cc, self.P_cc = y_new
 
-        print(f"             |  cc: {self.m_cc:.3f}, {self.P_cc:.3f}")
+        print(f"             |  cc: {self.m_cc:.6f}, {self.P_cc:.3f}")
 
         _, out = self.cc_ode_system(0, y_new, m_dot_ox, m_dot_fuel)
 

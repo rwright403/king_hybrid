@@ -45,7 +45,7 @@ def isothermal_fill(m_total, V_pres_total, T_atm, pres_str):
 
 
 class pressurized_liq_fuel_tank(BaseTank):
-    def __init__(self, timestep, m_fuel, m_pres, P_pres_tank, P_atm, T_atm, rho_atm, V_fuel_tank, V_pres_tank, diam_out, diam_in, rho_wall, k_w, Cd, A_inj, fuel_str, pres_str, fill_type:FillType ):
+    def __init__(self, timestep, m_fuel, P_pres_tank, P_atm, T_atm, rho_atm, V_fuel_tank, V_pres_tank, diam_out, diam_in, rho_wall, k_w, Cd, A_inj, fuel_str, pres_str, fill_type:FillType ):
         super().__init__(injector =spi_model(Cd, A_inj), timestep=timestep)
         #self.spi_model(Cd, A_inj) #since assume only liquid draining from tank, we are forcing this model to be the SPI model
         self.state = build_state()
@@ -84,7 +84,7 @@ class pressurized_liq_fuel_tank(BaseTank):
         V_fuel = self.m_fuel/self.rho_fuel
         self.T_fuel = CP.PropsSI('T', 'P', self.P_tank, 'D', self.rho_fuel, self.fuel_str)
 
-        V_pres_ullage = self.V_fuel_tank - V_fuel #Problem, this is (-)
+        V_pres_ullage = self.V_fuel_tank - V_fuel
         self.T_pres = self.T_atm
         self.rho_pres = CP.PropsSI('D', 'P', self.P_tank, 'T', self.T_pres, self.pres_str) 
         self.m_pres = V_pres_ullage*self.rho_pres

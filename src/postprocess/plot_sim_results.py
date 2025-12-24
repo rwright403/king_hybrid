@@ -158,7 +158,7 @@ def plot_sim_results(inputs, results: dict, mode: str, save_path: str = None):
             plt.plot(time, OF, label="OF Ratio", color="tab:blue", linewidth=2)
             plt.xlabel("Time (s)")
             plt.ylabel("OF Ratio")
-            plt.title("O/F Shift Over Grain Burn Time:")
+            plt.title("O/F Shift Over Burn Time:")
             plt.legend()
 
             plt.subplot(1, 2, 2)

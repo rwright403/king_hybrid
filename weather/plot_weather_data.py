@@ -3,10 +3,10 @@ import matplotlib.pyplot as plt
 import glob
 import os
 
-month = 11
+month = 8
 # Path to your CSVs
 #folder = "weather/canada_historical_climate_data_timmins_airport"
-folder = "weather/canada_historical_climate_data_malahat_nov"
+folder = "weather/canada_historical_climate_data_timmins_airport_aug"
 #folder = "weather/_old"
 
 # Get all CSV files in the folder
@@ -50,7 +50,7 @@ for year, data in morning_avg.items():
     plt.plot(data.index, data['max'], label=f"{year} Max", linestyle='--', color='red')
 
 plt.title('Morning Temperatures (7am-12pm)')
-plt.xlabel(f'Days in Month: {month}')
+plt.xlabel(f'Days in the: {month}th month of the year')
 plt.ylabel('Temperature (°C)')
 plt.grid(True)
 plt.legend(fontsize=8)

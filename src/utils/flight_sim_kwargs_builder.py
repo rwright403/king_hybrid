@@ -117,14 +117,14 @@ def build_flight_sim_kwargs(input_file, cfg):
                 m_ftv = cfg.m_ftv,
                 m_otv = cfg.m_otv,
                 m_reco = cfg.m_reco,
-                fin_span = cfg.fin_span,
-                fin_root_chord = cfg.fin_root_chord,
-                fin_tip_chord = cfg.fin_tip_chord,
-                fin_thickness = cfg.fin_thickness,
-                n_fins = cfg.n_fins,
+                fin_span = cfg.fins_span,
+                fin_root_chord = cfg.fins_root_chord,
+                fin_tip_chord = cfg.fins_tip_chord,
+                fin_thickness = cfg.fin_root_thickness,
+                n_fins = cfg.fins_n,
                 h_nosecone = cfg.nose_length,
                 L_fuel_tank = (cfg.V_fuel_tank+cfg.V_pres_tank)/(0.25*np.pi*(cfg.diam_in**2)), 
-                fuel_tank_pos = cfg.fuel_tank_cg,
+                fuel_tank_pos = cfg.fuel_tank_pos,
             )
         else:
             # hybrid! i love hybrid
@@ -151,7 +151,6 @@ def build_flight_sim_kwargs(input_file, cfg):
             rho_nose = cfg.rho_nose,
             rho_fin = cfg.rho_fin,
             m_mev = cfg.m_mev,
-            m_ftv = cfg.m_ftv,
             m_otv = cfg.m_otv,
             m_reco = cfg.m_reco,
             fin_span = cfg.fins_span,
@@ -273,6 +272,11 @@ def build_flight_sim_kwargs(input_file, cfg):
         rho_fuel = CP.PropsSI('D', 'P', cfg.P_pres_tank, 'T', cfg.T_atm, cfg.fuel_str)
         rho_pres = CP.PropsSI('D', 'P', cfg.P_pres_tank, 'T', cfg.T_atm, cfg.pres_str)
 
+        #TODO: also solve for m_pres here!!!
+        V_fuel = cfg.m_fuel/rho_fuel
+        V_pres_ullage = cfg.V_fuel_tank - V_fuel
+        m_pres = V_pres_ullage*rho_pres
+
         rocketpy_fuel_tank_kwargs = dict(
             name="fuel_tank",
             geometry=CylindricalTank( (0.5*cfg.diam_in_fuel), fuel_tank_height), #radius, height
@@ -280,14 +284,14 @@ def build_flight_sim_kwargs(input_file, cfg):
             liquid=Fluid(name="fuel_liq", density=rho_fuel),
             gas=Fluid(name="pres_gas", density=rho_pres),
             initial_liquid_mass=cfg.m_fuel,
-            initial_gas_mass=cfg.m_pres,
+            initial_gas_mass=m_pres,
             liquid_mass_flow_rate_in=0.0,
             liquid_mass_flow_rate_out=m_dot_fuel_filepath,
             gas_mass_flow_rate_in=0.0,
             gas_mass_flow_rate_out=0.0,
         )
 
-        rocketpy_rocket_kwargs["fuel_tank_cg"] = cfg.fuel_tank_cg
+        rocketpy_rocket_kwargs["fuel_tank_cg"] = cfg.fuel_tank_pos
 
         rocketpy_cc_kwargs = dict(
             thrust_source=thrust_filepath,
