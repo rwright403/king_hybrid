@@ -2,6 +2,13 @@ import numpy as np
 from dataclasses import dataclass
 import matplotlib.pyplot as plt
 
+def print_mass_list(mass_data):
+    sum = 0
+    for m in mass_data:
+        sum+=m.mass
+
+    print(f"Total mass is: {sum} kg")
+
 
 def diameter_from_volume_LD(V, L_over_D):
     D = (4*V / (np.pi * L_over_D))**(1/3)
@@ -52,8 +59,11 @@ def hollow_cylinder_lumped_masses(rho, L, d_inner, d_outer, cyl_center, N=7):
     total_mass = rho * np.pi * L * (Ro**2 - Ri**2)
     m_i = total_mass / N
 
-    # Local positions along cylinder axis (centered at 0)
-    xs_local = np.linspace(-L/2, L/2, N)
+    # Spacing between lumps
+    dx = L / N
+
+    # Local positions along cylinder axis (offset to avoid ends)
+    xs_local = np.linspace(-L/2 + dx/2, L/2 - dx/2, N)
 
     # Local cross-section inertia (about *each lump's* CG)
     Ixx_local = 0.5 * m_i * (Ro**2 + Ri**2)
@@ -63,7 +73,7 @@ def hollow_cylinder_lumped_masses(rho, L, d_inner, d_outer, cyl_center, N=7):
 
     mass_list = []
     for x_local in xs_local:
-        cg_global = cyl_center + np.array([x_local, 0.0, 0.0])
+        cg_global = [cyl_center,0,0] + np.array([x_local, 0.0, 0.0])
         mass_obj = mass(
             mass=m_i,
             cg=cg_global,
@@ -97,7 +107,7 @@ def thin_hollow_cone_inertia(m, H, d_outer):
 
 
 
-def total_fin_inertia(fin_span, fin_root_chord, fin_tip_chord, fin_thickness, fin_density, od_fuse, n_fins):
+def total_fin_inertia(fin_span, fin_root_chord, fin_tip_chord, fin_thickness, fin_density, od_fuse, n_fins, fins_position):
 
     
     # ------------------------------
@@ -125,7 +135,7 @@ def total_fin_inertia(fin_span, fin_root_chord, fin_tip_chord, fin_thickness, fi
 
         # Position CG around fuselage circumference
         cg = np.array([
-            0.0,                     # x-axis along fuselage (place at x=0; you will shift later)
+            fins_position,                     # x-axis along fins_position
             0.5* od_fuse * np.cos(angle),  # y-axis
             0.5* od_fuse * np.sin(angle),  # z-axis
         ])
@@ -168,7 +178,10 @@ def parallel_axis(mass_objs: list):
     I_total = np.zeros((3, 3))
     for mass_obj in mass_objs:
         m = mass_obj.mass
-        d = mass_obj.cg - cg_total
+        d = np.empty(3)
+        d[0] = mass_obj.cg[0] - cg_total[0]
+        d[1] = mass_obj.cg[1]
+        d[2] = mass_obj.cg[2]
         d2 = np.dot(d, d)
 
         # Parallel axis contribution
@@ -197,7 +210,7 @@ def empirical_cc_mass_model(V_cc, CC_LD, rho=4025):
 
 
 
-def empirical_rkt_mass_model(id_tank, od_tank, id_fuse, od_fuse, L_ox_tank, ox_tank_pos, L_nose, nose_position, rho_al, L_fuel_tank, fuel_tank_pos, rho_upperfuse, rho_lowerfuse, rho_nose, rho_fin, m_mev, m_ftv, m_otv, m_reco, fin_span, fin_root_chord, fin_tip_chord, fin_thickness, n_fins, h_nosecone):
+def empirical_rkt_mass_model(id_tank, od_tank, id_fuse, od_fuse, L_ox_tank, ox_tank_pos, L_nose, nose_position, rho_al, L_fuel_tank, fuel_tank_pos, rho_upperfuse, rho_lowerfuse, rho_nose, rho_fin, m_mev, m_ftv, m_otv, m_reco, fin_span, fin_root_chord, fin_tip_chord, fin_thickness, n_fins, h_nosecone, fins_position):
     #PARSE THIS FUNCTION FOR ASSUMPTIONS, INPUT IN SI ONLY
     
 
@@ -232,24 +245,24 @@ def empirical_rkt_mass_model(id_tank, od_tank, id_fuse, od_fuse, L_ox_tank, ox_t
 
 
     if L_fuel_tank != None:
-        L_upperfuse = (nose_position) - (0.5*L_fuel_tank + fuel_tank_pos)
+        L_upperfuse = (nose_position) - (0.5*L_fuel_tank + fuel_tank_pos) - h_nosecone
         upperfuse_pos = 0.5*L_upperfuse + (0.5*L_fuel_tank + fuel_tank_pos)
     else:
-        L_upperfuse = (nose_position) - (0.5*L_ox_tank + ox_tank_pos)
+        L_upperfuse = (nose_position) - (0.5*L_ox_tank + ox_tank_pos) - h_nosecone
         upperfuse_pos = 0.5*L_upperfuse + (0.5*L_ox_tank + ox_tank_pos)
-    upperfuse_masses = hollow_cylinder_lumped_masses(rho_upperfuse, L_upperfuse, id_fuse, od_tank, upperfuse_pos)
+    upperfuse_masses = hollow_cylinder_lumped_masses(rho_upperfuse, L_upperfuse, id_fuse, od_tank, upperfuse_pos, N=3)
 
     L_lowerfuse = (ox_tank_pos - 0.5*L_ox_tank)
     lowerfuse_pos = 0.5*L_lowerfuse
     lowerfuse_masses = hollow_cylinder_lumped_masses(rho_lowerfuse, L_lowerfuse, id_fuse, od_tank, lowerfuse_pos)
 
     # fins and nosecone
-    fins = total_fin_inertia(fin_span, fin_root_chord, fin_tip_chord, fin_thickness, rho_fin, od_fuse, n_fins)
+    fins = total_fin_inertia(fin_span, fin_root_chord, fin_tip_chord, fin_thickness, rho_fin, od_fuse, n_fins, fins_position)
 
     m_nosecone = thin_cone_shell_mass(rho_nose, h_nosecone, od_fuse)
     I_nosecone = thin_hollow_cone_inertia(m_nosecone, h_nosecone, od_fuse)
     #NOTE: HOW TO SOL NOSECONE POS SO ITS AT CENTROID, its just 1/3rd height + L to edge right?
-    nosecone = mass(m_nosecone, np.array([nose_position,0.0,0.0]), I_nosecone)
+    nosecone = mass(m_nosecone, np.array([(nose_position-(2/3)*h_nosecone),0.0,0.0]), I_nosecone)
 
 
     mass_data = [mev, otv, reco, fins, nosecone]
@@ -274,16 +287,19 @@ def empirical_rkt_mass_model(id_tank, od_tank, id_fuse, od_fuse, L_ox_tank, ox_t
 
 def mass_v1(id_tank, od_tank, id_fuse, od_fuse, L_ox_tank, ox_tank_pos, L_nose, nose_position, 
             rho_al, V_cc, rho_upperfuse, rho_lowerfuse, rho_nose, rho_fin, m_mev, m_otv, 
-            m_reco, fin_span, fin_root_chord, fin_tip_chord, fin_thickness, n_fins, h_nosecone, 
+            m_reco, fin_span, fin_root_chord, fin_tip_chord, fin_thickness, n_fins, h_nosecone, fins_position,
             m_ftv = None ,L_fuel_tank = None, fuel_tank_pos = None, CC_LD = 1.75):
 
     cc = empirical_cc_mass_model(V_cc, CC_LD)
 
-    rkt_mass_data = empirical_rkt_mass_model(id_tank, od_tank, id_fuse, od_fuse, L_ox_tank, ox_tank_pos, L_nose, nose_position, rho_al, L_fuel_tank, fuel_tank_pos, rho_upperfuse, rho_lowerfuse, rho_nose, rho_fin, m_mev, m_ftv, m_otv, m_reco, fin_span, fin_root_chord, fin_tip_chord, fin_thickness, n_fins, h_nosecone)
+    rkt_mass_data = empirical_rkt_mass_model(id_tank, od_tank, id_fuse, od_fuse, L_ox_tank, ox_tank_pos, L_nose, nose_position, rho_al, L_fuel_tank, fuel_tank_pos, rho_upperfuse, rho_lowerfuse, rho_nose, rho_fin, m_mev, m_ftv, m_otv, m_reco, fin_span, fin_root_chord, fin_tip_chord, fin_thickness, n_fins, h_nosecone, fins_position)
     
     #plot rkt mass dist
     total_mass_data = rkt_mass_data.copy()
     total_mass_data.append(cc)
+
+    print_mass_list(total_mass_data)
+
     plot_mass_distribution(total_mass_data)
 
 

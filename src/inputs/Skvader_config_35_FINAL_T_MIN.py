@@ -9,7 +9,7 @@ ox_tank_model = 2
 ox_inj_model  = 3  
 cc_model      = 1   # hybrid_cc_w_fuel_grain
 nozzle_model  = 1  
-drag_model    = 2
+drag_model    = 1
 mass_model    = 2
 
 # Global settings
@@ -21,7 +21,7 @@ save_path = None
 timestep = 0.002          # [s]
 sim_time = 12               # [s]
 P_atm    = 101325          # [Pa]
-T_atm    = 273.15 + 31     # [K]
+T_atm    = 273.15 + 17     # [K]
 rho_atm  = 1.225           # [kg/m^3]
 
 # ------------------------
@@ -41,7 +41,7 @@ P_ox_tank   = CP.PropsSI('P', 'T', T_atm, 'Q', 0, 'N2O')          # [Pa]
 
 
 #TODO: DECREASE V_ox_tank volume, define operating evelope in doc and size ullage for that envelope
-V_ox_tank   = 0.029      #0.04 #0.0315      # [m^3] 0.75 Fill Fraction
+V_ox_tank   = 0.029     # [m^3] 
 
 #TODO: UPDATE WITH NOM PIPE/TUBE SIZE
 diam_out    = 0.1413          # [m]
@@ -63,7 +63,7 @@ A_inj_ox = 0.25 * 3.14159 * n * (1.5e-3)**2   # [m^2]
 # ------------------------
 # Chamber (hybrid regression model) 
 # ------------------------
-m_fuel_i            = 3.249 #1.715          # [kg]
+m_fuel_i            = 3.249           # [kg]
 rho_fuel            = 900.0          # [kg/m^3]
 a_reg               = 0.155e-3       # [m/s*(kg/s)^n]
 n_reg               = 0.5
@@ -104,6 +104,7 @@ A_inj_fuel = None          # hybrid has no fuel injector
 
 
 
+
 # ==========================
 # ROCKETPY FLIGHT DESVAR
 # ==========================
@@ -137,19 +138,25 @@ launch_lug_angular_pos = 45     # [degrees]
 
 nose_length = 0.5               # [m]                                               Can change adjust depending on old rockets look at our prior research
 nose_kind = "vonKarman"
-nose_position = 4.3             # [m]
+nose_position = 4.55             # [m]
 rho_nose = 2500            # [kg/m^3] assume glass
 
 fins_n = 3                      #NOTE: drag model 2 assumes 4 fin rocket.           keep at 4
-fins_span = 0.1016               # [m]                                               base to tip of fin (conctor to the rocket to outside most edge)
-fins_root_chord = 0.254*.8           # [m]                                               lostgest distance up    
-fins_tip_chord = 0.0762*.8           # [m]                                               shortest distance up
-fins_position = 0.3             # [m] csys: "tail_to_nose"                          Change as required "if is hanging off the rocket"
+fins_span = 0.0254*4               # [m]                                               base to tip of fin (conctor to the rocket to outside most edge)
+fins_root_chord = 0.0254*15 #0.2032          # [m]                                               lostgest distance up    
+fins_tip_chord = 0.0254*6          # [m]                                               shortest distance up
+fins_position = 0.5#0.3             # [m] csys: "tail_to_nose"                          Change as required "if is hanging off the rocket"
 gamma_LE_sweep= 30             # [degrees]
+trailing_sweep_angle = 60
 fin_root_thickness=0.0254*(0.25)       # [m]
 
 
-# fin X-section
+power_on_drag = "src/inputs/rasaero_hybrid_drag_model/hybrid_drag_power_on.csv"
+power_off_drag = "src/inputs/rasaero_hybrid_drag_model/hybrid_drag_power_off.csv"
+
+
+# fin X-section - drag model 2
+"""
 Lambda_1= gamma_LE_sweep                 # [degrees]
 Lambda_L= Lambda_1              # [degrees]
 Lambda_2= 0.0                   # [degrees]
@@ -158,13 +165,13 @@ zeta_L= 10 #A2 is 30 but this sends C_DWT wayyy too large because Buseman low ao
 zeta_T= zeta_L                     # [degrees]
 lL_root= 0.0254*0.25            # [m]
 lT_root= lL_root                # [m]
-
+"""
 
 
 rho_fin = 1350 # [kg/m^3] assume cf
 
 
-ox_tank_pos = 1.9           # [m] csys: "tail_to_nose"
+ox_tank_pos = 2.25           # [m] csys: "tail_to_nose"
 engine_pos = 0              # [m] csys: "tail_to_nose"
 cc_cg = 0.5                 # [m] csys: "tail_to_nose"                               
 nozzle_pos = 0.0            # [m] csys: "tail_to_nose"
@@ -187,6 +194,3 @@ rho_lowerfuse = 1350 # [kg/m^3] assume cf
 #rkt_dry_inertia = (94.14, 94.14, 0.09)         # tuple, [kg m^2]
 #rkt_dry_cg = 3.29                              # [m]
 
-# drag model = 1 inputs:
-#power_off_drag = "src/inputs/UofT_Deliverance_II/UofT_Style_Defiance_DragCurve.csv"
-#power_on_drag = "src/inputs/UofT_Deliverance_II/UofT_Style_Defiance_DragCurve.csv"

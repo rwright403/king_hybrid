@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 
 ### inputs: 
 elevation = 285 #m
-apogee_height = 6000 #m
-optimal_height = 1
+apogee_height = 6096 #m
+optimal_height = 1 #m
 
 # MAX_T_AMB
 P_cc = 28e5      # chamber pressure [Pa]
@@ -101,6 +101,9 @@ T_fixed_opt, T_opt_opt, eps_opt, P_exit_star = build_curves(h_star_opt)
 A_exit = eps_opt * A_t
 expratio = eps_opt  # use optimized expansion ratio downstream
 
+#update throat diam:
+throat_diam = np.sqrt(A_t/np.pi)
+
 # Plot vertical line for minimum T/W
 #min_start_thrust = (rocket_dry_mass*9.81) * min_TW_ratio
 
@@ -108,7 +111,7 @@ print("\n=== Nozzle design-altitude optimization ===")
 print(f"Optimal design altitude h*: {h_star_opt:.1f} m")
 print(f"Design exit pressure P_exit(h*): {P_exit_star:.0f} Pa")
 print(f"Expansion ratio eps = A_e/A_t: {eps_opt:.3f}")
-print(f"Exit area A_exit: {A_exit:.6f} m^2")
+print(f"Throat Area {throat_diam:.6f} m, [{39.3701*throat_diam:.6f}] in corresponding to Exit area A_exit: {A_exit:.6f} m^2")
 print(f"Area between curves (L1): {area_min:.3e} N·m")
 print(f"Average mismatch per meter: {area_min/(H-h0):.2f} N")
 
