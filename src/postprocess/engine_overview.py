@@ -37,7 +37,7 @@ def engine_overview(program_input, results, mode):
         
         
         if getattr(program_input, "fuel_tank_model", None) is not None:
-            print(f"Remaining Ox Mass:          {results['m_fuel'].iloc[-1]:.3f} kg")        
+            print(f"Remaining Fuel Mass:          {results['m_fuel'].iloc[-1]:.3f} kg")        
         else: # a bit awk but the integration var is radius so solve mass of fuel grain remaining:
             A_port_outer = (program_input.m_fuel_i/program_input.rho_fuel)/program_input.L_port+program_input.A_port
             

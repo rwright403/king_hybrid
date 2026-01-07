@@ -67,11 +67,11 @@ def run(input_file):
         flight_sim_kwargs, mass_data = build_flight_sim_kwargs(input_file, program_input)
         rocket, flight = flight_sim(flight_sim_kwargs)
 
-        """
+        
         if flight_sim_kwargs["rocketpy_models_kwargs"]["mass_model"] == 2:           # this mass model gives us mass distribution, can sol shear + bending
-            rkt_len = flight_sim_kwargs["rocketpy_rocket_kwargs"]["nose_length"] + flight_sim_kwargs["rocketpy_rocket_kwargs"]["nose_position"]
+            rkt_len = flight_sim_kwargs["rocketpy_rocket_kwargs"]["nose_position"]
             aerostruct(rkt_len, mass_data, rocket, flight)
-        """
+        
 
     """
     #TODO: refactor

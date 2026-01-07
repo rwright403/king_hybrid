@@ -66,6 +66,7 @@ def plot_series(time, results_dict, validation_dict=None, title=None, ylabel=Non
     plt.grid(True)
 
 
+
 def plot_sim_results(inputs, results: dict, mode: str, save_path: str = None):
     time = results["time"]
 
@@ -169,3 +170,5 @@ def plot_sim_results(inputs, results: dict, mode: str, save_path: str = None):
             plt.legend()
 
             plt.show()
+
+        

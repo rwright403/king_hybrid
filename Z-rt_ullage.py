@@ -45,10 +45,10 @@ def gas_height_equilibrium(T, V_tank, m_total, diameter):
 """
 
 
-m_ox = 17.7 #kg
+m_ox = 7.650873122104811 #kg
 T_min = 273.15 + 17
 T_max = 273.15 + 33
-V_selected = 0.029
+V_selected = 0.013
 diam = 0.0254*5.0
 
 # Parameters

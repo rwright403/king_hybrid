@@ -5,5 +5,11 @@ prelim_sizing_tools_and_other_msc_programs/
 src/tmp
 src/inputs/_team_reports
 
+
+cooked.py
+DigitalDATCOM/
+FROM_JACK_recovery/
+
+
 __pycache__/
 *.pyc

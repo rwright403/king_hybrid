@@ -3,6 +3,46 @@ import matplotlib.pyplot as plt
 
 from uvicrocketpy import Rocket, Flight, HybridMotor, LiquidMotor, MassFlowRateBasedTank
 
+def print_max_q_cond(flight):
+    """Prints out the Max Q Conditions available about the flight,
+    including the Max Q time, altitude, speed, freestream speed, Mach
+    number, and kinetic energy.
+
+    Returns
+    -------
+    None
+    """
+    print("\nMax Q State\n")
+    print(f"Max Q time: {flight.max_dynamic_pressure_time:.3f} s")
+    print(
+        "Altitude at Max Q: "
+        f"{flight.z(flight.max_dynamic_pressure_time):.3f} m (ASL) | "
+        f"{flight.altitude(flight.max_dynamic_pressure_time):.3f} "
+        "m (AGL)"
+    )
+    print(
+        "Rocket speed at Max Q: "
+        f"{flight.speed(flight.max_dynamic_pressure_time):.3f} m/s"
+    )
+
+    stream_velocity = flight.free_stream_speed(
+        flight.max_dynamic_pressure_time
+    )
+    print(f"Freestream velocity at Max Q: {stream_velocity:.3f} m/s")
+
+    print(
+        "Mach Number at Max Q: "
+        f"{flight.mach_number(flight.max_dynamic_pressure_time):.3f}"
+    )
+    print(
+        "Density at Max Q: "
+        f"{flight.density(flight.max_dynamic_pressure_time):.3f} kg/m^3"
+    )
+    print(
+        "Angle of Attack at Max Q: "
+        f"{flight.angle_of_attack(flight.max_dynamic_pressure_time):.3f}°"
+    )
+
 
 def flight_sim(kwargs):
     """
@@ -33,7 +73,8 @@ def flight_sim(kwargs):
         span=kwargs["rocketpy_rocket_kwargs"]["fins_span"], 
         root_chord=kwargs["rocketpy_rocket_kwargs"]["fins_root_chord"], 
         tip_chord=kwargs["rocketpy_rocket_kwargs"]["fins_tip_chord"], 
-        position=kwargs["rocketpy_rocket_kwargs"]["fins_position"]
+        position=kwargs["rocketpy_rocket_kwargs"]["fins_position"],
+        sweep_angle=kwargs["rocketpy_rocket_kwargs"]["fins_sweep_angle"]
         )
 
     engine = None
@@ -81,6 +122,7 @@ def flight_sim(kwargs):
     flight.prints.surface_wind_conditions()
     flight.prints.out_of_rail_conditions()
     flight.prints.stability_margin()
+    print_max_q_cond(flight)
     flight.prints.apogee_conditions()
 
     flight.plots.trajectory_3d()

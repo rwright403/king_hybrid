@@ -19,9 +19,9 @@ save_path = None
 
 # Environment
 timestep = 0.003       # [s]
-sim_time = 6.7        # [s]
+sim_time = 5.8        # [s]
 P_atm    = 101325     # [Pa]
-T_atm    = 293.15     # [K]
+T_atm    = 273.15 + 17     # [K]
 rho_atm  = 1.225       # [kg/m^3]
 
 # ------------------------
@@ -37,7 +37,8 @@ pres_str        = "N2"     # pressurant gas
 # Oxidizer Tank
 # ------------------------
 m_ox        =  7.650873122104811   # [kg]
-P_ox_tank   = 5.2e6           # [Pa]
+import CoolProp.CoolProp as CP
+P_ox_tank   = CP.PropsSI('P', 'T', T_atm, 'Q', 0, 'N2O')          # [Pa]
 V_ox_tank      = 0.013   # [m^3]
 diam_out    = 0.0254*5.5      # [m]
 diam_in     = 0.0254*5.0      # [m]
@@ -49,8 +50,10 @@ P_dot_err_tol  = None #NOTE: obsolte
 # ------------------------
 # Ox Injector parameters
 # ------------------------
-Cd_inj_ox   = 0.6
-A_inj_ox = 1.5* 3.931764339889601e-05   # [m^2]
+# using [6]
+Cd_inj_ox   = 0.57
+n = 48
+A_inj_ox = 0.25 * 3.14159 * n * (1.5e-3)**2   # [m^2]
 
 # ------------------------
 # Fuel tank & pressurant
@@ -68,7 +71,7 @@ k_w         = 237           # [W/(m K)]
 # Fuel Injector parameters
 # ------------------------
 Cd_inj_fuel   = 0.6 #NOTE: GUESS
-A_inj_fuel = 0.75*8.353139461101712e-06       # [m^2]
+A_inj_fuel = 0.85*8.35e-06       # [m^2]
 
 # ------------------------
 # Chamber (liquid engine)
@@ -100,7 +103,6 @@ apogee_height = 2*3048      #[m]
 import datetime
 from rocketpy import Environment
 
-#BUG: FLIGHT SIM DOES NOT WORK FOR THIS INPUT?
 
 # --- LAUNCH CANADA TIMMINS ONT. LAUNCH PAD ---
 """
@@ -128,11 +130,11 @@ launch_lug_angular_pos = 45     # [degrees]
 
 nose_length = 0.5               # [m]                                               Can change adjust depending on old rockets look at our prior research
 nose_kind = "vonKarman"
-nose_position = 3.5             # [m]
+nose_position = 3.3             # [m]
 rho_nose = 2500            # [kg/m^3] assume glass
 
 fins_n = 3                      #NOTE: drag model 2 assumes 4 fin rocket.           keep at 4
-fins_span = 0.1016               # [m]                                               base to tip of fin (conctor to the rocket to outside most edge)
+fins_span = 0.1016*.9               # [m]                                               base to tip of fin (conctor to the rocket to outside most edge)
 fins_root_chord = 0.254*.8           # [m]                                               lostgest distance up    
 fins_tip_chord = 0.0762*.8           # [m]                                               shortest distance up
 fins_position = 0.3            # [m] csys: "tail_to_nose"                          Change as required "if is hanging off the rocket"
@@ -163,9 +165,9 @@ nozzle_pos = 0.0            # [m] csys: "tail_to_nose"
 
 #POINT MASSES OF COMPONENTS:
 m_mev = 5.5                 # [kg]                                                                      #man engin center off mass
-m_otv = 3.5                 # [kg]
+m_otv = 4.5                 # [kg]
 m_reco = 5.5                 # [kg] 
-m_ftv= 2.0                 # [kg]
+m_ftv= 1.0                 # [kg]
 
 #Densities:
 rho_upperfuse = 1350 # [kg/m^3] assume cf

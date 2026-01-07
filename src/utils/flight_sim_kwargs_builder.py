@@ -93,7 +93,7 @@ def build_flight_sim_kwargs(input_file, cfg):
 
             
     elif cfg.mass_model == 2:
-        mass_model = get_model("M", cfg.drag_model)
+        mass_model = get_model("M", cfg.mass_model)
 
         #NOTE: need to determine if hybrid or liquid and solve tank height
         fuel_tank_model=getattr(cfg, "fuel_tank_model", None)
@@ -125,6 +125,7 @@ def build_flight_sim_kwargs(input_file, cfg):
                 h_nosecone = cfg.nose_length,
                 L_fuel_tank = (cfg.V_fuel_tank+cfg.V_pres_tank)/(0.25*np.pi*(cfg.diam_in**2)), 
                 fuel_tank_pos = cfg.fuel_tank_pos,
+                fins_position = cfg.fins_position,
             )
         else:
             # hybrid! i love hybrid
@@ -159,6 +160,7 @@ def build_flight_sim_kwargs(input_file, cfg):
             fin_thickness = cfg.fin_root_thickness,
             n_fins = cfg.fins_n,
             h_nosecone = cfg.nose_length,
+            fins_position = cfg.fins_position,
         )
 
         #print("Mass model 2: ", rktpy_motorless_mass, rktpy_motorless_cg, rktpy_motorless_inertia, rktpy_cc_mass, rktpy_cc_cg, rktpy_cc_inertia )
@@ -189,6 +191,7 @@ def build_flight_sim_kwargs(input_file, cfg):
         fins_root_chord=cfg.fins_root_chord, 
         fins_tip_chord=cfg.fins_tip_chord, 
         fins_position=cfg.fins_position,
+        fins_sweep_angle=cfg.trailing_sweep_angle,
 
         ox_tank_pos=cfg.ox_tank_pos,
 
@@ -302,6 +305,7 @@ def build_flight_sim_kwargs(input_file, cfg):
             nozzle_radius=r_nozzle_exit, #NOTE: Radius of motor nozzle outlet in meters.
             nozzle_position=cfg.nozzle_pos,
             coordinate_system_orientation="nozzle_to_combustion_chamber",
+            reference_pressure = cfg.P_atm
         )
 
 
@@ -330,6 +334,7 @@ def build_flight_sim_kwargs(input_file, cfg):
             interpolation_method="linear",
             grains_center_of_mass_position=cfg.cc_cg, #NOTE: ASSUME CG GRAIN = CG CHAMBER
             coordinate_system_orientation="nozzle_to_combustion_chamber",
+            reference_pressure = cfg.P_atm
         )
 
 

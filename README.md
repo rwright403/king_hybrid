@@ -4,6 +4,8 @@ This project is a continuation of Ben Klammer's Mech 498 Thesis on Hybrid Modell
 
 This program was designed to be a modular framework for a user to combine and use different models to simulate rocket engines. This decision to make the program modular will hopefully allow us to add more detail if/as required throughout the engine design cycle.
 
+This has turned into a somewhat messy and disorganized working directory. That is ok, stuff is happening.
+
 The modelling is especially focused on nitrous oxide as a self-pressurant.
 
 
@@ -113,8 +115,9 @@ Performance of a 1-kN Paraffin-Fueled Hybrid Rocket Motor | Sauter Mean Diameter
 | [42]  | Half Cat Rocketry Valves | Inj Test Bench | https://www.halfcatrocketry.com/fluid-system |
 | [43]  | FIN A COMPUTER PROGRAM FOR CALCULATING THE AERODYNAMIC CHARACTERISTICS OF FINS AT SUPERSONIC SPEEDS NTRS 19660021056 | fin wake drag coeff for barrowman model | https://ntrs.nasa.gov/citations/19660021056 |
 | [44]  | Collection of Zero-lift Drag Data on Bodies of Revolution from Free-flight Investigations | Nosecone drag coeff | https://ntrs.nasa.gov/citations/19630004995 |
-
-
+| [45]  | Launch Canada R+R | Comp rules | https://www.launchcanada.org/teams |
+| [46]  | Stanford SSI homebrew-rocket-sim | stealing their datcom wrapper | https://github.com/stanford-ssi/homebrew-rocket-sim/tree/master |
+| [47]  | Digital DATCOM manual         |
 
 
 
@@ -140,7 +143,7 @@ Performance of a 1-kN Paraffin-Fueled Hybrid Rocket Motor | Sauter Mean Diameter
 |---------------|-------------|--------|--------------------------|
 | PVC           | BAD NO      | [35]    | |
 | Polypropylene | BAD NO      | [35]    | |
-| Nylon         | Yes          | [41]
+| Nylon         | Yes          | [41]   |   |           
 
 
 | Elastomers        | Compatible? | Source | Notes:                   |
@@ -168,6 +171,29 @@ Performance of a 1-kN Paraffin-Fueled Hybrid Rocket Motor | Sauter Mean Diameter
 
 
 Ryan Wright, From Calgary, Alberta, Canada   
+
+
+>                                             &@&.                       
+>                                          @@      /@                    
+>                               %@@@@@@,  @&    @%   %(                  
+>                           (@%         @@@        @                     
+>              ,&@@@@@@@@@@@.         @@&         @#                     
+>          *@@@@@@&      @/         @@,       ,&,  /@@@.                 
+>         @@@@@%        @    &@@@@@@.                 @@%                
+>        #@@@@@        @..@*    @@                     @@                
+>        *@@@@@        @,    (@/                      &@,                
+>         @@@@@@          @@.         *@@@@@,        #@#                 
+>          @@@@@@    (@#           #@@      @       @@.                  
+>            @@@@@@  .&@@@@@@    @@ @      @/     /@&                    
+>             #@@@@@@.    #@   &@  @      @     @@/  #@,                 
+>               .@@@@@@@. @@  @@@  @    @.   @@%     @@@%                
+>               @  @@@@@@@@@ % @  ,   @%@@@*         #@@@                
+>             /#      %@@@@@@@@@.                    @@@@/                       
+>            /%           @@@@@@@@@@@@,           (@@@@@@                
+>             @          *@.  *@@@@@@@@@@@@@@@@@@@@@@@@@                 
+>            @/      .@@            ,&@@@@@@@@@@@@@@@                    
+>           @    @@,                                                     
+>          @@%                                                   
 
 <!-- 
 source venv/bin/activate 

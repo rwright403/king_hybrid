@@ -36,7 +36,7 @@ def make_drag_func(path, mach_col=None, cd_col=None, delimiter=","):
     Mach, Cd = Mach[idx], Cd[idx]
 
     # build the callable RocketPy expects
-    def cd_fn(mach, u, mu, rho):
+    def cd_fn(mach, u, mu, rho, Pa, alpha, beta):
         # 1-D linear interpolation in Mach; clamp at ends
         return float(np.interp(mach, Mach, Cd, left=Cd[0], right=Cd[-1]))
 
