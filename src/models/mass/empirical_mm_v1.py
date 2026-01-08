@@ -7,7 +7,7 @@ def print_mass_list(mass_data):
     for m in mass_data:
         sum+=m.mass
 
-    print(f"Total mass is: {sum} kg")
+    print(f"Total dry mass is: {sum} kg")
 
 
 def diameter_from_volume_LD(V, L_over_D):

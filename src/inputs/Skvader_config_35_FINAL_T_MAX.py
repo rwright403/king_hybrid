@@ -41,7 +41,7 @@ P_ox_tank   = CP.PropsSI('P', 'T', T_atm, 'Q', 0, 'N2O')          # [Pa]
 
 
 #TODO: DECREASE V_ox_tank volume, define operating evelope in doc and size ullage for that envelope
-V_ox_tank   = 0.029      #0.04 #0.0315      # [m^3] 0.75 Fill Fraction
+V_ox_tank   = 0.029      #0.04 #0.0315      # [m^3] 0.9 Fill Fraction
 
 #TODO: UPDATE WITH NOM PIPE/TUBE SIZE
 diam_out    = 0.1413          # [m]
@@ -132,7 +132,7 @@ fuselage_inner_radius = 0.95*fuselage_radius    #[m]                            
 rkt_csys = "tail_to_nose" # tail = 0 nose = (+) max
 
 upper_launch_lug_pos = 0.8      # [m] csys: "tail_to_nose"                          Ryan will let us know
-lower_launch_lug_pos = 0.2      # [m] csys: "tail_to_nose"                          ^
+lower_launch_lug_pos = 0.0254*0.5      # [m] csys: "tail_to_nose"                          ^
 launch_lug_angular_pos = 45     # [degrees]
 
 nose_length = 0.5               # [m]                                               Can change adjust depending on old rockets look at our prior research
