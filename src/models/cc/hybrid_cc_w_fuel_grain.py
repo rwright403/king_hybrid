@@ -72,7 +72,7 @@ class hybrid_cc_w_fuel_grain_model(BaseChamber):
             T_cc = self.C.get_Tcomb(P_cc, OF)
 
             #tmp 29-dec-2025 obtaining flame temp:
-            print(f"T_cc: {T_cc:.3f} K")
+            #print(f"T_cc: {T_cc:.3f} K")
 
             MW, gamma = self.C.get_Chamber_MolWt_gamma(P_cc, OF, self.nozzle.expratio)
             R_spec = R_UNIV / MW

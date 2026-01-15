@@ -1411,7 +1411,7 @@ class Flight:
         rho = self.env.density.get_value_opt(z)
         pressure = self.env.pressure.get_value_opt(z)
         alpha, beta = self.compute_fin_angles_from_state(vx, vy, vz, e0, e1, e2, e3, z)
-        print("alpha, beta, z", alpha, beta, z)
+        #print("alpha, beta, z", alpha, beta, z)
         drag_coeff = self.rocket.power_on_drag.get_value_opt(free_stream_mach, free_stream_speed, dyn_visc, rho, pressure, alpha, beta)
         # Calculate Forces
         #pressure = self.env.pressure.get_value_opt(z)
@@ -1587,7 +1587,7 @@ class Flight:
         rho = self.env.density.get_value_opt(z)
         pressure = self.env.pressure.get_value_opt(z)
         alpha, beta = self.compute_fin_angles_from_state(vx, vy, vz, e0, e1, e2, e3, z)
-        print("alpha, beta, z", alpha, beta, z)
+        #print("alpha, beta, z", alpha, beta, z)
 
         if t < self.rocket.motor.burn_out_time:
             drag_coeff = self.rocket.power_on_drag.get_value_opt(free_stream_mach, free_stream_speed, dyn_visc, rho, pressure, alpha, beta)
@@ -1864,7 +1864,7 @@ class Flight:
         dyn_visc = self.env.dynamic_viscosity.get_value_opt(z)
         pressure = self.env.pressure.get_value_opt(z)
         alpha, beta = self.compute_fin_angles_from_state(vx, vy, vz, e0, e1, e2, e3, z)
-        print("alpha, beta, z", alpha, beta, z)
+        #print("alpha, beta, z", alpha, beta, z)
 
         if self.rocket.motor.burn_start_time < t < self.rocket.motor.burn_out_time:
             #pressure = self.env.pressure.get_value_opt(z)

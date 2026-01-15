@@ -1,6 +1,6 @@
 ### Rocket Engine Simulation 🚀
 
-This project is a continuation of Ben Klammer's Mech 498 Thesis on Hybrid Modelling [1]. 
+This project is a continuation of Ben Klammer's Mech 498 Thesis on Hybrid Modelling [2]. 
 
 This program was designed to be a modular framework for a user to combine and use different models to simulate rocket engines. This decision to make the program modular will hopefully allow us to add more detail if/as required throughout the engine design cycle.
 
@@ -94,7 +94,7 @@ Always create a new branch for edits (git checkout -b <branch_name>).
 | [22]  | Ben Klammer 446 CC model | | |
 | [23]  | Implementing CEA calculations using Cantera - Kyle Niemeyer | Starting to outgrow rocketcea, looking into using cantera for cc model because it is more compatible with differential eqns | https://kyleniemeyer.github.io/rocket-propulsion/thermochemistry/cea_cantera.html |
 | [24]  | NASA SP-1311-2 | fixing paraffin definition in rocketcea. see PARAFFIN_DEFFINITION.md | https://shepherd.caltech.edu/EDL/PublicResources/sdt/refs/NASA-RP-1311-2.pdf |
-| [25]  | Computational model for performance prediction of a nitrous oxide / eicosane hybrid rocket engine | hybrid cc model that integrates P_cc_dot | https://www.researchgate.net/publication/381880279_Computational_model_for_performance_prediction_of_a_nitrous_oxide_eicosane_hybrid_rocket_engine|
+| [25]  | Computational model for performance prediction of a nitrous oxide / eicosane hybrid rocket engine (McGill) | hybrid cc model that integrates P_cc_dot | https://www.researchgate.net/publication/381880279_Computational_model_for_performance_prediction_of_a_nitrous_oxide_eicosane_hybrid_rocket_engine |
 | [26]  | Liquid Rocket Propulsion Instability | trying to understand instability for prelim/detail design |
 | [27]  | AGARD Heat Transfer in Rocket Engines | Estimating Heat Transfer in Injector | https://apps.dtic.mil/sti/trecms/pdf/AD0733362.pdf |
 | [28]  | Liquid Rocket Engine Injectors | | https://ntrs.nasa.gov/api/citations/19760023196/downloads/19760023196.pdf |

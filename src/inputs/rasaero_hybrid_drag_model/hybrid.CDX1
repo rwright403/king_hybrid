@@ -12,7 +12,7 @@
     </NoseCone>
     <BodyTube>
       <PartType>BodyTube</PartType>
-      <Length>159.4488</Length>
+      <Length>143.7008</Length>
       <Diameter>5.563</Diameter>
       <LaunchLugDiameter>0</LaunchLugDiameter>
       <LaunchLugLength>0</LaunchLugLength>
@@ -33,7 +33,7 @@
         <TipChord>6</TipChord>
         <Thickness>0.25</Thickness>
         <LERadius>0.02</LERadius>
-        <Location>19.685</Location>
+        <Location>15.0787</Location>
         <AirfoilSection>Hexagonal</AirfoilSection>
         <FX1>0.25</FX1>
         <FX3>0.25</FX3>

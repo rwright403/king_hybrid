@@ -116,7 +116,7 @@ def flight_sim(kwargs):
         rail_length=kwargs["rocketpy_launchpad_kwargs"]["rail_length"],
         inclination=kwargs["rocketpy_launchpad_kwargs"]["inclination"],
         heading=kwargs["rocketpy_launchpad_kwargs"]["heading"],
-        terminate_on_apogee=True,
+        #terminate_on_apogee=True,
     )
     
     flight.prints.surface_wind_conditions()
