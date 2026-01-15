@@ -25,6 +25,10 @@ class mass:
 def hollow_cylinder_mass(rho, L, d_inner, d_outer):
     return rho * np.pi * L * ( (d_outer/2)**2 - (d_inner/2)**2 )
 
+
+print ( "mass kg sched 80 sched 40: ", hollow_cylinder_mass(2700, 2.5, 0.1223, 0.1413), hollow_cylinder_mass(2700, 2.5, 0.1282, 0.1413) )
+
+
 def hollow_cylinder_inertia(m, L, d_inner, d_outer):
     # Inertia of a hollow cylinder about itself    
     Ixx = 0.5 * m * ((d_outer/2)**2 + (d_inner/2)**2)
@@ -56,7 +60,7 @@ def hollow_cylinder_lumped_masses(rho, L, d_inner, d_outer, cyl_center, N=7):
     Ro = d_outer / 2
 
     # Total cylinder mass
-    total_mass = rho * np.pi * L * (Ro**2 - Ri**2)
+    total_mass = hollow_cylinder_mass(rho, L, d_inner, d_outer)
     m_i = total_mass / N
 
     # Spacing between lumps
@@ -192,8 +196,8 @@ def parallel_axis(mass_objs: list):
 
 
 
-def empirical_cc_mass_model(V_cc, CC_LD, rho=4025):
-    # Assume CC rho = 4025 kg/m^3, L/D ratio = 1.75 if none given
+def empirical_cc_mass_model(V_cc, CC_LD, rho=2700):
+    # Assume CC rho = aluminum!! kg/m^3, L/D ratio = 1.75 if none given
     
     d_outer = diameter_from_volume_LD(V_cc, CC_LD)
 
@@ -201,7 +205,7 @@ def empirical_cc_mass_model(V_cc, CC_LD, rho=4025):
 
     print("d_outer: ", d_outer, L)
 
-    d_inner = 0.8*d_outer #assume
+    d_inner = 0.85*d_outer #assume
 
     m = hollow_cylinder_mass(rho, L, d_inner, d_outer)
 

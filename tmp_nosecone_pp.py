@@ -270,6 +270,42 @@ def plot_shockexp_pressure_contour(data, field="pmid"):
     plt.show()
 
 
+def plot_pressure_second_derivative(data):
+    """
+    Plot the second derivative of surface pressure along the nosecone using dpds_front.
+    
+    Parameters:
+        data : dict
+            Output from shockexp_pressure_distribution.
+    
+    Returns:
+        d2pdx2_vertex : np.ndarray
+            Second derivative of pressure along the nosecone (vertex points).
+    """
+    # dpds_front is panel-based, length npts-1
+    dpds = data["dpds_front"]
+    x_panel = data["x"][:-1]  # panel start points, matches dpds length
+
+    # Interpolate slope to vertex points
+    x_vertex = data["x"]
+    dpds_vertex = np.interp(x_vertex, x_panel, dpds)
+
+    # Second derivative = gradient of slope
+    d2pdx2_vertex = np.gradient(dpds_vertex, x_vertex)
+
+    # Plot
+    plt.figure(figsize=(10,5))
+    plt.plot(x_vertex, d2pdx2_vertex, marker='o')
+    plt.axhline(0, color='k', linestyle='--', alpha=0.5)
+    plt.xlabel("x along nosecone (m)")
+    plt.ylabel("Second derivative of pressure (d²p/dx²)")
+    plt.title("Second Derivative of Surface Pressure Along Nosecone (from dpds_front)")
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
+
+    return d2pdx2_vertex
+
 
 
 
@@ -280,3 +316,4 @@ R = 0.5*(0.0254*5.5)
 
 data = shockexp_pressure_distribution(M_inf, p_inf, L_nose, R)
 plot_shockexp_pressure_contour(data)
+plot_pressure_second_derivative(data)

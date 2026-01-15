@@ -19,7 +19,7 @@ save_path = None
 
 # Environment
 timestep = 0.002          # [s]
-sim_time = 12               # [s]
+sim_time = 10.4               # [s]
 P_atm    = 101325          # [Pa]
 T_atm    = 273.15 + 31     # [K]
 rho_atm  = 1.225           # [kg/m^3]
@@ -33,7 +33,7 @@ oxidizer_name   = "N2O"
 # ------------------------
 # Oxidizer Tank
 # ------------------------
-m_ox        = 17.7          # [kg]
+m_ox        = 13.25          # [kg]
 import CoolProp.CoolProp as CP
 P_ox_tank   = CP.PropsSI('P', 'T', T_atm, 'Q', 0, 'N2O')          # [Pa]
 
@@ -41,11 +41,11 @@ P_ox_tank   = CP.PropsSI('P', 'T', T_atm, 'Q', 0, 'N2O')          # [Pa]
 
 
 #TODO: DECREASE V_ox_tank volume, define operating evelope in doc and size ullage for that envelope
-V_ox_tank   = 0.029      #0.04 #0.0315      # [m^3] 0.9 Fill Fraction
+V_ox_tank   = 0.0208            # [m^3] 0.9 Fill Fraction
 
 #TODO: UPDATE WITH NOM PIPE/TUBE SIZE
 diam_out    = 0.1413          # [m]
-diam_in     = 0.1223       # [m]
+diam_in     = 0.1282 # = 0.0254*5.047 sched 40         # [m]
 rho_wall    = 2700          # [kg/m^3]
 k_w         = 237           # [W/(m K)]
 volume_err_tol = 0.001      # from all_error
@@ -63,7 +63,7 @@ A_inj_ox = 0.25 * 3.14159 * n * (1.5e-3)**2   # [m^2]
 # ------------------------
 # Chamber (hybrid regression model) 
 # ------------------------
-m_fuel_i            = 3.249 #1.715          # [kg]
+m_fuel_i            = 2.7 #1.715          # [kg]
 rho_fuel            = 900.0          # [kg/m^3]
 a_reg               = 0.155e-3       # [m/s*(kg/s)^n]
 n_reg               = 0.5
@@ -137,14 +137,14 @@ launch_lug_angular_pos = 45     # [degrees]
 
 nose_length = 0.5               # [m]                                               Can change adjust depending on old rockets look at our prior research
 nose_kind = "vonKarman"
-nose_position = 4.55             # [m]
+nose_position = 4.15             # [m]
 rho_nose = 2500            # [kg/m^3] assume glass
 
 fins_n = 3                      #NOTE: drag model 2 assumes 4 fin rocket.           keep at 4
 fins_span = 0.0254*4               # [m]                                               base to tip of fin (conctor to the rocket to outside most edge)
 fins_root_chord = 0.0254*15 #0.2032          # [m]                                               lostgest distance up    
 fins_tip_chord = 0.0254*6          # [m]                                               shortest distance up
-fins_position = 0.5#0.3             # [m] csys: "tail_to_nose"                          Change as required "if is hanging off the rocket"
+fins_position = 0.5 - 0.117#0.3             # [m] csys: "tail_to_nose"                          Change as required "if is hanging off the rocket"
 gamma_LE_sweep= 30             # [degrees]
 trailing_sweep_angle = 60
 fin_root_thickness=0.0254*(0.25)       # [m]
@@ -170,15 +170,15 @@ lT_root= lL_root                # [m]
 rho_fin = 1350 # [kg/m^3] assume cf
 
 
-ox_tank_pos = 2.25           # [m] csys: "tail_to_nose"
+ox_tank_pos = 1.75           # [m] csys: "tail_to_nose"
 engine_pos = 0              # [m] csys: "tail_to_nose"
 cc_cg = 0.5                 # [m] csys: "tail_to_nose"                               
 nozzle_pos = 0.0            # [m] csys: "tail_to_nose"
 
 #POINT MASSES OF COMPONENTS:
-m_mev = 5.5                                                                      #man engin center off mass
+m_mev = 3.0                                                                      #man engin center off mass
 m_otv = 3.5
-m_reco = 5.5 
+m_reco = 4.5 
 m_ftv= 0.0 #NOTE: NOT USED
 
 #Densities:
