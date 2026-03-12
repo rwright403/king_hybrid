@@ -101,7 +101,7 @@ def omega_coeff(M, gamma):
 # ================================================================
 # FINAL FUNCTION: 2nd-order Shock-Expansion marching CDp
 # ================================================================
-def shockexp_pressure_distribution(M_inf, p_inf, L_nose, R, gamma=1.4, npts=80):
+def shockexp_pressure_distribution(M_inf, p_inf, L_nose, R, gamma=1.4, npts=160):
 
     # Discretize nose
     theta = np.linspace(0, np.pi/2, npts)
@@ -219,10 +219,88 @@ def shockexp_pressure_distribution(M_inf, p_inf, L_nose, R, gamma=1.4, npts=80):
     }
 
 
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.collections import LineCollection
+
+def plot_shockexp_pressure_contour(data, field="pmid", fit_result=None):
+    """
+    Plot the tangent-ogive contour r(x) colored by surface pressure.
+
+    Parameters
+    ----------
+    data : dict
+        Dictionary containing "x", "r", and pressure fields ("pmid", "p2", "p3")
+    field : str, optional
+        Pressure field to color contour by: "pmid" (default), "p2", or "p3"
+    fit_result : dict, optional
+        Output from fit_piecewise_pressure. If provided, overlays piecewise fit.
+    """
+
+    x = data["x"]
+    r = data["r"]  # radius distribution
+
+    # -----------------------------
+    # Select pressure field
+    # -----------------------------
+    if field not in data:
+        raise ValueError(f"field '{field}' not found in data")
+    p = data[field]
+
+    # Convert panel-based pressure (N-1) to vertex-based (N)
+    p_vertices = np.zeros_like(x)
+    p_vertices[:-1] = p
+    p_vertices[-1] = p[-1]
+
+    # Build line segments for contour
+    points = np.array([x, r]).T.reshape(-1, 1, 2)
+    segments = np.concatenate([points[:-1], points[1:]], axis=1)
+
+    # Create colored line
+    lc = LineCollection(segments, cmap="plasma")
+    lc.set_array(p_vertices)
+    lc.set_linewidth(3.0)
+
+    # -----------------------------
+    # Plot
+    # -----------------------------
+    fig, ax = plt.subplots(figsize=(10, 5))
+    ax.add_collection(lc)
+
+    # Optionally plot piecewise fit
+    if fit_result is not None:
+        ax.plot(
+            fit_result["x_plot"], 
+            np.interp(fit_result["x_plot"], x, r),  # map radius to x positions
+            color="black",
+            linestyle="--",
+            linewidth=2,
+            label="Piecewise Fit Pressure"
+        )
+        # You could also color the line by pressure if desired:
+        # ax.scatter(fit_result["x_plot"], np.interp(fit_result["x_plot"], x, r),
+        #            c=fit_result["p_plot"], cmap="plasma", s=5)
+
+        ax.legend()
+
+    ax.set_xlim(x.min(), x.max())
+    ax.set_ylim(r.min(), r.max())
+    ax.set_aspect("equal", adjustable="box")
+
+    ax.set_xlabel("x (m)")
+    ax.set_ylabel("radius r(x) (m)")
+    ax.set_title(f"Nosecone Surface Pressure Distribution")
+
+    # Add colorbar
+    plt.colorbar(lc, ax=ax, label="Surface Pressure (Pa)")
+
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
 
 
 
-def plot_shockexp_pressure_contour(data, field="pmid"):
+#def plot_shockexp_pressure_contour(data, field="pmid"):
     """
     Plot the tangent-ogive contour r(x) colored by surface pressure.
 
@@ -231,7 +309,7 @@ def plot_shockexp_pressure_contour(data, field="pmid"):
         "p2"    -> front-edge pressure
         "p3"    -> rear-edge pressure
     """
-
+    """
     x = data["x"]
     r = data["r"]      # radius distribution
     p = data["pmid"]
@@ -268,43 +346,287 @@ def plot_shockexp_pressure_contour(data, field="pmid"):
     plt.grid(True)
     plt.tight_layout()
     plt.show()
-
-
-def plot_pressure_second_derivative(data):
     """
-    Plot the second derivative of surface pressure along the nosecone using dpds_front.
-    
+
+#def plot_pressure_vs_distance(data, field="pmid"):
+    """
+    Plot surface pressure vs axial distance.
+
+    field options:
+        "pmid"  -> midpoint panel pressure (recommended)
+        "p2"    -> front-edge pressure
+        "p3"    -> rear-edge pressure
+    """
+
+    """
+    x = data["x"]
+
+    if field == "pmid":
+        # panel midpoints: j = 1 .. N-2
+        p = data["pmid"][1:]
+        x_plot = 0.5 * (x[1:-1] + x[2:])
+        label = "Midpoint Pressure"
+
+    elif field == "p2":
+        # front edge of panel j is at x[j]
+        p = data["p2"][1:]
+        x_plot = x[1:-1]
+        label = "Front-edge Pressure"
+
+    elif field == "p3":
+        # rear edge of panel j is at x[j+1]
+        p = data["p3"][1:]
+        x_plot = x[2:]
+        label = "Rear-edge Pressure"
+
+    else:
+        raise ValueError("Invalid field selection")
+
+    plt.figure(figsize=(8, 4))
+    plt.plot(x_plot, p, lw=2)
+    plt.xlabel("Axial distance x (m)")
+    plt.ylabel("Surface Pressure (Pa)")
+    plt.title("Nosecone Surface Pressure vs Distance")
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
+    """
+
+
+
+#def plot_pressure_second_derivative(data):
+    """
+    Plot the second derivative of surface pressure along the nosecone,
+    ignoring the first (unphysical) point from dpds_front.
+
     Parameters:
         data : dict
             Output from shockexp_pressure_distribution.
-    
+
     Returns:
         d2pdx2_vertex : np.ndarray
-            Second derivative of pressure along the nosecone (vertex points).
+            Second derivative of pressure at valid vertex points.
     """
-    # dpds_front is panel-based, length npts-1
-    dpds = data["dpds_front"]
-    x_panel = data["x"][:-1]  # panel start points, matches dpds length
 
-    # Interpolate slope to vertex points
-    x_vertex = data["x"]
+    """
+    # Panel-based dp/ds (skip panel 0)
+    dpds = data["dpds_front"][1:]
+    x_panel = data["x"][1:-1]   # panel start points for j >= 1
+
+    # Vertex locations (skip x[0])
+    x_vertex = data["x"][1:]
+
+    # Interpolate slope onto vertex points
     dpds_vertex = np.interp(x_vertex, x_panel, dpds)
 
     # Second derivative = gradient of slope
     d2pdx2_vertex = np.gradient(dpds_vertex, x_vertex)
 
     # Plot
-    plt.figure(figsize=(10,5))
+    plt.figure(figsize=(10, 5))
     plt.plot(x_vertex, d2pdx2_vertex, marker='o')
     plt.axhline(0, color='k', linestyle='--', alpha=0.5)
     plt.xlabel("x along nosecone (m)")
-    plt.ylabel("Second derivative of pressure (d²p/dx²)")
-    plt.title("Second Derivative of Surface Pressure Along Nosecone (from dpds_front)")
+    plt.ylabel(r"Second derivative of pressure, $d^2p/dx^2$")
+    plt.title("Second Derivative of Surface Pressure Along Nosecone")
     plt.grid(True)
     plt.tight_layout()
     plt.show()
 
     return d2pdx2_vertex
+    """
+
+def plot_pressure_vs_distance(
+    data,
+    field="pmid",
+    fit_result=None,
+    show_sensor_points=True
+):
+    """
+    Plot surface pressure vs axial distance, with optional piecewise-linear fit overlay.
+
+    Parameters
+    ----------
+    data : dict
+        Output from shockexp_pressure_distribution
+    field : str
+        "pmid", "p2", or "p3"
+    fit_result : dict or None
+        Output from fit_piecewise_pressure (optional)
+    show_sensor_points : bool
+        Plot dots at sensor / breakpoint locations
+    """
+
+    x = data["x"]
+
+    if field == "pmid":
+        p = data["pmid"][1:]
+        x_plot = 0.5 * (x[1:-1] + x[2:])
+        label = "Solver pressure (midpoints)"
+
+    elif field == "p2":
+        p = data["p2"][1:]
+        x_plot = x[1:-1]
+        label = "Solver pressure (front-edge)"
+
+    elif field == "p3":
+        p = data["p3"][1:]
+        x_plot = x[2:]
+        label = "Solver pressure (rear-edge)"
+
+    else:
+        raise ValueError("Invalid field selection")
+
+    plt.figure(figsize=(9, 4))
+    plt.plot(x_plot, p, lw=2, label=label)
+
+    # -----------------------------
+    # Overlay piecewise-linear fit
+    # -----------------------------
+    if fit_result is not None:
+        plt.plot(
+            fit_result["x_plot"],
+            fit_result["p_plot"],
+            "--",
+            lw=2,
+            label="Piecewise-linear fit"
+        )
+
+        if show_sensor_points:
+            plt.plot(
+                fit_result["x_breaks"],
+                np.interp(
+                    fit_result["x_breaks"],
+                    fit_result["x_plot"],
+                    fit_result["p_plot"]
+                ),
+                "o",
+                ms=6,
+                label="Sensor / breakpoint locations"
+            )
+
+    plt.xlabel("Axial distance x (m)")
+    plt.ylabel("Surface Pressure (Pa)")
+    plt.title("Surface Pressure vs Distance")
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+
+
+def fit_piecewise_pressure(
+    data,
+    p_inf,
+    M_inf,
+    x0,
+    x1,
+    gamma=1.4,
+    n_segments=8,
+    field="pmid"
+    ):
+    """
+    Fit a piecewise-linear pressure distribution downstream of a pitot tube.
+
+    Parameters
+    ----------
+    data : dict
+        Output from shockexp_pressure_distribution
+    p_inf : float
+        Freestream static pressure (Pa)
+    q_inf : float
+        Freestream dynamic pressure (Pa)
+    x0 : float
+        Axial distance from nose tip to start fitting (pitot length) [m]
+    n_segments : int, optional
+        Number of linear segments (default = 8)
+    field : str, optional
+        Pressure field to use: "pmid", "p2", or "p3" (default = "pmid")
+
+    Returns
+    -------
+    result : dict
+        Dictionary containing:
+            - model        : pwlf.PiecewiseLinFit object
+            - x_fit        : x data used for fitting (m)
+            - p_fit        : pressure data used for fitting (Pa)
+            - x_breaks     : segment breakpoints (m)
+            - slopes       : slope of each segment (Pa/m)
+            - intercepts   : intercept of each segment (Pa)
+            - x_plot       : dense x for plotting (m)
+            - p_plot       : fitted pressure for plotting (Pa)
+    """
+
+    import numpy as np
+    import pwlf
+
+    x = data["x"]
+
+    # -----------------------------
+    # Select pressure definition
+    # -----------------------------
+    if field == "pmid":
+        x_data = 0.5 * (x[:-1] + x[1:])
+        p_data = data["pmid"]
+    elif field == "p2":
+        x_data = x[:-1]
+        p_data = data["p2"]
+    elif field == "p3":
+        x_data = x[1:]
+        p_data = data["p3"]
+    else:
+        raise ValueError("field must be 'pmid', 'p2', or 'p3'")
+
+    # -----------------------------
+    # Mask pitot region + invalid entries
+    # -----------------------------
+    mask = (x_data >= x0) & (x_data <= x1)
+
+    x_fit = x_data[mask]
+    p_fit = p_data[mask]
+
+    q_inf = 0.5*gamma*(M_inf**2)*p_inf
+
+    # -----------------------------
+    # Normalize for numerical stability
+    # -----------------------------
+    L = x_fit.max() - x_fit.min()
+    x_hat = (x_fit - x_fit.min()) / L
+    p_hat = (p_fit - p_inf) / q_inf
+
+    # -----------------------------
+    # Piecewise linear fit
+    # -----------------------------
+    model = pwlf.PiecewiseLinFit(x_hat, p_hat)
+    breaks_hat = model.fit(n_segments)
+
+    # -----------------------------
+    # Dense evaluation for plotting
+    # -----------------------------
+    x_hat_plot = np.linspace(x_hat.min(), x_hat.max(), 500)
+    p_hat_plot = model.predict(x_hat_plot)
+
+    x_plot = x_hat_plot * L + x_fit.min()
+    p_plot = p_hat_plot * q_inf + p_inf
+
+    # -----------------------------
+    # Extract segment laws
+    # -----------------------------
+    x_breaks = breaks_hat * L + x_fit.min()
+    slopes = model.slopes * q_inf / L          # Pa/m
+    intercepts = model.intercepts * q_inf + p_inf
+
+    return {
+        "model": model,
+        "x_fit": x_fit,
+        "p_fit": p_fit,
+        "x_breaks": x_breaks,
+        "slopes": slopes,
+        "intercepts": intercepts,
+        "x_plot": x_plot,
+        "p_plot": p_plot,
+    }
+
 
 
 
@@ -316,4 +638,11 @@ R = 0.5*(0.0254*5.5)
 
 data = shockexp_pressure_distribution(M_inf, p_inf, L_nose, R)
 plot_shockexp_pressure_contour(data)
-plot_pressure_second_derivative(data)
+plot_pressure_vs_distance(data, field="pmid")
+#plot_pressure_second_derivative(data)
+
+
+pp = fit_piecewise_pressure(data, p_inf, M_inf, x0=(0.0254*5.5), x1=(0.0254*17.6), n_segments = 2)
+plot_shockexp_pressure_contour(data, field="pmid", fit_result=pp)
+plot_pressure_vs_distance(data, field="pmid", fit_result=pp)
+

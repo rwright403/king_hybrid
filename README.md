@@ -99,8 +99,7 @@ Always create a new branch for edits (git checkout -b <branch_name>).
 | [27]  | AGARD Heat Transfer in Rocket Engines | Estimating Heat Transfer in Injector | https://apps.dtic.mil/sti/trecms/pdf/AD0733362.pdf |
 | [28]  | Liquid Rocket Engine Injectors | | https://ntrs.nasa.gov/api/citations/19760023196/downloads/19760023196.pdf |
 | [29]  | MIT Rocket Team learning topic 6: injector design | looking at another team's design process | https://wikis.mit.edu/confluence/display/RocketTeam/Topic+6%3A+Injector+Design |
-| [30]  | Experimental Investigation of Showerhead injectors on
-Performance of a 1-kN Paraffin-Fueled Hybrid Rocket Motor | Sauter Mean Diameter | https://www.eucass.eu/component/docindexer/?task=download&id=5781|
+| [30]  | Experimental Investigation of Showerhead injectors on Performance of a 1-kN Paraffin-Fueled Hybrid Rocket Motor | Sauter Mean Diameter | https://www.eucass.eu/component/docindexer/?task=download&id=5781|
 | [31]  | Barrowman Thesis | Drag model | http://www.rsandt.com/media/BarrowmanThesis.pdf |
 | [32]  | Rocketpy | flight model | https://rocketpy-team.github.io/ |
 | [33]  | Praxair Gas Compatibility | detail design | https://www.ualberta.ca/en/chemistry/media-library/safety/gasmaterialcompatability.pdf |
@@ -117,7 +116,9 @@ Performance of a 1-kN Paraffin-Fueled Hybrid Rocket Motor | Sauter Mean Diameter
 | [44]  | Collection of Zero-lift Drag Data on Bodies of Revolution from Free-flight Investigations | Nosecone drag coeff | https://ntrs.nasa.gov/citations/19630004995 |
 | [45]  | Launch Canada R+R | Comp rules | https://www.launchcanada.org/teams |
 | [46]  | Stanford SSI homebrew-rocket-sim | stealing their datcom wrapper | https://github.com/stanford-ssi/homebrew-rocket-sim/tree/master |
-| [47]  | Digital DATCOM manual         |
+| [47]  | Digital DATCOM manual         | ||
+| [48]  | Mueller Style Pyrovalve | reference for valve design | http://www.maxentropy.net/rocketry/pyrovalve/pyrovalv.htm |
+| [49]  | Speedmotionrockets black powder calculator paper + .xlsx | Mueller style pyro valve designs | http://speedmotionrockets.com/Papers.html |
 
 
 

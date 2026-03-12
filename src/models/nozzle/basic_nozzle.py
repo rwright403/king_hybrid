@@ -67,7 +67,7 @@ class basic_nozzle_model(BaseNozzle):
 
         #print("nozzle: ", self.instThrust, m_dot_exit, v_exit, P_exit, self.P_atm) 
 
-        return self.instThrust, m_dot_exit
+        return self.instThrust, m_dot_exit, v_exit, P_exit
 
         
 
