@@ -52,7 +52,7 @@ from math import erf, sqrt
 temps = np.array(temps)
 
 # Envelope limits
-L, U = 17.0, 31.0
+L, U = 17.0, 31
 
 # Core statistics
 mu = temps.mean()

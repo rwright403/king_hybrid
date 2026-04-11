@@ -1,6 +1,5 @@
 import numpy as np
 
-"""
 def secant(func, x1):
     x_eps = x1 * 0.005  # Set the tolerance to be 0.5% of init guess
     x2 = x1 -x1 * 0.01  # Set a second point 1% away from the original guess
@@ -20,7 +19,7 @@ def secant(func, x1):
         kk = kk + 1
     x = x2
     return x
-"""
+
 """
 def rk4_step(ode_func, t, y, dt, *args):
     k1 = ode_func(t, y, *args)

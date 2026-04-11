@@ -77,14 +77,14 @@ D_outer = 2 * np.sqrt(A_outer / np.pi)
 print("Outer diameter [in]:", 39.3701*D_outer)
 print("propellant mass: ", m_fuel_i+m_ox)
 
-V_pre_post_cc       = 0.00118174778  # [m^2]
+V_pre_post_cc       = 0.00118174778  # [m^3]
 
 # ------------------------
 # Nozzle
 # ------------------------
 #TODO: build optimization to find best design point for mass flow and altitude
 d_throat = 0.036673386     # [m]
-expratio = 8.413859791     # [m]
+expratio = 4.8 #8.413859791     # [m]
 
 
 # ------------------------

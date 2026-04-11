@@ -77,7 +77,7 @@ class hybrid_cc_w_fuel_grain_model(BaseChamber):
             MW, gamma = self.C.get_Chamber_MolWt_gamma(P_cc, OF, self.nozzle.expratio)
             R_spec = R_UNIV / MW
 
-            instThrust, m_dot_exit = self.nozzle.sol_thrust(P_cc, T_cc, gamma, R_spec)
+            instThrust, m_dot_exit, v_exit, P_exit = self.nozzle.sol_thrust(P_cc, T_cc, gamma, R_spec)
 
             # --- Chamber mass balance (total)
             m_dot_cc_propellant_in = m_dot_ox_in + m_dot_fuel_in
@@ -115,7 +115,7 @@ class hybrid_cc_w_fuel_grain_model(BaseChamber):
             # --- Pressure ODE (McGill style form)
             P_dot = ( ((gamma-1)/self.V_cc)*m_dot_cc*cp*T_cc - gamma*(P_cc/self.V_cc)*V_dot )#+ (P_cc/((gamma-1)*max(m_fuel, 1e-6)))*dgamma_dOF*(m_dot_ox_in-OF*m_dot_fuel_in) )
 
-        return [r_dot, m_dot_cc, P_dot], {"P_cc": P_cc, "thrust": instThrust, "m_dot_fuel": m_dot_fuel_in, "m_dot_cc": m_dot_cc_propellant_in, "OF": OF, "G_ox": G_ox, "r_fuel_grain": r, "gamma": gamma}
+        return [r_dot, m_dot_cc, P_dot], {"P_cc": P_cc, "thrust": instThrust, "m_dot_fuel": m_dot_fuel_in, "m_dot_cc": m_dot_cc_propellant_in, "OF": OF, "G_ox": G_ox, "r_fuel_grain": r, "gamma": gamma, "v_exit": v_exit, "P_exit": P_exit}
 
     def cc_ode_system_rk(self, t, y, m_dot_ox):
         out, _ = self.cc_ode_system(t, y, m_dot_ox)

@@ -19,7 +19,7 @@ save_path = None
 
 # Environment
 timestep = 0.002          # [s]
-sim_time = 10.4               # [s]
+sim_time = 0.8               # [s]
 P_atm    = 101325          # [Pa]
 T_atm    = 273.15 + 31     # [K]
 rho_atm  = 1.225           # [kg/m^3]
@@ -78,14 +78,14 @@ A_outer = (V_total + V_inner) / L_port
 D_outer = 2 * np.sqrt(A_outer / np.pi)
 print("Outer diameter [in]:", 39.3701*D_outer)
 
-V_pre_post_cc       = 0.00118174778  # [m^3]
+V_pre_post_cc       = 0.00118174778  # [m^2]
 
 # ------------------------
 # Nozzle
 # ------------------------
 #TODO: build optimization to find best design point for mass flow and altitude
 d_throat = 0.036673386     # [m]
-expratio = 4.8 #8.413859791     # [m]
+expratio = 4.8 #6.027#8.413859791     # [m]
 
 
 # ------------------------

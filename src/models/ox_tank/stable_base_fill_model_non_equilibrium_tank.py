@@ -14,10 +14,7 @@ from src.models._thermo.n2o_thermo_span_wagner_class import SpanWagnerEOS_Single
 
 from src.utils.numerical_methods import rk4_step
 
-from src.models.inj.dyer import dyer_model #NOTE: not actuually usded
-
-
-
+from src.models.inj.dyer import dyer_model #NOTE: not actually used
 
 # Global Constants:
 R_U = 8.31446 #J/(mol K)
@@ -279,7 +276,7 @@ class non_equilibrium_tank_model(BaseTank):
         self.state["h_1"] = liq_state.h
         self.state["T_1"] = T_liq
 
-        m_dot_inj = -self.injector.m_dot(self.state)
+        m_dot_inj = -3.75 #self.injector.m_dot(self.state)
         # Apply smoothing like equilibrium tank
         if self.t <= (self.timestep*2):   # first step
             m_dot_inj = 0.5 * m_dot_inj
@@ -385,7 +382,6 @@ class non_equilibrium_tank_model(BaseTank):
         #print("T_dot_liq_gas: ", T_dot_liq, T_dot_gas)
 
         #print("rk vars: ", P_tank, T_liq, T_gas, m_liq, m_gas)
-
 
         return [T_dot_liq, T_dot_gas, m_dot_liq, m_dot_gas, T_dot_wall_liq, T_dot_wall_gas]
 
@@ -509,7 +505,7 @@ class non_equilibrium_tank_model(BaseTank):
 
         
 
-        m_dot= self.injector.m_dot(self.state) #this one pos
+        m_dot= 3.75  #self.injector.m_dot(self.state) #this one pos
 
         # Apply smoothing like equilibrium tank
         if self.t <= (self.timestep*2):   # first step
@@ -545,7 +541,7 @@ class non_equilibrium_tank_model(BaseTank):
 
 
 
-"""
+
 # [7] Test case 1 
 t = 0
 TIMESTEP = 1e-3
@@ -566,6 +562,8 @@ diam_out = diam_in + (3.18/1000)*2 #m
 rho_wall = 2770 #kg/m^3
 k_w = 237 #W/(m K)
 
+
+#NOTE: PIPING IN INJ DATA, THESE ARE PLACEHOLDER!!!
 Cd_1 = 0.425
 A_inj_1 = 0.00003 #m^3 NOTE: GUESS
 P_cc = 1.03e6 #Pa
@@ -583,7 +581,7 @@ published_T_liq_arr = [286.5, 286.0, 284.0, 282.5, 280.5, 279.0, 277.5, 275.0, 2
 published_T_gas_arr = [286.5, 282.5, 280.25, 279.0, 277.5, 276.25, 275.0, 274.0, 272.5, 270.25, 269.0, 267.5, None, None]
 published_T_sat_arr = [286.5, 282.5, 280.25, 279.0, 277.5, 276.25, 275.0, 274.0, 272.5, 272.0, 271.0, 270.0, None, None] #NOTE: T_sat_arr slightly higher for the first 0.5s but timesteps not high enough fidelity for that
 
-"""
+
 
 #Tomacz run tank inputs
 """
@@ -602,11 +600,12 @@ A_inj_1 = 0.25*np.pi*((1.5e-3)**2) #m^2
 P_cc = P_atm
 """
 
-"""
+
 #def __init__(self, timestep, m_nos, P_tank, P_cc, P_atm, T_atm, rho_atm, V_tank, diam_out, diam_in, rho_wall, k_w, volume_err_tol, P_dot_err_tol, injector):
 volume_err_tolerance = 1e-8
 P_dot_err_tolerance = 10
-#TODO: update: tank = non_equilibrium_tank_model(TIMESTEP, m_nos, P_tank, P_cc, P_atm, T_atm, rho_atm, V_tank, diam_out, diam_in, rho_wall, k_w, Cd_1, A_inj_1, volume_err_tolerance, P_dot_err_tolerance)
+placeholder_inj = dyer_model(Cd_1,A_inj_1)
+tank = non_equilibrium_tank_model(TIMESTEP, m_nos, P_tank, P_atm, T_atm, rho_atm, V_tank, diam_out, diam_in, rho_wall, k_w, volume_err_tolerance, P_dot_err_tolerance, placeholder_inj)
 
 time_arr = []
 P_tank_arr = []
@@ -640,7 +639,7 @@ rho_liq_arr = []
 try:
     #start_time = time.time()  # Start timer
 
-    while(t < 6000*TIMESTEP): #3000*TIMESTEP
+    while(t < 1000*TIMESTEP): #3000*TIMESTEP
         
         tank.inst(P_cc)
         t+=TIMESTEP 
@@ -693,8 +692,8 @@ plt.subplot(1,3,2)
 plt.scatter(time_arr,m_liq_arr, label = "model_liquid", color = "b" )
 plt.scatter(time_arr,m_gas_arr, label = "model_gas", color = "darkorange" )
 
-plt.plot(published_time_arr,published_m_liq_arr, label = "published_liquid", color = "dodgerblue" )
-plt.plot(published_time_arr,published_m_gas_arr, label = "published_gas", color = "gold" )
+#plt.plot(published_time_arr,published_m_liq_arr, label = "published_liquid", color = "dodgerblue" )
+#plt.plot(published_time_arr,published_m_gas_arr, label = "published_gas", color = "gold" )
 plt.xlabel('Time (s)')
 plt.ylabel('Mass (kg)')
 plt.title('Mass vs. Time')
@@ -718,4 +717,3 @@ plt.title('Temperature vs. Time')
 plt.legend()
 plt.grid(True)
 plt.show()
-"""
