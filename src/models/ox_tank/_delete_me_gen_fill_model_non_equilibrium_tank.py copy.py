@@ -1,3 +1,6 @@
+#### runs and produces same results, copy incase i break someth later
+
+
 import numpy as np
 from scipy.optimize import root, root_scalar, brentq
 from src.models.ox_tank._base import BaseTank
@@ -5,7 +8,8 @@ from thermo import Chemical
 import matplotlib.pyplot as plt
 import traceback
 
-from src.models.inj._base import build_state
+import time
+
 
 from src.models._thermo.convection_heat_transfer import *
 from src.models._thermo.conduction_heat_transfer import *
@@ -13,7 +17,6 @@ from src.models._thermo.conduction_heat_transfer import *
 from src.models._thermo.n2o_thermo_span_wagner_class import SpanWagnerEOS_SingleState, SpanWagnerEOS_EquilibriumPhase, lightweight_span_wagner_eos_pressure, lightweight_span_wagner_eos_cp, lightweight_span_wagner_eos_d_rho_dT_P
 
 from src.utils.numerical_methods import rk4_step
-
 
 # Global Constants:
 R_U = 8.31446 #J/(mol K)
@@ -34,24 +37,15 @@ CW = 896 #J/(kg K) ~ this is the specific heat capacity of the wall material, fo
 E = 2.1e4 #1.3e3 #2.1e4 #NOTE: EMPIRICAL FACTOR E for high mass flow effects to scale Q_liq_to_sat_surf and m_dot_evap. This was obtained from [7], which claims E is an oxidizer property. This is contradicted by [8] which claims E is a function of the tank as a system
 
 
-"""
-#TODO: update with other injector model once we get this thing up
-def spi_model(Cd_hem_spi_dyer, A_inj_ox, P_1, P_2, rho_tank_exit):
 
+def spi_model(Cd_spi, A, P_1, P_2, rho):
 
-    #for tomacz test case!!!
-"""
-"""
-    pipe_inj_time = [ 0, 0.25, 1.1, 1.5,4]
-    pipe_inj_m_dot = [ (-50/1000), (-43/1000), (-41.8/1000), (-36/1000), (-22/1000)]
+    #m_dot_spi = -Cd_spi*A*np.sqrt(rho*(P_1-P_2))
 
-    m_dot_spi = np.interp(LOOKUP_TIME, pipe_inj_time , pipe_inj_m_dot)
-"""
-"""
     #NOTE: PIPING M_DOT TO ISOLATE REST OF MODEL FOR DEBUG
     m_dot_spi = -3.75
     return m_dot_spi
-"""
+
 
 def solve_m_dot_evap(liq_state, sat_surf, Q_dot_liq_to_sat_surf, Q_dot_sat_surf_to_gas):
     m_dot_evap = 0
@@ -62,25 +56,35 @@ def solve_m_dot_evap(liq_state, sat_surf, Q_dot_liq_to_sat_surf, Q_dot_sat_surf_
     return m_dot_evap
 
 
-"""
-def solve_m_dot_condensed(sat_surf, gas_state, V_gas):
+
+def solve_m_dot_condensed(sat_surf, gas_state, V_gas, t, P_tank):
     m_dot_cond = 0
 
-    if (P_tank > sat_surf.P):
-        m_dot_cond = ((gas_state.P-sat_surf.P)*V_gas*MW)/( (R_U/MW)*gas_state.T*(TIMESTEP) )   #NOTE EDIT DENOM FOR TESTING, OLD FOR REF: ( preos_g.Z_g*(R_U/MW)*T_gas*(TIMESTEP) )
+    p_sat_gas = CP.PropsSI('P', 'T', gas_state.T, 'Q', 1, "N2O")
+
+    """
+    if t == 0:
+        t = TIMESTEP
+    """
+        
+    t = 0.1 #relaxation time
+
+    if (P_tank >= p_sat_gas):
+        m_dot_cond = ((gas_state.P-p_sat_gas)*V_gas*MW)/( R_U*gas_state.T*t )   #NOTE EDIT DENOM FOR TESTING, OLD FOR REF: ( preos_g.Z_g*(R_U/MW)*T_gas*(TIMESTEP) )
+
 
     #NOTE: CONDENSATION FROM PREOS
-    #if p_tank > p_sat_gas, then condensation to enforce equilibrium
+    #if p_tank >= p_sat_gas, then condensation to enforce equilibrium
+    
+    print(f"m_dot_cond: {m_dot_cond:.5f}")
 
-    ###NOTE: try m_dot_cond = 0 FOR DEBUGGING #NOTE
-    m_dot_cond = 0
     return m_dot_cond
-"""
 
 
-def solve_m_dot_liq_gas(m_dot_evap, m_dot_cond, m_dot_inj):
-    m_dot_liq = -m_dot_evap + m_dot_cond + m_dot_inj
-    m_dot_gas = m_dot_evap - m_dot_cond #convert sign convention from liq cv to gas cv
+
+def solve_m_dot_liq_gas(m_dot_evap, m_dot_cond, m_dot_inj, m_dot_vent):
+    m_dot_liq = -m_dot_evap + m_dot_cond + m_dot_inj #note inj signed (-) so added
+    m_dot_gas =  (m_dot_vent) + m_dot_evap - m_dot_cond #only m_dot_vent sign convention rel to gas node: for remaining terms, convert sign convention from liq cv to gas cv
 
     return m_dot_liq, m_dot_gas
 
@@ -122,9 +126,9 @@ def solve_thermo_params(T_liq, T_gas, m_liq, m_gas, rho_liq_prev, rho_gas_prev, 
 
 
 
-def single_solve_T_dot_liq_gas(V_dot_liq, liq_state, sat_surf, gas_state, P_tank, m_liq, m_gas, V_liq, V_gas, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas, debug_mode):
+def single_solve_T_dot_liq_gas(V_dot_liq, liq_state, sat_surf, gas_state, P_tank, m_liq, m_gas, V_liq, V_gas, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas, m_dot_vent, debug_mode):
 
-    m_dot_liq, m_dot_gas = solve_m_dot_liq_gas(m_dot_evap, m_dot_cond, m_dot_inj)
+    m_dot_liq, m_dot_gas = solve_m_dot_liq_gas(m_dot_evap, m_dot_cond, m_dot_inj, m_dot_vent)
 
     V_dot_gas = -V_dot_liq
 
@@ -132,11 +136,30 @@ def single_solve_T_dot_liq_gas(V_dot_liq, liq_state, sat_surf, gas_state, P_tank
     d_rho_dt_gas = (1/V_gas)*m_dot_gas -(m_gas/(V_gas**2))*V_dot_gas
 
 
-    # NOTE: BROKE FOR TESTING ON PURPOSE  no cond!!!!!
 
     # abs
-    U_dot_liq = m_dot_inj*liq_state.h - m_dot_evap*liq_state.h + m_dot_cond*(sat_surf.h_sat_liq) - P_tank*V_dot_liq + Q_dot_liq
-    U_dot_gas =                         m_dot_evap*(sat_surf.h_sat_gas) - m_dot_cond*(gas_state.h) - P_tank*V_dot_gas + Q_dot_gas
+    #U_dot_liq = m_dot_inj*liq_state.h - m_dot_evap*liq_state.h + m_dot_cond*(sat_surf.h_sat_liq) - P_tank*V_dot_liq + Q_dot_liq
+    #U_dot_gas =                         m_dot_evap*(sat_surf.h_sat_gas) - m_dot_cond*(gas_state.h) - P_tank*V_dot_gas + Q_dot_gas
+
+
+    Q_dot_cond_release = m_dot_cond * (gas_state.h - sat_surf.h_sat_liq)
+
+    U_dot_liq = (
+        m_dot_inj*liq_state.h
+        - m_dot_evap*liq_state.h
+        + m_dot_cond*sat_surf.h_sat_liq
+        - P_tank*V_dot_liq
+        + Q_dot_liq
+    )
+
+    U_dot_gas = (
+        m_dot_vent*gas_state.h
+        + m_dot_evap*sat_surf.h_sat_gas
+        - m_dot_cond*sat_surf.h_sat_liq
+        - P_tank*V_dot_gas
+        + Q_dot_gas
+        + Q_dot_cond_release
+    )
 
 
     T_dot_liq = (1/liq_state.cv)*( (1/m_liq) * (U_dot_liq - (liq_state.u * m_dot_liq)) - (liq_state.du_drho_const_T * d_rho_dt_liq) )
@@ -151,17 +174,17 @@ def single_solve_T_dot_liq_gas(V_dot_liq, liq_state, sat_surf, gas_state, P_tank
 
     return T_dot_liq, T_dot_gas 
 
-def P_dot_error(V_dot_guess, liq_state, sat_surf, gas_state, P_tank, m_liq, m_gas, V_liq, V_gas, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas):    
+def P_dot_error(V_dot_guess, liq_state, sat_surf, gas_state, P_tank, m_liq, m_gas, V_liq, V_gas, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas, m_dot_vent):    
 
     V_dot_gas = -V_dot_guess #guessing for liquid
 
-    m_dot_liq, m_dot_gas = solve_m_dot_liq_gas(m_dot_evap, m_dot_cond, m_dot_inj) #or put this outside and pass in?
+    m_dot_liq, m_dot_gas = solve_m_dot_liq_gas(m_dot_evap, m_dot_cond, m_dot_inj, m_dot_vent) #or put this outside and pass in?
 
 
     d_rho_dt_liq = (1/V_liq)*m_dot_liq - (m_liq/(V_liq**2))*V_dot_guess
     d_rho_dt_gas = (1/V_gas)*m_dot_gas - (m_gas/(V_gas**2))*V_dot_gas
 
-    T_dot_liq, T_dot_gas = single_solve_T_dot_liq_gas(V_dot_guess, liq_state, sat_surf, gas_state, P_tank, m_liq, m_gas, V_liq, V_gas, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas, False)
+    T_dot_liq, T_dot_gas = single_solve_T_dot_liq_gas(V_dot_guess, liq_state, sat_surf, gas_state, P_tank, m_liq, m_gas, V_liq, V_gas, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas, m_dot_vent, False)
 
     P_dot_liq = liq_state.dP_dT_const_rho*T_dot_liq + liq_state.dP_drho_const_T*d_rho_dt_liq
 
@@ -170,9 +193,8 @@ def P_dot_error(V_dot_guess, liq_state, sat_surf, gas_state, P_tank, m_liq, m_ga
     return P_dot_liq - P_dot_gas
 
 
-class non_equilibrium_tank_model(BaseTank):
-    def __init__(self, timestep, m_ox, P_tank, P_atm, T_atm, rho_atm, V_tank, diam_out, diam_in, rho_wall, k_w, volume_err_tol, P_dot_err_tol, injector):
-        super().__init__(injector, timestep)
+class non_equilibrium_tank_model():
+    def __init__(self, timestep, m_ox, P_tank, P_atm, T_atm, rho_atm, V_tank, diam_out, diam_in, rho_wall, k_w, Cd_inj, A_inj, Cd_vent, A_vent, volume_err_tol, P_dot_err_tol):
         self.TIMESTEP = timestep
         self.volume_err_tolerance = volume_err_tol
         self.P_dot_err_tolerance = P_dot_err_tol
@@ -243,14 +265,21 @@ class non_equilibrium_tank_model(BaseTank):
         self.V_dot_liq_prev = 1E-8
 
         self.t = 0.0
+        # self.m_dot_vent_prev
+        #TODO: CHANGE BELOW TO INJ
         self.m_dot_ox_prev = 0.0
+
+
+        ### mass flow consts:
+        self.Cd_inj = Cd_inj
+        self.A_inj = A_inj
+        self.Cd_vent = Cd_vent
+        self.A_vent = A_vent
 
 
         self.m_tank = 0.25*np.pi*(self.diam_out**2-self.diam_in**2) * self.height_tank
 
         print("init non eq tank: ", x_tank, self.V_tank, self.rho_liq, rho_bulk_tank, self.rho_gas)
-
-        self.state = build_state()
    
 
 
@@ -267,20 +296,22 @@ class non_equilibrium_tank_model(BaseTank):
         liq_state = SpanWagnerEOS_SingleState(rho_liq, T_liq)
         
         # Mass transfer (1) from injector
-        
-        self.state["P_1"] = P_tank
-        self.state["P_sat"] = P_tank
-        self.state["P_2"] = P_cc
-        self.state["rho_1"] = rho_liq
-        self.state["h_1"] = liq_state.h
-        self.state["T_1"] = T_liq
+        m_dot_inj = spi_model(self.Cd_inj, self.A_inj, P_tank, P_cc, rho_liq)
 
-        m_dot_inj = -self.injector.m_dot(self.state)
-        # Apply smoothing like equilibrium tank
+        # Also mass transfer from vent
+    #TODO: add these var!
+        m_dot_vent = 0# spi_model(self.Cd_vent, self.A_vent, P_tank, P_cc, rho_liq)
+
+        # Apply mass flow rate smoothing like equilibrium tank
         if self.t <= (self.timestep*2):   # first step
             m_dot_inj = 0.5 * m_dot_inj
+            m_dot_vent = 0#  0.5 * m_dot_vent
         else:
             m_dot_inj = 0.5 * m_dot_inj + 0.5 * (-self.m_dot_ox_prev)
+            #TODO? m_dot_vent = 0.5* m_dot_vent + 0.5 * (-self.m_dot_vent_prev)
+
+
+
 
 
         # Heat transfer (2) from saturated surface to gas                       (T_1, T_2, P_tank, rho_2, c, n, tank_diam, fluid)
@@ -300,12 +331,11 @@ class non_equilibrium_tank_model(BaseTank):
         V_gas = m_gas/rho_gas
         V_liq = self.V_tank - V_gas
 
-        ### NOTE: not simulating m_dot_cond!
-        m_dot_cond = 0# solve_m_dot_condensed(sat_surf, gas_state, V_gas)
+        m_dot_cond = solve_m_dot_condensed(sat_surf, gas_state, V_gas, t, P_tank)
 
 
         # Net Mass Transfer of Liquid and Gas CV
-        m_dot_liq, m_dot_gas = solve_m_dot_liq_gas(m_dot_evap, m_dot_cond, m_dot_inj)
+        m_dot_liq, m_dot_gas = solve_m_dot_liq_gas(m_dot_evap, m_dot_cond, m_dot_inj, m_dot_vent)
         
         #then solve the height of the gas wall
         h_gas_wall = V_gas / (0.25*np.pi*(self.diam_in**2))
@@ -344,7 +374,7 @@ class non_equilibrium_tank_model(BaseTank):
                 V_dot, liq_state, sat_surf, gas_state,
                 P_tank, m_liq, m_gas, V_liq, V_gas,
                 m_dot_inj, m_dot_evap, m_dot_cond,
-                Q_dot_liq, Q_dot_gas
+                Q_dot_liq, Q_dot_gas, m_dot_vent
             ),
             method="secant",
             x0=V_dot_liq,
@@ -376,7 +406,7 @@ class non_equilibrium_tank_model(BaseTank):
         #NOTE: for T_dot_wall_vap:  IN: (7) and (8)      OUT: (5)
         T_dot_wall_gas = ( Q_dot_atm_to_gas_wall - Q_dot_gas_wall_to_gas + Q_dot_liq_wall_to_gas_wall + m_dot_gas_wall*CW*(T_wall_liq - T_wall_gas) ) / (CW*m_gas_wall)
 
-        T_dot_liq, T_dot_gas = single_solve_T_dot_liq_gas(V_dot_liq, liq_state, sat_surf, gas_state, P_tank, m_liq, m_gas, V_liq, V_gas, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas, True)
+        T_dot_liq, T_dot_gas = single_solve_T_dot_liq_gas(V_dot_liq, liq_state, sat_surf, gas_state, P_tank, m_liq, m_gas, V_liq, V_gas, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas, m_dot_vent, True)
 
         #print("T_dot_liq_gas: ", T_dot_liq, T_dot_gas)
 
@@ -405,17 +435,14 @@ class non_equilibrium_tank_model(BaseTank):
         gas_state = SpanWagnerEOS_SingleState(rho_gas, T_gas) # I get this might be clunky but I was having serious speed issues so I tried a lightweight pressure sol in the iterative method. Yes, there are better ways to setup this entire program in general, my bad, im a lot older and more pythonic than when i started this script
 
         # Mass transfer (1) from injector
-        
-        self.state["P_1"] = gas_state.P
-        self.state["P_2"] = P_cc
-        self.state["rho_1"] = rho_gas
-        self.state["h_1"] = gas_state.h
-        self.state["T_1"] = T_gas
-        
-        ## NOTE: how to integrate this? - should it just be 0 ???
-        self.state["x_1"] = 0# self.x_tank
 
-        m_dot_gas = -self.injector.m_dot(self.state)
+
+    #NOTE: now gas is fully draining from both vent and injector because no more remaining liquid
+        m_dot_gas = -3.75 #spi_model(self.Cd_1, self.A_inj_1, P_tank, P_cc, rho_liq)
+        """
+    #TODO: add these var!
+        m_dot_vent = spi_model(self.Cd_1, self.A_inj_1, P_tank, P_cc, rho_liq)
+        """
 
         # Heat transfer (5) [natural convection] from gas to gas wall
         Q_dot_gas_wall_to_gas = 0# solve_Q_dot_natural_convection_gas(rho_gas, T_wall_gas, T_gas, T_gas, gas_state.P, 0.021, 0.4, self.height_tank, (np.pi*self.diam_in*self.height_tank), "N2O" ) #relative to gas cv
@@ -459,7 +486,7 @@ class non_equilibrium_tank_model(BaseTank):
 
 
 
-
+    #NOTE: this is solver, should do something better!
     def inst(self, P_cc):
 
         t = 0
@@ -484,27 +511,16 @@ class non_equilibrium_tank_model(BaseTank):
 
         if self.m_liq >= 0.0:
             liq_state = SpanWagnerEOS_SingleState(self.rho_liq, self.T_liq)
-
-            self.state["P_1"] = self.P_tank
-            self.state["P_2"] = P_cc
-            self.state["rho_1"] = self.rho_liq
-            self.state["h_1"] = liq_state.h
-            self.state["T_1"] = self.T_liq
-
             sat_surf = SpanWagnerEOS_EquilibriumPhase(None, self.P_tank)
             T_sat = sat_surf.T
         else:
             gas_state = SpanWagnerEOS_SingleState(self.rho_gas, self.T_gas)
 
-            self.state["P_1"] = gas_state.P
-            self.state["P_2"] = P_cc
-            self.state["rho_1"] = self.rho_gas
-            self.state["h_1"] = gas_state.h
-            self.state["T_1"] = self.T_gas
 
         
 
-        m_dot= self.injector.m_dot(self.state) #this one pos
+        #NOTE: signed (+)  - both inj and vent?
+        m_dot= 3.75  #self.injector.m_dot(self.state) #this one pos
 
         # Apply smoothing like equilibrium tank
         if self.t <= (self.timestep*2):   # first step
@@ -518,9 +534,9 @@ class non_equilibrium_tank_model(BaseTank):
         self.t += self.timestep
 
         if self.m_liq > 0.0:
-            return {"m_ox_tank": (self.m_gas+self.m_liq), "m_dot_ox": m_dot, "P_ox_tank": self.P_tank, "T_liq_ox_tank": self.T_liq, "T_sat_ox_tank": T_sat, "T_gas_ox_tank": self.T_gas, "state": self.state }
+            return {"m_ox_tank": (self.m_gas+self.m_liq), "m_dot_ox": m_dot, "P_ox_tank": self.P_tank, "T_liq_ox_tank": self.T_liq, "T_sat_ox_tank": T_sat, "T_gas_ox_tank": self.T_gas}
         else: #gas phase
-            return {"m_ox_tank": (self.m_gas+self.m_liq), "m_dot_ox": m_dot, "P_ox_tank": self.P_tank, "T_liq_ox_tank": self.T_gas, "T_sat_ox_tank": self.T_gas, "T_gas_ox_tank": self.T_gas, "state": self.state }
+            return {"m_ox_tank": (self.m_gas+self.m_liq), "m_dot_ox": m_dot, "P_ox_tank": self.P_tank, "T_liq_ox_tank": self.T_gas, "T_sat_ox_tank": self.T_gas, "T_gas_ox_tank": self.T_gas}
 
 
 
@@ -540,7 +556,7 @@ class non_equilibrium_tank_model(BaseTank):
 
 
 
-"""
+
 # [7] Test case 1 
 t = 0
 TIMESTEP = 1e-3
@@ -561,8 +577,10 @@ diam_out = diam_in + (3.18/1000)*2 #m
 rho_wall = 2770 #kg/m^3
 k_w = 237 #W/(m K)
 
-Cd_1 = 0.425
-A_inj_1 = 0.00003 #m^3 NOTE: GUESS
+
+#NOTE: PIPING IN INJ DATA, THESE ARE PLACEHOLDER!!!
+Cd_inj = 0.425
+A_inj = 0.00003 #m^3 NOTE: GUESS
 P_cc = 1.03e6 #Pa
 
 published_time_arr = [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5]
@@ -570,38 +588,23 @@ published_time_arr = [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5
 published_P_tank_arr = [4.5e6, 4.0e6, 3.75e6, 3.625e6, 3.5e6, 3.375e6, 3.25e6, 3.15e6, 3.05e6, 2.95e6, 2.875e6, 2.625e6, 2.1e6, 1.45e6 ]
 
 
-#published_m_liq_arr = []
-#published_m_gas_arr = []
-
-
 published_T_liq_arr = [286.5, 286.0, 284.0, 282.5, 280.5, 279.0, 277.5, 275.0, 273.0, 271.0, 269.5, 267.5, None, None]
 published_T_gas_arr = [286.5, 282.5, 280.25, 279.0, 277.5, 276.25, 275.0, 274.0, 272.5, 270.25, 269.0, 267.5, None, None]
 published_T_sat_arr = [286.5, 282.5, 280.25, 279.0, 277.5, 276.25, 275.0, 274.0, 272.5, 272.0, 271.0, 270.0, None, None] #NOTE: T_sat_arr slightly higher for the first 0.5s but timesteps not high enough fidelity for that
 
-"""
 
-#Tomacz run tank inputs
-"""
-m_nos = 0.180 #kg
-P_tank = 5.2e6 #Pa
 
-diam_in = (40e-3) #m
-diam_out = (47.5e-3) #m #bit of a guess
-V_tank = 0.25*np.pi*( (40e-3)**2 )*(220e-3)
 
-rho_wall = 2770 #kg/m^3
-k_w = 237 #W/(m K)
+#TODO: UPDATE
 
-Cd_1 = 0.45 #SPI discharge coeff for inj #2
-A_inj_1 = 0.25*np.pi*((1.5e-3)**2) #m^2
-P_cc = P_atm
-"""
+Cd_vent = 1 
+A_vent = 1
 
-"""
+
 #def __init__(self, timestep, m_nos, P_tank, P_cc, P_atm, T_atm, rho_atm, V_tank, diam_out, diam_in, rho_wall, k_w, volume_err_tol, P_dot_err_tol, injector):
 volume_err_tolerance = 1e-8
 P_dot_err_tolerance = 10
-#TODO: update: tank = non_equilibrium_tank_model(TIMESTEP, m_nos, P_tank, P_cc, P_atm, T_atm, rho_atm, V_tank, diam_out, diam_in, rho_wall, k_w, Cd_1, A_inj_1, volume_err_tolerance, P_dot_err_tolerance)
+tank = non_equilibrium_tank_model(TIMESTEP, m_nos, P_tank, P_atm, T_atm, rho_atm, V_tank, diam_out, diam_in, rho_wall, k_w, Cd_inj, A_inj, Cd_vent, A_vent, volume_err_tolerance, P_dot_err_tolerance)
 
 time_arr = []
 P_tank_arr = []
@@ -632,10 +635,11 @@ rho_gas_arr = []
 rho_liq_arr = []
 
 
-try:
-    #start_time = time.time()  # Start timer
 
-    while(t < 6000*TIMESTEP): #3000*TIMESTEP
+try:
+    start_time = time.time()  # Start timer
+
+    while(t < 600*TIMESTEP):
         
         tank.inst(P_cc)
         t+=TIMESTEP 
@@ -665,8 +669,8 @@ try:
 
         print(f"at t = {t}, final y: ",tank.T_liq, tank.T_gas, tank.m_liq, tank.m_gas, tank.T_wall_liq, tank.T_wall_gas, "\n")
 
-    #end_time = time.time()  # End timer
-    #print(f"\nTotal simulation time: {end_time - start_time:.3f} seconds")
+    end_time = time.time()  # End timer
+    print(f"\nTotal simulation time: {end_time - start_time:.3f} seconds")
 
 except Exception as e:
     traceback.print_exc()
@@ -688,8 +692,7 @@ plt.subplot(1,3,2)
 plt.scatter(time_arr,m_liq_arr, label = "model_liquid", color = "b" )
 plt.scatter(time_arr,m_gas_arr, label = "model_gas", color = "darkorange" )
 
-plt.plot(published_time_arr,published_m_liq_arr, label = "published_liquid", color = "dodgerblue" )
-plt.plot(published_time_arr,published_m_gas_arr, label = "published_gas", color = "gold" )
+
 plt.xlabel('Time (s)')
 plt.ylabel('Mass (kg)')
 plt.title('Mass vs. Time')
@@ -713,4 +716,3 @@ plt.title('Temperature vs. Time')
 plt.legend()
 plt.grid(True)
 plt.show()
-"""
