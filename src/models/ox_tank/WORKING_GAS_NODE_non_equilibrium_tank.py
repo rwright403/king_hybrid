@@ -143,7 +143,6 @@ def single_solve_T_dot_liq_gas(V_dot_liq, liq_state, sat_surf, gas_state, P_tank
     d_rho_dt_gas = (1/V_gas)*m_dot_gas -(m_gas/(V_gas**2))*V_dot_gas
 
 
-    # NOTE: BROKE FOR TESTING ON PURPOSE  no cond!!!!!
 
     # abs
     #U_dot_liq = m_dot_inj*liq_state.h - m_dot_evap*liq_state.h + m_dot_cond*(sat_surf.h_sat_liq) - P_tank*V_dot_liq + Q_dot_liq

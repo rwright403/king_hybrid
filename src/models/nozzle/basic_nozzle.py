@@ -23,7 +23,7 @@ class basic_nozzle_model(BaseNozzle):
         #print("crit pr, actual pr: ", Critical_PR, Actual_PR)
 
         #initialize properties at nozzle exit plane
-        P_exit = 0.0
+        P_exit = self.P_atm
         v_exit = 0.0
         m_dot_exit = 0.0
         M_exit=0.0
@@ -45,7 +45,19 @@ class basic_nozzle_model(BaseNozzle):
         
         # Subsonic at throat
         else: # Find exit mass flow rate:
-            M_exit = brentq(area_mach_func, 0.0001, .99999, args=(gamma, self.A_exit/self.A_throat) ) # brent's method between Ma 1 and Ma 6
+
+            P_exit = self.P_atm
+
+            # Exit Mach from pressure ratio
+            M_exit = np.sqrt(
+                (2/(gamma-1)) * ((P_cc/P_exit)**((gamma-1)/gamma) - 1)
+            )
+
+            # Must be subsonic in this branch
+            M_exit = min(M_exit, 0.999999)
+            
+            
+            #M_exit = brentq(area_mach_func, 0.0001, .99999, args=(gamma, self.A_exit/self.A_throat) ) # brent's method between Ma 1 and Ma 6
             
             #print("into T_exit: ", T_cc, gamma, M_exit)
 
