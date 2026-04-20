@@ -6,18 +6,21 @@ import matplotlib.pyplot as plt
 import traceback
 
 import time
+"""
 import cProfile
 import pstats
+"""
 
-from numba import njit
+#from numba import njit
 
 
 from src.models._thermo.convection_heat_transfer import *
 from src.models._thermo.conduction_heat_transfer import *
 
-
+"""
 from rocketprops.rocket_prop import get_prop
 from rocketprops.line_supt import calc_line_vel_dp
+"""
 
 #thermo table import
 from src.models._thermo.cv_lookup_tables.n2o_cv_gas_lookup import N2OCVGasTable
@@ -147,7 +150,7 @@ def solve_m_dot_condensed(T_gas, P_tank, V_gas):
 
     p_sat_gas = P_sat_table.lookup(T_gas)
         
-    t = 0.1 #relaxation time
+    t = 0.1 #relaxation time - otherwise timestep too small and condensation unrealistically high
 
     if (P_tank >= p_sat_gas):
         m_dot_cond = ((P_tank-p_sat_gas)*V_gas*MW)/( R_U*T_gas*t )
@@ -341,55 +344,6 @@ def build_tank_initial_state(P_tank, V_tank, m_ox, T_atm):
         T_wall_gas,
     ], dtype=np.float64)
     return y_0, rho_liq, rho_gas
-
-""" #NOTE: THIS IS BROKEN, THERMODYNAMICS DONT MAKE SENSE EITHER
-def build_run_tank_initial_state(T_atm, P_tank, V_tank, m_liq=1e-2): #m_liq is seed mass
-
-    T_liq = T_sat_table.lookup(P_tank)
-    T_gas = T_atm #NOTE: gas solved at P_atm, T_atm, don't know mass need to iter solve
-
-
-    #NOTE: liq node at quality 0 sat phase
-    rho_liq = rho_sat_liq_table.lookup(P_tank)
-
-    v_liq = 1/rho_liq
-    V_liq = v_liq*m_liq
-            
-
-    m_gas_guess = 0.5 #kg NOTE: initial guess for secant
-    V_tank_remaining = V_tank - V_liq
-
-    sol = root_scalar(
-        lambda m_gas_guess: P_error(m_gas_guess, V_tank_remaining, T_atm, P_atm),
-        method="secant",
-        x0=m_gas_guess,
-        x1=m_gas_guess * 0.99,
-        xtol=1e-9,
-        maxiter=100
-    )
-    if not sol.converged:
-        raise RuntimeError("P_dot_error secant solver did not converge")
-    
-    m_gas = sol.root
-
-    V_gas = V_tank - V_liq
-    rho_gas = m_gas/V_gas
-
-    # NOTE: ASSUME TANK WALL AT T_ATM, MAKE SURE THIS MATCHES REAL WORLD INITIAL CONDITIONS
-    T_wall_liq = T_atm
-    T_wall_gas = T_atm
-    
-
-    y_0 = np.array([
-        T_liq,
-        T_gas,
-        m_liq,
-        m_gas,
-        T_wall_liq,
-        T_wall_gas,
-    ], dtype=np.float64)
-    return y_0, rho_liq, rho_gas
-"""
     
 
 def build_tank_initial_input(P_atm): #same for both!
@@ -730,12 +684,14 @@ def rhs(t, y, timestep, u, p, guess):
 def main():
     t = 0
 
-    ### NITROUS BOTTLE ###
+    ### K-TYPE NITROUS BOTTLE ###
 
     botl_P_tank = 45e5 #Pa #TODO: check this across envelope, worst case fill time at T_min
+    #NOTE: https://www.lindedirect.com/store/product-detail/nitrous-oxide-(n2o)-n2o-racing-formula-65/ns-rf-65s
+    #NOTE: BUG: TODO: this isn't a bug, DO NOT FORGET THE s at end, stands for siphon.
 
     botl_m_nos = 29.4835 #kg #NOTE: 65LB converted to kg
-    botl_V_tank = 0.1 #m^3 #NOTE: PLACEHOLDER VAL, SHOULD BE: this is for a Q type, can either buy K type or Q type from Linde
+    botl_V_tank = 0.05 #m^3 #NOTE: this is for a K type, can either buy K type
 
     botl_diam_in = (0.0254*7) #m #from Linde website
     botl_diam_out = botl_diam_in + 2*(0.0254*0.25) #m #guessing, as stated before wall node
@@ -745,7 +701,7 @@ def main():
     botl_k_w = 237 #W/(m K)
 
     botl_Cd_inj = 0.05
-    botl_A_inj = 0.25*np.pi*(0.0254*(.400))**2
+    botl_A_inj = 0.25*np.pi*(0.0254*(.187))**2 #NOTE: THIS CORRESPONDS TO A B BODY DK-LOK VALVE     #0.25*np.pi*(0.0254*(.400))**2
 
     #no venting
     botl_Cd_vent = 0
@@ -762,7 +718,7 @@ def main():
 
 
     ### S1 RUN TANK ### - GND % fill
-    full_pcnt_fill = 0.90 #TODO: UPDATE TO GND % FILL
+    full_pcnt_fill = 0.50 #TODO: %_fill_T_max = .52 | %_fill_T_min = 0.48
 
     run_tank_m_nos = 0.4 #kg NOTE: initial small seed mass for startup transient
     run_tank_P_tank = P_atm #Pa #NOTE: assuming initial condition of tank is filled w nitrous @ P_atm
@@ -773,8 +729,8 @@ def main():
     run_tank_rho_wall = 2770 #kg/m^3
     run_tank_k_w = 237 #W/(m K)
 
-    run_tank_Cd_vent = 0.65 #using this from RPE 9th ed p279 
-    run_tank_A_vent = 0.25*np.pi*(0.0254*(.030))**2 #NOTE: assuming vent orifice diam
+    run_tank_Cd_vent = 0.65 #using this from RPE 9th ed p279 - corresponds to a sharp edge orifice
+    run_tank_A_vent = 0.25*np.pi*(0.0254*(.030))**2 #NOTE: assuming vent orifice diam!
 
     #no draining
     run_tank_Cd_inj = 0
@@ -819,9 +775,9 @@ def main():
 
         log_every = 500
         step_idx = 0
-        max_sim_time = 1800 
+        max_sim_time = 1800 #NOTE: 1800s is max allowed fill time for our system by LC rules
 
-        while(pcnt_fill < full_pcnt_fill) and (t < max_sim_time): #t <=1000*TIMESTEP): #pcnt_fill < full_pcnt_fill): #t <= 3.0):
+        while(pcnt_fill < full_pcnt_fill) and (t < max_sim_time): 
             
             #print("botle")
             botl_y = rk4_step(rhs, t, botl_y, TIMESTEP, botl_u, botl_p, botl_guess)
@@ -830,8 +786,6 @@ def main():
             #m_dot_inj_out, h_liq = botl.inst(P_run_tank, 0, 0)
 
             update_tank_initial_input(run_tank_u, 0.0, botl_out[6], botl_out[5])
-
-            #add rocketprops check here
 
             #print("run tank")
             run_tank_y = rk4_step(rhs, t, run_tank_y, TIMESTEP, run_tank_u, run_tank_p, run_tank_guess)
@@ -861,10 +815,13 @@ def main():
 
                 #print(f"m_dot_into_run_tank: {botl_out[6]}")
 
+                #add rocketprops check here
+
+
 
                 #print(f"in bottle at t = {t}, final y: ", botl.T_liq, botl.T_gas, botl.m_liq, botl.m_gas, botl.T_wall_liq, botl.T_wall_gas, "\n")
                 #print(f"in run tank at t = {t}, final y: ", run_tank.T_liq, run_tank.T_gas, run_tank.m_liq, run_tank.m_gas, run_tank.T_wall_liq, run_tank.T_wall_gas, "\n")
-                print(f"t: {t:.5} [s] | %fill: {pcnt_fill:.2f}  [-] | m_vent: {m_vented:.5f} [kg] |m_dot_gas_in: {m_dot_gas_in:.5f}  m_dot_liq_in: {m_dot_liq_in:.5f} [kg/s] | P_botl : {botl_out[0]:.5f}")
+                print(f"t: {t:.5} [s] | %fill: {pcnt_fill:.2f} | m_vent: {m_vented:.5f} [kg] | m_dot_gas_in: {m_dot_gas_in:.5f}  m_dot_liq_in: {m_dot_liq_in:.5f} [kg/s] | P_botl : {botl_out[0]:.5f}")
 
             step_idx += 1
 
@@ -877,15 +834,15 @@ def main():
 
         m_bottle_remaining = botl_y[2] + botl_y[3]
 
-        #my bad figma moment
         delta_t_real = end_time - start_time
 
+        #my bad figma moment
         print("\n\n\n\n\n****************************************************")
         print("*          SOLUTION TERMINATED NORMALLY            *")
         print("****************************************************")
         print(f"*  REAL SIMULATION TIME [s]     = {delta_t_real:12.5f}     *")
         print(f"*  REAL TIME FACTOR             = {(t/delta_t_real):12.5f}     *")
-        print(f"*  FINAL % FILL [-]             = {pcnt_fill:12.5f}     *")
+        print(f"*  FINAL % FILL                 = {pcnt_fill:12.5f}     *")
         print(f"*  FILL TIME [s]                = {t:12.5f}     *")
         print(f"*  VENTED MASS [kg]             = {m_vented:12.5f}     *")
         print(f"*  BOTTLE MASS REMAINING [kg]   = {m_bottle_remaining:12.5f}     *")
