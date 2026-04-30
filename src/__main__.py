@@ -113,10 +113,11 @@ def run(input_file):
             case_dir = os.path.join("src/results", str(input_file))
             build_rocketpy_input_csv(df, "Alt", output_dir=case_dir)
 
+            """
             df.to_csv("P_ox_tank.csv", index=False)
             case_dir = os.path.join("src/results", str(input_file))
             build_rocketpy_input_csv(df, "P_ox_tank", output_dir=case_dir)
-
+            """
 
             A_throat = 0.25*np.pi*(program_input.d_throat**2)
             A_exit = A_throat*program_input.expratio

@@ -700,8 +700,12 @@ def main():
     botl_rho_wall = 2770 #kg/m^3
     botl_k_w = 237 #W/(m K)
 
+    """
     botl_Cd_inj = 0.05
     botl_A_inj = 0.25*np.pi*(0.0254*(.187))**2 #NOTE: THIS CORRESPONDS TO A B BODY DK-LOK VALVE     #0.25*np.pi*(0.0254*(.400))**2
+    """
+    botl_Cd_inj = 0.0000255
+    botl_A_inj = 1 #NOTE: THIS CORRESPONDS TO A B BODY DK-LOK VALVE     #0.25*np.pi*(0.0254*(.400))**2
 
     #no venting
     botl_Cd_vent = 0
