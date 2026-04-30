@@ -248,7 +248,9 @@ class non_equilibrium_tank_model(BaseTank):
 
         self.m_tank = 0.25*np.pi*(self.diam_out**2-self.diam_in**2) * self.height_tank
 
-        print("init non eq tank: ", x_tank, self.V_tank, self.rho_liq, rho_bulk_tank, self.rho_gas)
+        pcnt_fill = self.V_liq/self.V_tank
+
+        print("init non eq tank: ", x_tank, self.V_tank, self.rho_liq, rho_bulk_tank, self.rho_gas, pcnt_fill)
 
         self.state = build_state()
    
