@@ -112,7 +112,7 @@ def prop_sim(kwargs: dict):
     try:
 
         if mode == "ox_tank":
-            while t < sim_time:
+            while t <= sim_time:
                 ox_out = ox_tank.inst(P_cc) or {}
                 records.append({"time": t, **ox_out})
 
@@ -126,7 +126,7 @@ def prop_sim(kwargs: dict):
 
 
         elif mode == "fuel_tank":
-            while t < sim_time:
+            while t <= sim_time:
                 fuel_out = fuel_tank.inst(P_cc) or {}
                 records.append({"time": t, **fuel_out})
                 t += timestep

@@ -205,7 +205,7 @@ def solve_thermo_params(T_liq, T_gas, m_liq, m_gas, rho_liq_prev, rho_gas_prev, 
     return rho_liq, rho_gas, P_tank, V_liq, V_gas
 
 
-
+"""
 def P_error(m_gas, V_tank_remaining, T_atm, P_atm):
 
     rho_gas = m_gas/V_tank_remaining
@@ -215,7 +215,7 @@ def P_error(m_gas, V_tank_remaining, T_atm, P_atm):
     P_residual = P_atm - P_gas 
 
     return P_residual
-
+"""
 
 
 

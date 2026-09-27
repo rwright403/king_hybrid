@@ -16,7 +16,43 @@ from src.utils.numerical_methods import rk4_step
 
 
 
-
+#thermo table import
+from src.models._thermo.cv_lookup_tables.n2o_cv_gas_lookup import N2OCVGasTable
+cv_gas_table = N2OCVGasTable()
+from src.models._thermo.cv_lookup_tables.n2o_cv_liq_lookup import N2OCVLiqTable
+cv_liq_table = N2OCVLiqTable()
+from src.models._thermo.dP_drho_const_T_lookup_tables.n2o_dP_drho_const_T_gas_lookup import N2ODPDRHOTGasTable
+dP_drho_const_T_gas_table = N2ODPDRHOTGasTable()
+from src.models._thermo.dP_drho_const_T_lookup_tables.n2o_dP_drho_const_T_liq_lookup import N2ODPDRHOTLiqTable
+dP_drho_const_T_liq_table = N2ODPDRHOTLiqTable()
+from src.models._thermo.dP_dT_const_rho_lookup_tables.n2o_dP_dT_const_rho_gas_lookup import N2ODPDTRHOGasTable
+dP_dT_const_rho_gas_table = N2ODPDTRHOGasTable()
+from src.models._thermo.dP_dT_const_rho_lookup_tables.n2o_dP_dT_const_rho_liq_lookup import N2ODPDTRHOLiqTable
+dP_dT_const_rho_liq_table = N2ODPDTRHOLiqTable()
+from src.models._thermo.du_drho_const_T_lookup_tables.n2o_du_drho_const_T_gas_lookup import N2ODUDRHOTGasTable
+du_drho_const_T_gas_table = N2ODUDRHOTGasTable()
+from src.models._thermo.du_drho_const_T_lookup_tables.n2o_du_drho_const_T_liq_lookup import N2ODUDRHOTLiqTable
+du_drho_const_T_liq_table = N2ODUDRHOTLiqTable()
+from src.models._thermo.h_lookup_tables.n2o_h_gas_lookup import N2OHGasTable
+h_gas_table = N2OHGasTable()
+from src.models._thermo.h_lookup_tables.n2o_h_liq_lookup import N2OHLiqTable
+h_liq_table = N2OHLiqTable()
+from src.models._thermo.P_lookup_tables.n2o_P_gas_lookup import N2OPGasTable
+P_gas_table = N2OPGasTable()
+from src.models._thermo.P_lookup_tables.n2o_P_liq_lookup import N2OPLiqTable
+P_liq_table = N2OPLiqTable()
+from src.models._thermo.rho_sat_lookup_tables.n2o_rho_sat_gas_lookup import N2ORhoSatGasTable
+rho_sat_gas_table = N2ORhoSatGasTable()
+from src.models._thermo.rho_sat_lookup_tables.n2o_rho_sat_liq_lookup import N2ORhoSatLiqTable
+rho_sat_liq_table = N2ORhoSatLiqTable()
+from src.models._thermo.T_sat_lookup_table.n2o_T_sat_lookup import N2OSatTemperatureTable
+T_sat_table = N2OSatTemperatureTable()
+from src.models._thermo.P_sat_lookup_table.n2o_P_sat_lookup import N2OSatPressureTable
+P_sat_table = N2OSatPressureTable()
+from src.models._thermo.u_lookup_tables.n2o_u_gas_lookup import N2OUGasTable
+u_gas_table = N2OUGasTable()
+from src.models._thermo.u_lookup_tables.n2o_u_liq_lookup import N2OULiqTable
+u_liq_table = N2OULiqTable()
 
 
 # Global Constants:
@@ -57,13 +93,19 @@ def spi_model(Cd_hem_spi_dyer, A_inj_ox, P_1, P_2, rho_tank_exit):
     return m_dot_spi
 """
 
-def solve_m_dot_evap(liq_state, sat_surf, Q_dot_liq_to_sat_surf, Q_dot_sat_surf_to_gas):
+#NOTE: this one enforces the boundary condition between the liq and gas nodes
+def solve_m_dot_evap(h_sat_gas, h_sat_liq, h_liq, Q_dot_liq_to_sat_surf, Q_dot_sat_surf_to_gas):
     m_dot_evap = 0
-    if (Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas) > 0:
 
-        m_dot_evap = (Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas) / ( (sat_surf.h_sat_gas-sat_surf.h_sat_liq) + (sat_surf.h_sat_liq - liq_state.h)  ) 
+
+    #print("Q_dot sat surfs: ", Q_dot_liq_to_sat_surf, Q_dot_sat_surf_to_gas, -Q_dot_sat_surf_to_gas)
+
+    if (Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas) > 0 and Q_dot_sat_surf_to_gas>0: #NOTE: should be fixed now
+
+        m_dot_evap = (Q_dot_liq_to_sat_surf - Q_dot_sat_surf_to_gas) / ( (h_sat_gas-h_sat_liq) + (h_sat_liq - h_liq)  ) 
 
     return m_dot_evap
+
 
 
 """
@@ -82,7 +124,7 @@ def solve_m_dot_condensed(sat_surf, gas_state, V_gas):
 """
 
 
-def solve_m_dot_liq_gas(m_dot_evap, m_dot_cond, m_dot_inj):
+def solve_m_dot_liq_gas(m_dot_evap, m_dot_cond, m_dot_inj, m_dot_vent, m_dot_liq_in, m_dot_gas_in):
     m_dot_liq = -m_dot_evap + m_dot_cond + m_dot_inj
     m_dot_gas = m_dot_evap - m_dot_cond #convert sign convention from liq cv to gas cv
 
@@ -92,8 +134,8 @@ def solve_m_dot_liq_gas(m_dot_evap, m_dot_cond, m_dot_inj):
 def thermo_residuals(rhos, T_liq, T_gas, m_liq, m_gas, V_tank):
     rho_liq, rho_gas = rhos
 
-    P_liq = lightweight_span_wagner_eos_pressure(rho_liq, T_liq)
-    P_gas = lightweight_span_wagner_eos_pressure(rho_gas, T_gas)
+    P_liq = P_liq_table.lookup(rho_liq, T_liq)
+    P_gas = P_gas_table.lookup(rho_gas, T_gas)
 
     V_est = (m_liq / rho_liq) + (m_gas / rho_gas)
 
@@ -119,16 +161,16 @@ def solve_thermo_params(T_liq, T_gas, m_liq, m_gas, rho_liq_prev, rho_gas_prev, 
     rho_liq, rho_gas = sol.x
 
     # Calculate common pressure
-    P_tank = lightweight_span_wagner_eos_pressure(rho_gas, T_gas)
+    P_tank = P_gas_table.lookup(rho_gas, T_gas)
 
     return rho_liq, rho_gas, P_tank
 
 
 
 
-def single_solve_T_dot_liq_gas(V_dot_liq, liq_state, sat_surf, gas_state, P_tank, m_liq, m_gas, V_liq, V_gas, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas, debug_mode):
+def single_solve_T_dot_liq_gas(V_dot_liq, P_tank, m_liq, m_gas, V_liq, V_gas, cv_liq, cv_gas, h_gas, h_sat_gas, h_sat_liq, h_liq, u_liq, u_gas, du_drho_const_T_liq, du_drho_const_T_gas, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas, m_dot_vent, m_dot_liq_in, m_dot_gas_in, debug_mode):
 
-    m_dot_liq, m_dot_gas = solve_m_dot_liq_gas(m_dot_evap, m_dot_cond, m_dot_inj)
+    m_dot_liq, m_dot_gas = solve_m_dot_liq_gas(m_dot_evap, m_dot_cond, m_dot_inj, m_dot_vent, m_dot_liq_in, m_dot_gas_in)
 
     V_dot_gas = -V_dot_liq
 
@@ -136,40 +178,61 @@ def single_solve_T_dot_liq_gas(V_dot_liq, liq_state, sat_surf, gas_state, P_tank
     d_rho_dt_gas = (1/V_gas)*m_dot_gas -(m_gas/(V_gas**2))*V_dot_gas
 
 
-    # NOTE: BROKE FOR TESTING ON PURPOSE  no cond!!!!!
+    Q_dot_cond_release = m_dot_cond * (h_gas - h_sat_liq)
 
-    # abs
-    U_dot_liq = m_dot_inj*liq_state.h - m_dot_evap*liq_state.h + m_dot_cond*(sat_surf.h_sat_liq) - P_tank*V_dot_liq + Q_dot_liq
-    U_dot_gas =                         m_dot_evap*(sat_surf.h_sat_gas) - m_dot_cond*(gas_state.h) - P_tank*V_dot_gas + Q_dot_gas
+    U_dot_liq = (
+        m_dot_liq_in*h_sat_liq
+        + m_dot_inj*h_liq
+        - m_dot_evap*h_liq
+        + m_dot_cond*h_sat_liq
+        - P_tank*V_dot_liq
+        + Q_dot_liq
+    )
+
+    U_dot_gas = (
+        m_dot_gas_in*h_sat_gas
+        + m_dot_vent*h_gas         
+        + m_dot_evap*h_sat_gas
+        - m_dot_cond*h_sat_liq
+        - P_tank*V_dot_gas
+        + Q_dot_gas
+        + Q_dot_cond_release
+    )
 
 
-    T_dot_liq = (1/liq_state.cv)*( (1/m_liq) * (U_dot_liq - (liq_state.u * m_dot_liq)) - (liq_state.du_drho_const_T * d_rho_dt_liq) )
-    T_dot_gas = (1/gas_state.cv)*( (1/m_gas) * (U_dot_gas - (gas_state.u * m_dot_gas)) - (gas_state.du_drho_const_T * d_rho_dt_gas) )
+    T_dot_liq = (1/cv_liq)*( (1/m_liq) * (U_dot_liq - (u_liq * m_dot_liq)) - (du_drho_const_T_liq * d_rho_dt_liq) )
+    T_dot_gas = (1/cv_gas)*( (1/m_gas) * (U_dot_gas - (u_gas * m_dot_gas)) - (du_drho_const_T_gas * d_rho_dt_gas) )
 
 
+    """
     if debug_mode == True:
         a=1
+        #print("T_dot_liq, T_dot_gas: ", T_dot_liq, T_dot_gas)
         #print("T_dot_gas: ", T_dot_gas, U_dot_gas,  m_dot_evap*(sat_surf.h_sat_gas), - m_dot_cond*(gas_state.h), - P_tank*V_dot_gas, + Q_dot_gas)
-        #print("T_dot_gas: ", T_dot_gas, (1/gas_state.cv)*(1/m_gas)*(U_dot_gas - (gas_state.u * m_dot_gas)) , -(1/gas_state.cv)*(gas_state.du_drho_const_T * d_rho_dt_gas) )
-
+        #print("T_dot_gas: ", T_dot_gas, (1/cv_gas)*(1/m_gas)*(U_dot_gas - (u_gas * m_dot_gas)) , -(1/cv_gas)*(du_drho_const_T_gas * d_rho_dt_gas), m_dot_gas )
+        
+        print(f"U_dot_gas: vent={m_dot_vent*h_gas}, evap={m_dot_evap*h_sat_gas}, cond={-m_dot_cond*h_sat_liq}, PdV={-P_tank*V_dot_gas}, Q_gas={Q_dot_gas}, Q_cond_rel={Q_dot_cond_release}, total={U_dot_gas}")
+    """
 
     return T_dot_liq, T_dot_gas 
 
-def P_dot_error(V_dot_guess, liq_state, sat_surf, gas_state, P_tank, m_liq, m_gas, V_liq, V_gas, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas):    
+
+
+def P_dot_error(V_dot_guess, P_tank, m_liq, m_gas, V_liq, V_gas, cv_liq, cv_gas, h_gas, h_sat_gas, h_sat_liq, h_liq, u_liq, u_gas, du_drho_const_T_liq, du_drho_const_T_gas, dP_dT_const_rho_liq, dP_dT_const_rho_gas, dP_drho_const_T_liq, dP_drho_const_T_gas, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas, m_dot_vent, m_dot_liq_in, m_dot_gas_in):    
 
     V_dot_gas = -V_dot_guess #guessing for liquid
 
-    m_dot_liq, m_dot_gas = solve_m_dot_liq_gas(m_dot_evap, m_dot_cond, m_dot_inj) #or put this outside and pass in?
+    m_dot_liq, m_dot_gas = solve_m_dot_liq_gas(m_dot_evap, m_dot_cond, m_dot_inj, m_dot_vent, m_dot_liq_in, m_dot_gas_in) #or put this outside and pass in?
 
 
     d_rho_dt_liq = (1/V_liq)*m_dot_liq - (m_liq/(V_liq**2))*V_dot_guess
     d_rho_dt_gas = (1/V_gas)*m_dot_gas - (m_gas/(V_gas**2))*V_dot_gas
 
-    T_dot_liq, T_dot_gas = single_solve_T_dot_liq_gas(V_dot_guess, liq_state, sat_surf, gas_state, P_tank, m_liq, m_gas, V_liq, V_gas, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas, False)
+    T_dot_liq, T_dot_gas = single_solve_T_dot_liq_gas(V_dot_guess, P_tank, m_liq, m_gas, V_liq, V_gas, cv_liq, cv_gas, h_gas, h_sat_gas, h_sat_liq, h_liq, u_liq, u_gas, du_drho_const_T_liq, du_drho_const_T_gas, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas, m_dot_vent, m_dot_liq_in, m_dot_gas_in, False)
 
-    P_dot_liq = liq_state.dP_dT_const_rho*T_dot_liq + liq_state.dP_drho_const_T*d_rho_dt_liq
+    P_dot_liq = dP_dT_const_rho_liq*T_dot_liq + dP_drho_const_T_liq*d_rho_dt_liq
 
-    P_dot_gas = gas_state.dP_dT_const_rho*T_dot_gas + gas_state.dP_drho_const_T*d_rho_dt_gas
+    P_dot_gas = dP_dT_const_rho_gas*T_dot_gas + dP_drho_const_T_gas*d_rho_dt_gas
 
     return P_dot_liq - P_dot_gas
 
@@ -268,9 +331,41 @@ class non_equilibrium_tank_model(BaseTank):
         ### Solve thermo parameters! - old according to [8]
         rho_liq, rho_gas, P_tank = solve_thermo_params(T_liq, T_gas, m_liq, m_gas, self.rho_liq_prev, self.rho_gas_prev, self.V_tank)
 
+        """
         gas_state = SpanWagnerEOS_SingleState(rho_gas, T_gas) # I get this might be clunky but I was having serious speed issues so I tried a lightweight pressure sol in the iterative method. Yes, there are better ways to setup this entire program in general, my bad, im a lot older and more pythonic than when i started this script
         sat_surf = SpanWagnerEOS_EquilibriumPhase(None, P_tank)
         liq_state = SpanWagnerEOS_SingleState(rho_liq, T_liq)
+        """
+        m_dot_vent = 0.0
+        m_dot_liq_in = 0.0
+        m_dot_gas_in = 0.0
+
+        cv_gas = cv_gas_table.lookup(rho_gas, T_gas)
+        dP_drho_const_T_gas = dP_drho_const_T_gas_table.lookup(rho_gas, T_gas)
+        dP_dT_const_rho_gas = dP_dT_const_rho_gas_table.lookup(rho_gas, T_gas)
+        du_drho_const_T_gas = du_drho_const_T_gas_table.lookup(rho_gas, T_gas)
+        h_gas = h_gas_table.lookup(rho_gas, T_gas)
+        u_gas = u_gas_table.lookup(rho_gas, T_gas)
+        
+        
+        
+        
+        T_sat = T_sat_table.lookup(P_tank)
+        rho_sat_gas = rho_sat_gas_table.lookup(P_tank)
+        rho_sat_liq = rho_sat_liq_table.lookup(P_tank)
+        h_sat_gas = h_gas_table.lookup(rho_sat_gas, T_sat)
+        h_sat_liq = h_liq_table.lookup(rho_sat_liq, T_sat)
+
+
+
+
+
+        cv_liq = cv_liq_table.lookup(rho_liq, T_liq)
+        dP_drho_const_T_liq = dP_drho_const_T_liq_table.lookup(rho_liq, T_liq)
+        dP_dT_const_rho_liq = dP_dT_const_rho_liq_table.lookup(rho_liq, T_liq)
+        du_drho_const_T_liq = du_drho_const_T_liq_table.lookup(rho_liq, T_liq)
+        h_liq = h_liq_table.lookup(rho_liq, T_liq)
+        u_liq = u_liq_table.lookup(rho_liq, T_liq)
         
         # Mass transfer (1) from injector
         
@@ -278,7 +373,7 @@ class non_equilibrium_tank_model(BaseTank):
         self.state["P_sat"] = P_tank
         self.state["P_2"] = P_cc
         self.state["rho_1"] = rho_liq
-        self.state["h_1"] = liq_state.h
+        self.state["h_1"] = h_liq
         self.state["T_1"] = T_liq
 
         m_dot_inj = -self.injector.m_dot(self.state)
@@ -291,16 +386,17 @@ class non_equilibrium_tank_model(BaseTank):
 
         # Heat transfer (2) from saturated surface to gas                       (T_1, T_2, P_tank, rho_2, c, n, tank_diam, fluid)
         # L = tank inner diam , Area of circle x section
-        T_film_gas = ((sat_surf.T + T_gas)/2 )
-        Q_dot_sat_surf_to_gas = solve_Q_dot_natural_convection_gas(rho_gas, sat_surf.T, T_gas, T_film_gas, P_tank, 0.15, 0.333, self.diam_in, self.Tank_Inner_Area, "N2O" ) #relative to gas cv
+        T_film_gas = ((T_sat + T_gas)/2 )
+        Q_dot_sat_surf_to_gas = solve_Q_dot_natural_convection_gas(rho_gas, T_sat, T_gas, T_film_gas, P_tank, 0.15, 0.333, self.diam_in, self.Tank_Inner_Area, "N2O" ) #relative to gas cv
     
         # Heat transfer (3)  from liq to saturated surface (sat surface assumed to be a liquid with quality 0)
-        T_film_liq = ((sat_surf.T + T_liq)/2 )
-        Q_dot_liq_to_sat_surf = (E)*solve_Q_dot_natural_convection_liq(rho_liq, T_liq, sat_surf.T, T_film_liq, P_tank, 0.15, 0.333, self.diam_in, self.Tank_Inner_Area, "N2O" ) #relative to liq cv
+        T_film_liq = ((T_sat + T_liq)/2 )
+        Q_dot_liq_to_sat_surf = (E)*solve_Q_dot_natural_convection_liq(rho_liq, T_liq, T_sat, T_film_liq, P_tank, 0.15, 0.333, self.diam_in, self.Tank_Inner_Area, "N2O" ) #relative to liq cv
         #NOTE:CORRECTION FACTOR for nitrous oxide heat transfer E = (E) to account for blowing as per [7],[8]
 
         # Mass transfer (3) by evaporation 
-        m_dot_evap = solve_m_dot_evap(liq_state, sat_surf, Q_dot_liq_to_sat_surf, Q_dot_sat_surf_to_gas)
+        #m_dot_evap = solve_m_dot_evap(liq_state, sat_surf, Q_dot_liq_to_sat_surf, Q_dot_sat_surf_to_gas)
+        m_dot_evap = solve_m_dot_evap(h_sat_gas, h_sat_liq, h_liq, Q_dot_liq_to_sat_surf, Q_dot_sat_surf_to_gas)
 
         # Mass transfer (2) by condensation
         V_gas = m_gas/rho_gas
@@ -311,7 +407,7 @@ class non_equilibrium_tank_model(BaseTank):
 
 
         # Net Mass Transfer of Liquid and Gas CV
-        m_dot_liq, m_dot_gas = solve_m_dot_liq_gas(m_dot_evap, m_dot_cond, m_dot_inj)
+        m_dot_liq, m_dot_gas = solve_m_dot_liq_gas(m_dot_evap, m_dot_cond, m_dot_inj, m_dot_vent, m_dot_liq_in, m_dot_gas_in)
         
         #then solve the height of the gas wall
         h_gas_wall = V_gas / (0.25*np.pi*(self.diam_in**2))
@@ -347,10 +443,10 @@ class non_equilibrium_tank_model(BaseTank):
         
         sol = root_scalar(
             lambda V_dot: P_dot_error(
-                V_dot, liq_state, sat_surf, gas_state,
-                P_tank, m_liq, m_gas, V_liq, V_gas,
+                V_dot, P_tank, m_liq, m_gas, V_liq, V_gas,
+                cv_liq, cv_gas, h_gas, h_sat_gas, h_sat_liq, h_liq, u_liq, u_gas, du_drho_const_T_liq, du_drho_const_T_gas, dP_dT_const_rho_liq, dP_dT_const_rho_gas, dP_drho_const_T_liq, dP_drho_const_T_gas,
                 m_dot_inj, m_dot_evap, m_dot_cond,
-                Q_dot_liq, Q_dot_gas
+                Q_dot_liq, Q_dot_gas, m_dot_vent, m_dot_liq_in, m_dot_gas_in
             ),
             method="secant",
             x0=V_dot_liq,
@@ -382,7 +478,7 @@ class non_equilibrium_tank_model(BaseTank):
         #NOTE: for T_dot_wall_vap:  IN: (7) and (8)      OUT: (5)
         T_dot_wall_gas = ( Q_dot_atm_to_gas_wall - Q_dot_gas_wall_to_gas + Q_dot_liq_wall_to_gas_wall + m_dot_gas_wall*CW*(T_wall_liq - T_wall_gas) ) / (CW*m_gas_wall)
 
-        T_dot_liq, T_dot_gas = single_solve_T_dot_liq_gas(V_dot_liq, liq_state, sat_surf, gas_state, P_tank, m_liq, m_gas, V_liq, V_gas, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas, True)
+        T_dot_liq, T_dot_gas = single_solve_T_dot_liq_gas(V_dot_liq, P_tank, m_liq, m_gas, V_liq, V_gas, cv_liq, cv_gas, h_gas, h_sat_gas, h_sat_liq, h_liq, u_liq, u_gas, du_drho_const_T_liq, du_drho_const_T_gas, m_dot_inj, m_dot_evap, m_dot_cond, Q_dot_liq, Q_dot_gas, m_dot_vent, m_dot_liq_in, m_dot_gas_in, True)
 
         #print("T_dot_liq_gas: ", T_dot_liq, T_dot_gas)
 

@@ -15,6 +15,11 @@ from src.postprocess.plot_sim_results import plot_sim_results
 from src.utils.build_rocketpy_input_csv import build_rocketpy_input_csv
 
 
+
+import cProfile
+import pstats
+
+
 def run(input_file):
 
     """
@@ -38,6 +43,9 @@ def run(input_file):
 
     if user_input =='1':
 
+        profiler = cProfile.Profile()
+        profiler.enable()
+
         kwargs = build_kwargs(program_input)
 
         start_time = time.time()
@@ -45,7 +53,17 @@ def run(input_file):
         end_time = time.time()
         elapsed = end_time - start_time
 
+        profiler.disable()
+
         print(f"\nSimulation completed in real time {elapsed:.2f} seconds ({elapsed/60:.2f} min)\n")
+
+        stats = pstats.Stats(profiler)
+
+        print("\n--- CUMULATIVE TIME ---")
+        stats.sort_stats("cumtime").print_stats(30)
+
+        print("\n--- SELF TIME ---")
+        stats.sort_stats("tottime").print_stats(30)
 
         # Make a directory path for this case
         case_dir = os.path.join("src/results", str(input_file))
