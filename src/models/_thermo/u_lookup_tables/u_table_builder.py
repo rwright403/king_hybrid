@@ -14,7 +14,7 @@ def build_n2o_u_gas_table(
     T_min=180.0, T_max=330.0, nT=200,
     gas_out_file=gas_out_file
 ):
-    rho_grid = np.linspace(rho_min, rho_max, nrho)   # Pa
+    rho_grid = np.linspace(rho_min, rho_max, nrho)   # kg/m^3
     T_grid = np.linspace(T_min, T_max, nT)   # K
 
     u_gas_tab = np.empty((nrho, nT), dtype=np.float64)
@@ -23,7 +23,7 @@ def build_n2o_u_gas_table(
         for j, T in enumerate(T_grid):
             try:
                 SWEOS = SpanWagnerEOS_SingleState(rho, T)
-                u_gas_tab[i, j] = SWEOS.u   # W/m/K
+                u_gas_tab[i, j] = SWEOS.u   # J/kg
             except Exception:
                 u_gas_tab[i, j] = np.nan
 
@@ -36,7 +36,7 @@ def build_n2o_u_liq_table(
     T_min=180.0, T_max=330.0, nT=200,
     liq_out_file=liq_out_file
 ):
-    rho_grid = np.linspace(rho_min, rho_max, nrho)   # Pa
+    rho_grid = np.linspace(rho_min, rho_max, nrho)   # kg/m^3
     T_grid = np.linspace(T_min, T_max, nT)   # K
 
     u_liq_tab = np.empty((nrho, nT), dtype=np.float64)
@@ -45,7 +45,7 @@ def build_n2o_u_liq_table(
         for j, T in enumerate(T_grid):
             try:
                 SWEOS = SpanWagnerEOS_SingleState(rho, T)
-                u_liq_tab[i, j] = SWEOS.u   # W/m/K
+                u_liq_tab[i, j] = SWEOS.u   # J/kg
             except Exception:
                 u_liq_tab[i, j] = np.nan
 
