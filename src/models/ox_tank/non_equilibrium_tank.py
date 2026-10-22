@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.optimize import root, root_scalar, brentq
 from src.models.ox_tank._base import BaseTank
-from thermo import Chemical
+#from thermo import Chemical
 import matplotlib.pyplot as plt
 import traceback
 
@@ -58,7 +58,7 @@ u_liq_table = N2OULiqTable()
 # Global Constants:
 R_U = 8.31446 #J/(mol K)
 T_REF = 298.15 #K
-
+"""
 n2o_g = Chemical('nitrous oxide', T=T_REF)
 PC = n2o_g.Pc
 TC = n2o_g.Tc
@@ -67,6 +67,7 @@ OMEGA = n2o_g.omega
 MW = (n2o_g.MW/1000) #n2o.MW in g/mol --> converted to kg/mol
 KAPPA = 0.37464 + 1.5422*n2o_g.omega - 0.26992*n2o_g.omega**2
 b = 0.07780*(R_U*TC/PC)
+"""
 g = 9.81 #m/s^2
 
 CW = 896 #J/(kg K) ~ this is the specific heat capacity of the wall material, for Al 6061 from MATWEB: https://www.matweb.com/search/datasheet.aspx?MatGUID=b8d536e0b9b54bd7b69e4124d8f1d20a&ckck=1
